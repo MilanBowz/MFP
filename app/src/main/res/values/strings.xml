@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">MFP</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="playing">Playing</string>
+    <string name="playlist">Playlist</string>
+    <string name="title_of_the_song">Title of the song</string>
+    <string name="folders">FOLDERS</string>
+    <string name="songs">SONGS</string>
+    <string name="no_music_loaded">No Music loaded</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Customize your theme here -->
+        <item name="colorPrimary">@color/color</item>
+        <item name="colorPrimaryDark">@color/color</item>
+        <item name="android:textColor">@color/color</item>
+        <item name="android:editTextBackground">@color/invisible</item>
+        <item name="colorAccent">@color/blue</item>
+        <item name="backgroundColor">@color/background</item>
+        <item name="iconTint">@color/color</item>
+    </style>
+</resources>
