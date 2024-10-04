@@ -1,0 +1,90 @@
+# Gradle-specific files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration files (Android Studio specific)
+.idea/
+*.iml
+*.hprof
+local.properties
+
+# Log files
+*.log
+
+# Compiled Java bytecode
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# Build directories for Android projects
+/build/
+*/build/
+
+# Signed APKs
+*.apk
+*.ap_
+
+# Keystore files
+*.jks
+
+# Android Studio captures
+captures/
+
+# NDK files
+*.o
+*.so
+*.d
+
+# IntelliJ IDEA config and workspace files
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+
+# Mac OS-specific files
+.DS_Store
+
+# Windows-specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux-specific files
+*.swp
+*.swo
+
+# Ignore Google services JSON (important for security)
+google-services.json
+
+# Ignore Android build cache
+.gradle/
+
+# Generated files for Kotlin/Java interop
+*.kotlin_metadata/
+*.java_version/
+
+# Ignore virtual environment and dependency files
+.env/
+.venv/
+
+# Lint and formatting results
+*.lint
+lint/reports/
+lint/results/
+
+# Ignore test results
+test-results/
+test-output/
+
+# Ignore Proguard files (optional)
+proguard/
+
+# Miscellaneous
+*.orig
+
