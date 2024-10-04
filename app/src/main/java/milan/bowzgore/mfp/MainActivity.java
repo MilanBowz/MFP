@@ -10,9 +10,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.pm.PackageManager;
 
+
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Toast;
+
 import android.Manifest;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,11 +26,13 @@ import milan.bowzgore.mfp.notification.ViewPagerAdapter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 
+
 public class MainActivity extends AppCompatActivity implements Application.ActivityLifecycleCallbacks {
 
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
+    private static final int REQUEST_CODE = 123;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,29 +72,36 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         });
 
         // Check and request permissions as before
-        if (!checkPermission()) {
-            requestPermission();
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                Toast.makeText(MainActivity.this, "READ PERMISSION IS REQUIRED,PLEASE ALLOW FROM SETTINGS", Toast.LENGTH_SHORT).show();
-            } else
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 123);
-        }
+        checkAndRequestPermissions();
     }
 
-    boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
-        return result == PackageManager.PERMISSION_GRANTED;
-    }
+    private void checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+: Request READ_MEDIA_AUDIO and POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
 
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS},
+                        REQUEST_CODE);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6 to 12: Request READ_EXTERNAL_STORAGE
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        REQUEST_CODE);
+            }
+        }
 
-    void requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-            Toast.makeText(MainActivity.this, "READ PERMISSION IS REQUIRED,PLEASE ALLOW FROM SETTINGS", Toast.LENGTH_SHORT).show();
-        } else
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 123);
-
+        // Request WRITE_EXTERNAL_STORAGE for older APIs (below Android 10)
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_CODE);
+            }
+        }
     }
 
     @Override
@@ -141,4 +151,5 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             notificationManager.createNotificationChannel(channel);
         }
     }
+
 }

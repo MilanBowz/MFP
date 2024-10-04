@@ -25,7 +25,6 @@ public class NotificationService extends Service {
     public static final String CHANNEL_ID = "media_playback_channel";
 
     private final SongLibrary library = getSongLibrary();
-    public boolean isPlaying = false;
     public static boolean isListPlaying = false;
 
     private PowerManager.WakeLock wakeLock;
@@ -60,7 +59,7 @@ public class NotificationService extends Service {
                 super.onPlay();
                 if (mediaPlayer != null) {
                     startMusicService("PLAY");
-                    if(isPlaying){
+                    if(mediaPlayer.isPlaying()){
                         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                     }
                     else {
@@ -74,7 +73,7 @@ public class NotificationService extends Service {
                 if (mediaPlayer != null) {
                     pauseMusic();
                     startMusicService("PAUSE");
-                    if(isPlaying){
+                    if(mediaPlayer.isPlaying()){
                         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                     }
                     else {
@@ -214,7 +213,7 @@ public class NotificationService extends Service {
         PendingIntent prevPendingIntent = PendingIntent.getService(this, 3, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent stopPendingIntent = PendingIntent.getService(this, 4, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Action actionToShow = isPlaying ?
+        NotificationCompat.Action actionToShow = mediaPlayer.isPlaying() ?
                 new NotificationCompat.Action(R.drawable.ic_baseline_pause_circle_outline_24, "Pause", pausePendingIntent) :
                 new NotificationCompat.Action(R.drawable.ic_baseline_play_circle_outline_24, "Play", playPendingIntent);
         NotificationCompat.Action nextAction = new NotificationCompat.Action(R.drawable.ic_baseline_skip_next_24, "Next", nextPendingIntent);
@@ -274,19 +273,16 @@ public class NotificationService extends Service {
     public void playMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         mediaPlayer.start();
-        isPlaying = true;
     }
 
     public void pauseMusic() {
         if (mediaPlayer.isPlaying()) {
             updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
             mediaPlayer.pause();
-            isPlaying =false;
 
         } else {
             updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
             mediaPlayer.start();
-            isPlaying =true;
         }
     }
     public void playNextSong(){

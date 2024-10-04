@@ -7,4 +7,6 @@
     <string name="folders">FOLDERS</string>
     <string name="songs">SONGS</string>
     <string name="no_music_loaded">No Music loaded</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
