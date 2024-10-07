@@ -7,6 +7,15 @@
         <item name="android:editTextBackground">@color/invisible</item>
         <item name="colorAccent">@color/blue</item>
         <item name="backgroundColor">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
         <item name="iconTint">@color/color</item>
+    </style>
+    <style name="MiniPlayerActivityTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:statusBarColor">@color/background</item> <!-- Set transparent or remove this line -->
+        <item name="android:navigationBarColor">@color/invisible</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 </resources>

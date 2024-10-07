@@ -3,7 +3,6 @@ package milan.bowzgore.mfp;
 import static android.app.Activity.RESULT_OK;
 import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
@@ -23,13 +22,10 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -263,7 +259,6 @@ public class PlayingFragment extends Fragment {
 
     private void pausePlay(){
         startMusicService("PAUSE");
-        setMusicResources();
     }
 
     private void playNextSong(){
@@ -356,9 +351,7 @@ public class PlayingFragment extends Fragment {
     }
 
     public void updateCoverArt(String coverArtPath) {
-        // Get the current position of the media player
         long millis = mediaPlayer.getCurrentPosition();
-        // Define the path for the temporary file
         String filePath = currentSong.getPath();
         String tempFilePath = filePath.replace(".mp3", "_temp.mp3");
 

@@ -1,5 +1,8 @@
 package milan.bowzgore.mfp;
 
+import static milan.bowzgore.mfp.library.FolderLibrary.folders;
+import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewpager2.widget.ViewPager2;
@@ -116,12 +119,12 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
 
     @Override
     public void onActivityResumed(@NonNull Activity activity) {
-
+        super.onResume();
     }
 
     @Override
     public void onActivityPaused(@NonNull Activity activity) {
-
+        super.onPause();
     }
 
     @Override

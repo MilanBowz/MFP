@@ -1,7 +1,6 @@
 package milan.bowzgore.mfp.notification;
 
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
-import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
 
 import android.app.PendingIntent;
 import android.app.Service;
@@ -24,7 +23,7 @@ public class NotificationService extends Service {
     public static final int NOTIFICATION_ID = 1;
     public static final String CHANNEL_ID = "media_playback_channel";
 
-    private final SongLibrary library = getSongLibrary();
+    public static boolean isPlaying = false;
     public static boolean isListPlaying = false;
 
     private PowerManager.WakeLock wakeLock;
@@ -59,7 +58,7 @@ public class NotificationService extends Service {
                 super.onPlay();
                 if (mediaPlayer != null) {
                     startMusicService("PLAY");
-                    if(mediaPlayer.isPlaying()){
+                    if(isPlaying){
                         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                     }
                     else {
@@ -71,9 +70,8 @@ public class NotificationService extends Service {
             public void onPause() {
                 super.onPause();
                 if (mediaPlayer != null) {
-                    pauseMusic();
                     startMusicService("PAUSE");
-                    if(mediaPlayer.isPlaying()){
+                    if(isPlaying){
                         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                     }
                     else {
@@ -213,7 +211,7 @@ public class NotificationService extends Service {
         PendingIntent prevPendingIntent = PendingIntent.getService(this, 3, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent stopPendingIntent = PendingIntent.getService(this, 4, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Action actionToShow = mediaPlayer.isPlaying() ?
+        NotificationCompat.Action actionToShow = isPlaying ?
                 new NotificationCompat.Action(R.drawable.ic_baseline_pause_circle_outline_24, "Pause", pausePendingIntent) :
                 new NotificationCompat.Action(R.drawable.ic_baseline_play_circle_outline_24, "Play", playPendingIntent);
         NotificationCompat.Action nextAction = new NotificationCompat.Action(R.drawable.ic_baseline_skip_next_24, "Next", nextPendingIntent);
@@ -238,20 +236,6 @@ public class NotificationService extends Service {
     }
 
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-        }
-        if (mediaSession != null) {
-            mediaSession.release();
-        }
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
-        stopForeground(true);
-    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -273,44 +257,63 @@ public class NotificationService extends Service {
     public void playMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         mediaPlayer.start();
+        isPlaying = true;
     }
 
     public void pauseMusic() {
-        if (mediaPlayer.isPlaying()) {
+        if (isPlaying) {
             updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
             mediaPlayer.pause();
+            isPlaying = false;
 
         } else {
             updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
             mediaPlayer.start();
+            isPlaying = true;
         }
     }
     public void playNextSong(){
-        if(library.songNumber == getSongLibrary().songsList.size()-1){
-            library.changePlaying(0);
+        if(SongLibrary.songNumber == SongLibrary.songsList.size()-1){
+            SongLibrary.changePlaying(0);
             playMusic();
             return;
         }
-        library.changePlaying(library.songNumber+1);
-
+        SongLibrary.changePlaying(SongLibrary.songNumber +1);
         playMusic();
     }
     public void playPreviousSong(){
-        if(library.songNumber == 0){
-            library.changePlaying(library.songsList.size()-1);
+        if(SongLibrary.songNumber == 0){
+            SongLibrary.changePlaying(SongLibrary.songsList.size()-1);
             playMusic();
             return;
         }
-        library.changePlaying(library.songNumber-1);
+        SongLibrary.changePlaying(SongLibrary.songNumber -1);
         playMusic();
     }
     public void stopMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.pause();
         mediaPlayer.release();
+        isPlaying = false;
     }
     public static void setListPlaying() {
         isListPlaying = ! isListPlaying;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+        if (mediaSession != null) {
+            mediaSession.release();
+        }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        stopForeground(true);
     }
 
 }

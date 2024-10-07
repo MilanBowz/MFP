@@ -53,6 +53,8 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
             holder.textView.setTextColor(ContextCompat.getColor(context, R.color.color));
         }
 
+        FolderAdapter.addSongsFragment();
+
         holder.itemView.setOnClickListener(v -> {
             ViewPagerAdapter adapter = (ViewPagerAdapter) viewPager.getAdapter();
             if (adapter != null && position != RecyclerView.NO_POSITION) {
@@ -72,6 +74,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
                 viewPager.setCurrentItem(2,true); // Navigate to SongsFragment
             }
         });
+    }
+
+    public static void addSongsFragment(){
+        if(selectedFolder != null && viewPagerAdapter.getItemCount() < 3){
+            viewPagerAdapter.addFragment(new SongsFragment());// not swipable
+        }
     }
 
     @Override
