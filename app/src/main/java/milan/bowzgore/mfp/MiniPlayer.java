@@ -1,8 +1,7 @@
 package milan.bowzgore.mfp;
 
-import static androidx.core.content.ContentProviderCompat.requireContext;
-
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
+import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
@@ -21,11 +20,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.provider.MediaStore;
-import android.widget.ImageView;
 import android.widget.TextView;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import milan.bowzgore.mfp.databinding.FragmentMiniPlayerBinding;
 import milan.bowzgore.mfp.library.SongLibrary;
+import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.notification.NotificationService;
 
 
@@ -35,7 +39,10 @@ public class MiniPlayer extends AppCompatActivity {
     private FragmentMiniPlayerBinding binding;
     private TextView titleTv ;
     private BroadcastReceiver receiver;
-    private ImageView pausePlay;
+
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private AtomicBoolean isRunning = new AtomicBoolean(true);
+
     public MiniPlayer() {
         // Required empty public constructor
     }
@@ -47,7 +54,6 @@ public class MiniPlayer extends AppCompatActivity {
         binding = FragmentMiniPlayerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         titleTv = binding.songTitle;
-        pausePlay = binding.playSongButton;
 
         createNotificationChannel();
 
@@ -61,7 +67,6 @@ public class MiniPlayer extends AppCompatActivity {
                 filePath = filePath.substring(0,filePath.lastIndexOf("/"));
                 // Load the audio models from the library
                 SongLibrary.getAllAudioFromDevice(this, filePath, songTitle);
-
                 // Start the notification service
                 Intent mainIntent2 = new Intent(this, NotificationService.class);
                 mainIntent2.setAction("START");
@@ -77,6 +82,15 @@ public class MiniPlayer extends AppCompatActivity {
 
         Intent mainIntent2 = new Intent(this, NotificationService.class);
         mainIntent2.setAction("START");
+
+        setMusicResources();
+        executorService.execute(() -> {
+            for (AudioModel song : songsList) {
+                if (!isRunning.get()) break;
+                song.getEmbeddedArtwork(song.getPath());
+            }
+            FolderAdapter.addSongsFragment();
+        });
 
         binding.previousSongButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, NotificationService.class);
@@ -108,7 +122,6 @@ public class MiniPlayer extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter("NEXT"));
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter("PREV"));
 
-        setMusicResources();
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {
@@ -155,5 +168,19 @@ public class MiniPlayer extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver); // Avoid memory leaks
+        // Signal to stop background work
+        isRunning.set(false);
+
+        // Properly shut down executor service
+        executorService.shutdownNow();
+        try {
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                // Handle the case where the executor service did not terminate properly
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

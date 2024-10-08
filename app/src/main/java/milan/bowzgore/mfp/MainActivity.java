@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
                         new String[]{Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS},
                         REQUEST_CODE);
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        } else {
             // Android 6 to 12: Request READ_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(MainActivity.this,
@@ -129,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
 
     @Override
     public void onActivityStopped(@NonNull Activity activity) {
+        super.onStop();
     }
 
     @Override

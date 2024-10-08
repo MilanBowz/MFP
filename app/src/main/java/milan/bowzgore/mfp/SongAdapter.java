@@ -4,8 +4,10 @@ import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
+import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -38,10 +40,16 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public List<AudioModel> items ;
 
     public SongAdapter(Context context) {
-        this.items = getSongLibrary().getAllAudioFromDevice(context,selectedFolder );
+        if(songsList != null && songsList.get(0).getPath().contains(selectedFolder)){
+            this.items = songsList;
+        }
+        else {
+            this.items = SongLibrary.getAllAudioFromDevice(context,selectedFolder );
+        }
         this.context = context;
     }
 
+    @NonNull
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.fragment_songs,parent,false);
@@ -54,7 +62,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         holder.titleTextView.setText(songData.getTitle());
 
         if (currentSong != null) {
-            if (library.songNumber == holder.getBindingAdapterPosition()
+            if (SongLibrary.songNumber == holder.getBindingAdapterPosition()
                     && Objects.equals(currentSong.getTitle(), songData.getTitle())) {
                 holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
             } else {

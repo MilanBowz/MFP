@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import milan.bowzgore.mfp.library.FolderLibrary;
+import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 
 import java.util.concurrent.TimeUnit;
@@ -83,13 +84,15 @@ public class SongsFragment extends Fragment {
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         updateUI();
-        executorService.execute(() -> {
-            for (AudioModel song : adapter.items) {
-                if (!isRunning.get()) break;
-                song.getEmbeddedArtwork(song.getPath());
-                requireActivity().runOnUiThread(this::updateUI);
-            }
-        });
+        if(adapter.items != SongLibrary.songsList){
+            executorService.execute(() -> {
+                for (AudioModel song : adapter.items) {
+                    if (!isRunning.get()) break;
+                    song.getEmbeddedArtwork(song.getPath());
+                    requireActivity().runOnUiThread(this::updateUI);
+                }
+            });
+        }
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
