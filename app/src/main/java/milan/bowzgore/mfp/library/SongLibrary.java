@@ -92,10 +92,12 @@ public class SongLibrary {
                 System.out.println(currentSong.getPath());
                 isPlaying = true;
                 mediaPlayer.prepare();
+                currentSong.getEmbeddedArtwork(currentSong.getPath());
         }
         catch (IOException e)
         {
                 e.printStackTrace();
+                Log.println(Log.ERROR,"mediaplayer","mediaplayer error init datasource Songlibrary");
         }
 
 

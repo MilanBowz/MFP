@@ -31,17 +31,15 @@ public class NotificationService extends Service {
     public static MediaPlayer mediaPlayer = new MediaPlayer() ;
     private MediaSessionCompat mediaSession;
 
-
     @Override
     public void onCreate() {
         super.onCreate();
-
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
                 startMusicService("NEXT");
             }
             else {
-                startMusicService("PLAY");
+                startMusicService("START");
             }
         });
         mediaSession = new MediaSessionCompat(this, "NotificationService");

@@ -40,7 +40,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public List<AudioModel> items ;
 
     public SongAdapter(Context context) {
-        if(songsList != null && songsList.get(0).getPath().contains(selectedFolder)){
+        if(!songsList.isEmpty() && songsList.get(0).getPath().contains(selectedFolder)){
             this.items = songsList;
         }
         else {
