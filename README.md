@@ -2,14 +2,19 @@
 
 Music player that reads the .mp3 files of an folder (Android smartphone)
 
+## basic controls
 - basic controls play,pause,next,previous for music
 - coverart can be changed when pressing the coverart of the song for a longer time
 - automaticly gets all the music files in your device
 
+## playlist behaviour
 - playlist follows the music files in a folder
 - looping option between whole folder (blue loop sign) and 1 song (white loop sign)
 
+## external integration
 - File Explorer / My Files integration
+- Notification when playing music
+- Media controls via phone or audio device (play,next,...)
 
 
 ## Install and download
