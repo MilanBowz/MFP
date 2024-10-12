@@ -13,11 +13,4 @@
         <item name="backgroundColor">@color/background</item>
         <item name="iconTint">@color/color</item>
     </style>
-    <style name="MiniPlayerActivityTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:statusBarColor">@color/invisible</item> <!-- Set transparent or remove this line -->
-        <item name="android:navigationBarColor">@color/invisible</item>
-        <item name="android:backgroundDimEnabled">false</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
 </resources>

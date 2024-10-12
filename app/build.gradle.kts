@@ -1,3 +1,5 @@
+import com.android.utils.TraceUtils.simpleId
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -21,7 +23,9 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -31,10 +35,17 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    splits {
+        abi {
+            /*isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64") // Choose only necessary ABIs*/
+            isUniversalApk = true
+        }
+    }
 }
 
 dependencies {
-
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -42,11 +53,7 @@ dependencies {
     implementation(libs.legacy.support.v4)
     implementation(libs.recyclerview)
     implementation(libs.navigation.fragment)
-    implementation(libs.firebase.crashlytics.buildtools)
-    implementation (libs.mobile.ffmpeg.full.gpl)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    implementation(libs.jaudiotagger)
     implementation(libs.glide)
     annotationProcessor(libs.compiler)
 }

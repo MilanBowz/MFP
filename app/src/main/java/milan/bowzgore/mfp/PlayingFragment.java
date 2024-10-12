@@ -1,7 +1,6 @@
 package milan.bowzgore.mfp;
 
 import static android.app.Activity.RESULT_OK;
-import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
@@ -36,11 +35,16 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.arthenica.mobileffmpeg.FFmpeg;
+import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.datatype.Artwork;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
@@ -48,7 +52,6 @@ import milan.bowzgore.mfp.notification.NotificationService;
 
 public class PlayingFragment extends Fragment {
 
-    private FragmentPlayingBinding binding;
     private TextView titleTv, currentTimeTv, totalTimeTv ;
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
@@ -58,14 +61,12 @@ public class PlayingFragment extends Fragment {
     private ActivityResultLauncher<Intent> pickImageLauncher;
 
     public PlayingFragment() {
-        // Required empty public constructor
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        binding = FragmentPlayingBinding.inflate(inflater, container, false);
+        FragmentPlayingBinding binding = FragmentPlayingBinding.inflate(inflater, container, false);
         titleTv = binding.songTitle;
         currentTimeTv = binding.currentTime;
         totalTimeTv = binding.totalTime;
@@ -97,12 +98,8 @@ public class PlayingFragment extends Fragment {
                 } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
                     pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
                 }
-            } catch (IllegalStateException e) {
-                // Handle the situation where mediaPlayer is in an invalid state
-                e.printStackTrace();
-                // You can update UI here to reset the state if needed
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         };
         handler.post(updateUIRunnable);
@@ -132,11 +129,11 @@ public class PlayingFragment extends Fragment {
                         Uri imageUri = result.getData().getData();
                         try {
                             // Convert the selected image to a Bitmap
-                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), imageUri);
+                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
                             // Save the image to a temporary file and update the cover art
                             updateCoverArt(saveBitmapToFile(bitmap));
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
                         }
                     }
                 }
@@ -174,12 +171,8 @@ public class PlayingFragment extends Fragment {
                     } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
                         pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
                     }
-                } catch (IllegalStateException e) {
-                    // Handle the situation where mediaPlayer is in an invalid state
-                    e.printStackTrace();
-                    // You can update UI here to reset the state if needed
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 } finally {
                     handler.postDelayed(this, 100); // Continue updating every 100ms
                 }
@@ -303,17 +296,14 @@ public class PlayingFragment extends Fragment {
     }
 
     private void showChangeCoverArtDialog() {
-        Dialog dialog = new Dialog(getContext());
+        Dialog dialog = new Dialog(requireContext());
         dialog.setContentView(R.layout.dialog_change_cover_art);
 
         Button selectCoverButton = dialog.findViewById(R.id.select_cover_button);
-        selectCoverButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Open the file picker to choose a new cover image
-                openImagePicker();
-                dialog.dismiss();
-            }
+        selectCoverButton.setOnClickListener(v -> {
+            // Open the file picker to choose a new cover image
+            openImagePicker();
+            dialog.dismiss();
         });
 
         dialog.show();
@@ -324,10 +314,9 @@ public class PlayingFragment extends Fragment {
     }
 
     private String saveBitmapToFile(Bitmap bitmap) throws IOException {
-        // Generate a unique file name
         Bitmap resizedBitmap = resizeBitmap(bitmap, 800, 800);
         String fileName = "cover_art_" + System.currentTimeMillis() + ".jpg";
-        File file = new File(getActivity().getCacheDir(), fileName);
+        File file = new File(requireActivity().getCacheDir(), fileName);
         FileOutputStream outputStream = new FileOutputStream(file);
         resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream);
         outputStream.flush();
@@ -350,54 +339,38 @@ public class PlayingFragment extends Fragment {
         return Bitmap.createScaledBitmap(originalBitmap, width, height, true);
     }
 
-    public void updateCoverArt(String coverArtPath) {
-        long millis = mediaPlayer.getCurrentPosition();
+    public void updateCoverArt(String coverArtPath) throws Exception {
         String filePath = currentSong.getPath();
-        String tempFilePath = filePath.replace(".mp3", "_temp.mp3");
+        AudioFile audioFile = null;
+        try {
+            audioFile = AudioFileIO.read(new File(filePath));
+        } catch (Exception e) {
+            Log.e("CoverArtUpdate", "Failed to read audio file", e);
+            throw e;
+        }
 
-        // Define FFmpeg command to update cover art
-        String[] command = {
-                "-i", filePath,         // Input file is the current song
-                "-i", coverArtPath,                  // New cover art file
-                "-map", "0:a",                         // Map all streams from input file 0 without cover art
-                "-map", "1",                         // Map the cover art from input file 1
-                "-c", "copy",                        // Copy codecs (no re-encoding)
-                "-id3v2_version", "3",               // Use ID3v2 version 3
-                "-metadata:s:v:0", "title=Album cover",  // Set title metadata for the cover art
-                "-metadata:s:v:0", "comment=Cover (front)", // Set comment metadata for the cover art
-                tempFilePath                         // Output file is a temporary file
-        };
+        Tag tag = audioFile.getTagOrCreateAndSetDefault();
 
-        // Execute the FFmpeg command asynchronously
-        FFmpeg.executeAsync(command, (executionId, returnCode) -> {
-            if (returnCode == RETURN_CODE_SUCCESS) {
-                Log.i("FFmpeg", "Cover art updated successfully.");
+        byte[] imageData = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            imageData = Files.readAllBytes(Paths.get(coverArtPath));
+        }
 
-                // Attempt to replace the original file with the new file
-                File originalFile = new File(filePath);
-                File tempFile = new File(tempFilePath);
-                boolean originalDeleted = originalFile.delete();
-                if (originalDeleted) {
-                    boolean tempRenamed = tempFile.renameTo(originalFile);
-                    if (tempRenamed) {
-                        Log.i("FFmpeg", "Original file replaced successfully.");
-                        // Update MediaPlayer and related components
-                        currentSong.getEmbeddedArtwork(currentSong.getPath());
-                        setMusicResources();
-                        viewPagerAdapter.updateFragment(2, new SongsFragment());
-                    } else {
-                        Log.e("FFmpeg", "Failed to rename temp file to original file.");
-                        // Clean up the temp file if renaming fails
-                        tempFile.delete();
-                    }
-                } else {
-                    Log.e("FFmpeg", "Failed to delete original file.");
-                    // Clean up the temp file if deletion fails
-                    tempFile.delete();
-                }
-            } else {
-                Log.e("FFmpeg", "Failed to update cover art. Return code: " + returnCode);
-            }
-        });
+        Artwork artwork = new Artwork();
+        artwork.setBinaryData(imageData);
+        artwork.setMimeType("image/jpeg");
+
+        try {
+            tag.deleteArtworkField();
+            tag.setField(artwork);
+            audioFile.commit();
+        } catch (Exception e) {
+            Log.e("CoverArtUpdate", "Failed to update artwork", e);
+            throw e;
+        }
+        currentSong.getEmbeddedArtwork(currentSong.getPath());
+        setMusicResources();
+        viewPagerAdapter.updateFragment(2, new SongsFragment());
     }
+
 }
