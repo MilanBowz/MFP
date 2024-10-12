@@ -6,4 +6,4 @@ Music player that reads the .mp3 files of an folder (Android smartphone)
 - volume music in slider is working
 - coverart is shown when file is selected
 
-Application is found in './apk_result/app-debug.zip'
+Application is found in './apk_result/app-release.apk' ( 6,2 MB )
