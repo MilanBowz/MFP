@@ -26,6 +26,7 @@ out/
 
 # Signed APKs
 *.ap_
+*.apk
 
 # Keystore files
 *.jks
