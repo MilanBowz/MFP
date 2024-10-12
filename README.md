@@ -8,4 +8,5 @@ Music player that reads the .mp3 files of an folder (Android smartphone)
 
 Application is found in './apk_result/app-release.apk' ( 6,2 MB )
 
-![image](https://github.com/user-attachments/assets/b6ec32cd-9235-4ff6-9e56-fbc2a91e6ebf)
+![image](https://github.com/user-attachments/assets/e288812a-ecbe-416d-ac1e-367d5182ef66)
+
