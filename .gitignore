@@ -25,7 +25,6 @@ out/
 */build/
 
 # Signed APKs
-*.apk
 *.ap_
 
 # Keystore files
