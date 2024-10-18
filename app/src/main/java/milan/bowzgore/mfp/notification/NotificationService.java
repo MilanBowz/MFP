@@ -5,6 +5,7 @@ import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -34,6 +35,7 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
                 startMusicService("NEXT");
@@ -294,9 +296,6 @@ public class NotificationService extends Service {
         mediaPlayer.release();
         isPlaying = false;
     }
-    public static void setListPlaying() {
-        isListPlaying = ! isListPlaying;
-    }
 
     @Override
     public void onDestroy() {
@@ -313,5 +312,6 @@ public class NotificationService extends Service {
         }
         stopForeground(true);
     }
+
 
 }

@@ -1,11 +1,11 @@
 package milan.bowzgore.mfp;
 
 import static android.app.Activity.RESULT_OK;
+import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
-import static milan.bowzgore.mfp.notification.NotificationService.setListPlaying;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -20,6 +20,7 @@ import android.content.IntentFilter;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -45,6 +46,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
@@ -67,6 +69,10 @@ public class PlayingFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         FragmentPlayingBinding binding = FragmentPlayingBinding.inflate(inflater, container, false);
+
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
+        isListPlaying = sharedPreferences.getBoolean("isListPlaying", false); // Default is false
+
         titleTv = binding.songTitle;
         currentTimeTv = binding.currentTime;
         totalTimeTv = binding.totalTime;
@@ -341,7 +347,7 @@ public class PlayingFragment extends Fragment {
 
     public void updateCoverArt(String coverArtPath) throws Exception {
         String filePath = currentSong.getPath();
-        AudioFile audioFile = null;
+        AudioFile audioFile ;
         try {
             audioFile = AudioFileIO.read(new File(filePath));
         } catch (Exception e) {
@@ -371,6 +377,14 @@ public class PlayingFragment extends Fragment {
         currentSong.getEmbeddedArtwork(currentSong.getPath());
         setMusicResources();
         viewPagerAdapter.updateFragment(2, new SongsFragment());
+    }
+
+    public void setListPlaying() {
+        isListPlaying = ! isListPlaying;
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean("isListPlaying", isListPlaying);
+        editor.apply();
     }
 
 }
