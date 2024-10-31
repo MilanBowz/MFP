@@ -12,7 +12,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     String path;
     String title;
     String duration;
-    Bitmap image; // Add this field
+    Bitmap image;
 
     public AudioModel(String songData) {
         String[] parts = songData.split(",");

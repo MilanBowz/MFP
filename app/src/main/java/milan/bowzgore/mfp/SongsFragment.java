@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +36,7 @@ public class SongsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private SongAdapter adapter;
+    private TextView textFolder;
 
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private AtomicBoolean isRunning = new AtomicBoolean(true);
@@ -77,9 +79,12 @@ public class SongsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_songs_list, container, false);
         // Initialize RecyclerView and Button
         recyclerView = view.findViewById(R.id.recycler_view);
+        textFolder = view.findViewById(R.id.songs_text);
+
         if (FolderLibrary.selectedFolder != null) {
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
+            textFolder.setText(FolderLibrary.getFolderDisplay());
         }
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
