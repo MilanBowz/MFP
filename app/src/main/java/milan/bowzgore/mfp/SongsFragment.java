@@ -1,15 +1,15 @@
 package milan.bowzgore.mfp;
 
-import android.annotation.SuppressLint;
+import static milan.bowzgore.mfp.MainActivity.viewPager;
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.concurrent.ExecutorService;
@@ -49,6 +50,7 @@ public class SongsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setupBackNavigation();
     }
     @Override
     public void onDetach() {
@@ -80,6 +82,13 @@ public class SongsFragment extends Fragment {
         // Initialize RecyclerView and Button
         recyclerView = view.findViewById(R.id.recycler_view);
         textFolder = view.findViewById(R.id.songs_text);
+        Button backButton = view.findViewById(R.id.back_button);
+        backButton.setOnClickListener(v -> {
+            addFolderFragment();
+            /*if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                getActivity().getSupportFragmentManager().popBackStack();
+            }*/
+        });
 
         if (FolderLibrary.selectedFolder != null) {
             adapter = new SongAdapter(getContext());
@@ -117,6 +126,30 @@ public class SongsFragment extends Fragment {
         if(adapter != null ){
             adapter.notifyDataSetChanged();
         }
+    }
+    public static void addFolderFragment(){
+        if(viewPagerAdapter != null){
+            viewPagerAdapter.updateFragment(1,new FolderFragment());
+            viewPager.setCurrentItem(1, true);
+        }
+    }
+    private void setupBackNavigation() {
+        // Register a callback for the back press
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Check if the current fragment is SongsFragment
+                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
+                    // Replace SongsFragment with FolderFragment at position 1
+                    viewPagerAdapter.updateFragment(1, new FolderFragment());
+                    viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
+                }
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                this, // LifecycleOwner
+                callback
+        );
     }
 
 }

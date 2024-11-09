@@ -1,6 +1,8 @@
 package milan.bowzgore.mfp;
 
+import static android.app.PendingIntent.getActivity;
 import static milan.bowzgore.mfp.MainActivity.viewPager;
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
@@ -17,6 +19,7 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -90,6 +93,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 notifyItemChanged(library.songNumber); // Notify that the current item has changed
             }
         });
+
     }
 
 
@@ -113,4 +117,5 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         intent.setAction("START");
         context.startService(intent);
     }
+
 }

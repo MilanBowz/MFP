@@ -64,23 +64,15 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
                 }
                 notifyItemChanged(newSelectedPosition);
 
-                if(viewPagerAdapter.getItemCount() > 2)
-                    viewPagerAdapter.updateFragment(2,new SongsFragment());
-                else{
-                    viewPagerAdapter.addFragment(new SongsFragment());// not swipable
-                }
-                viewPager.setCurrentItem(2,true); // Navigate to SongsFragment
+                addSongsFragment();
             }
         });
     }
 
     public static void addSongsFragment(){
         if(viewPagerAdapter != null){
-            if(viewPagerAdapter.getItemCount() > 2)
-                viewPagerAdapter.updateFragment(2,new SongsFragment());
-            else{
-                viewPagerAdapter.addFragment(new SongsFragment());// not swipable
-            }
+            viewPagerAdapter.updateFragment(1,new SongsFragment());
+            viewPager.setCurrentItem(1, true);
         }
     }
 

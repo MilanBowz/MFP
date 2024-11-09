@@ -33,12 +33,19 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         if (position >= 0 && position < fragmentList.size()) {
             fragmentList.set(position, fragment);
         }
+        notifyDataSetChanged();
     }
     @Override
     public long getItemId(int position) {
         // You must override this method and use fragmentList.get(position).hashCode()
         // This is important to ensure that ViewPager2 re-creates the fragment.
         return fragmentList.get(position).hashCode();
+    }
+
+    public Fragment getItem(int position) {
+        // You must override this method and use fragmentList.get(position).hashCode()
+        // This is important to ensure that ViewPager2 re-creates the fragment.
+        return fragmentList.get(position);
     }
 
     @Override

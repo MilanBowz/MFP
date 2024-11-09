@@ -36,8 +36,6 @@ public class NotificationService extends Service {
     public static MediaPlayer mediaPlayer = new MediaPlayer() ;
     private MediaSessionCompat mediaSession;
 
-
-
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
@@ -45,12 +43,18 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
+                if(!wakeLock.isHeld())
+                    wakeLock.acquire();
                 startMusicService("NEXT");
             }
             else {
+                if(wakeLock.isHeld())
+                    wakeLock.release();
                 startMusicService("START");
             }
         });
@@ -67,10 +71,6 @@ public class NotificationService extends Service {
 
         setupMedaSession();
 
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
-        wakeLock.acquire(120*60*1000L /*120 minutes*/);
-
         final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -82,6 +82,7 @@ public class NotificationService extends Service {
         };
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(headsetReceiver, filter);
+        wakeLock.acquire();
     }
 
     private void updateMediaSessionPlaybackState(int state) {
@@ -128,8 +129,7 @@ public class NotificationService extends Service {
                     requestAudioFocus();
                     break;
                 case "STOP":
-                    stopForeground(true);
-                    stopSelf();
+                    onDestroy();
                     System.exit(2);
                     break;
             }
@@ -257,7 +257,7 @@ public class NotificationService extends Service {
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
-            abandonAudioFocus();
+            audioManager.abandonAudioFocus(afChangeListener);
         }
         if (mediaSession != null) {
             mediaSession.release();
@@ -277,10 +277,6 @@ public class NotificationService extends Service {
             // Start playback if we have audio focus
             playMusic();
         }
-    }
-
-    private void abandonAudioFocus() {
-        audioManager.abandonAudioFocus(afChangeListener);
     }
 
     private void setupMedaSession(){

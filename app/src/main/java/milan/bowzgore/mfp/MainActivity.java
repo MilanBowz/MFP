@@ -65,9 +65,11 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         viewPagerAdapter = new ViewPagerAdapter(this);
         // Add fragments to the adapter
         viewPagerAdapter.addFragment(new PlayingFragment());
-        viewPagerAdapter.addFragment(new FolderFragment());
         if (FolderLibrary.selectedFolder != null)
             viewPagerAdapter.addFragment(new SongsFragment());
+        else{
+            viewPagerAdapter.addFragment(new FolderFragment());
+        }
 
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);

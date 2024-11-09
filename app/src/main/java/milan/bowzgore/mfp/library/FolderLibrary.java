@@ -69,7 +69,7 @@ public class FolderLibrary {
 
     public static String getFolderDisplay() {
         int lastSlashIndex = (selectedFolder != null) ? selectedFolder.lastIndexOf("/") : -1;
-        return (lastSlashIndex != -1) ? selectedFolder.substring(lastSlashIndex + 1) : "SONGS";
+        return (lastSlashIndex != -1) ? selectedFolder.substring(lastSlashIndex) : "SONGS";
     }
 
 }
