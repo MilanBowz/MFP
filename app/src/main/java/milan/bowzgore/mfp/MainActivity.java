@@ -5,6 +5,7 @@ import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewpager2.widget.ViewPager2;
@@ -99,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         if (audioUri != null) {
             handleAudioFile(audioUri);
         }
+        setupBackNavigation();
     }
 
     private void checkAndRequestPermissions() {
@@ -229,6 +231,24 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         if (audioUri != null) {
             handleAudioFile(audioUri);  // Use your logic to handle the file
         }
+    }
+    private void setupBackNavigation() {
+        // Register a callback for the back press
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Check if the current fragment is SongsFragment
+                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
+                    // Replace SongsFragment with FolderFragment at position 1
+                    viewPagerAdapter.updateFragment(1, new FolderFragment());
+                    viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(
+                this, // LifecycleOwner
+                callback
+        );
     }
 
 }

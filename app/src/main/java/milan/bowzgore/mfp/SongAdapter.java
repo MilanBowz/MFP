@@ -6,6 +6,7 @@ import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
+import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 
@@ -65,7 +66,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         holder.titleTextView.setText(songData.getTitle());
 
         if (currentSong != null) {
-            if (SongLibrary.songNumber == holder.getBindingAdapterPosition()
+            if (songNumber == holder.getBindingAdapterPosition()
                     && Objects.equals(currentSong.getTitle(), songData.getTitle())) {
                 holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
             } else {
@@ -80,20 +81,25 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         }
 
         holder.itemView.setOnClickListener(v -> {
-            int previousSongNumber = library.songNumber;
-            library.songNumber = holder.getAbsoluteAdapterPosition();
+            int previousSongNumber = songNumber;
+            songNumber = holder.getAbsoluteAdapterPosition();
             library.songsList = items;
             // Navigate to PlayingFragment
-            if (context instanceof AppCompatActivity && library.songNumber != RecyclerView.NO_POSITION) {
+            if (context instanceof AppCompatActivity && songNumber != RecyclerView.NO_POSITION) {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
-                library.changePlaying(library.songNumber);
+                library.changePlaying(songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
-                notifyItemChanged(library.songNumber); // Notify that the current item has changed
+                notifyItemChanged(songNumber); // Notify that the current item has changed
             }
         });
 
+    }
+    private void startMusicService() {
+        Intent intent = new Intent(context, NotificationService.class);
+        intent.setAction("START");
+        context.startService(intent);
     }
 
 
@@ -112,10 +118,6 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             iconImageView = itemView.findViewById(R.id.icon_view);
         }
     }
-    private void startMusicService() {
-        Intent intent = new Intent(context, NotificationService.class);
-        intent.setAction("START");
-        context.startService(intent);
-    }
+
 
 }

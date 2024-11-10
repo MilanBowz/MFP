@@ -376,7 +376,11 @@ public class PlayingFragment extends Fragment {
         }
         currentSong.getEmbeddedArtwork(currentSong.getPath());
         setMusicResources();
-        viewPagerAdapter.updateFragment(2, new SongsFragment());
+
+        if(viewPagerAdapter.getItem(1) instanceof SongsFragment){
+            SongsFragment songsFragment = (SongsFragment) viewPagerAdapter.getItem(1);
+            songsFragment.updateCurrentSong(currentSong);
+        }
     }
 
     public void setListPlaying() {
