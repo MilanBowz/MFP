@@ -97,11 +97,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             }
         });
 
-        // Check if launched with VIEW intent (file selected)
-        Uri audioUri = getIntent().getData();
-        if (audioUri != null) {
-            handleAudioFile(audioUri);
-        }
         setupBackNavigation();
     }
 
@@ -185,8 +180,10 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         if (audioUri != null) {
             String filePath = getRealPathFromURI(this, audioUri);
             if (filePath != null) {
-                String songTitle = filePath.substring(filePath.lastIndexOf("/")+1); // You might want to parse this better
-                filePath = filePath.substring(0,filePath.lastIndexOf("/"));
+                int folderSplit = filePath.lastIndexOf("/");
+                String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
+                filePath = filePath.substring(0,folderSplit);
+                selectedFolder = filePath;
                 SongLibrary.getAllAudioFromDevice(this, filePath, songTitle);
                 executorService.execute(() -> {
                     for (AudioModel song : songsList) {
@@ -200,8 +197,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         Intent mainIntent2 = new Intent(this, NotificationService.class);
         mainIntent2.setAction("START");
         startService(mainIntent2);
-
-
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {
@@ -220,25 +215,24 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent);  // Ensure that the new intent is available
+        setIntent(intent);
 
-        // Handle any data passed via the intent (if necessary)
         Uri audioUri = intent.getData();
         if (audioUri != null) {
-            handleAudioFile(audioUri);  // Use your logic to handle the file
+            viewPager.setCurrentItem(0, false);
+            handleAudioFile(audioUri);
+            viewPagerAdapter.updateFragment(1, new FolderFragment());
         }
     }
     private void setupBackNavigation() {
-        // Register a callback for the back press
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Check if the current fragment is SongsFragment
                 if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
-                    // Replace SongsFragment with FolderFragment at position 1
                     viewPagerAdapter.updateFragment(1, new FolderFragment());
                     viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
                 }
+                this.handleOnBackPressed();
             }
         };
         getOnBackPressedDispatcher().addCallback(
