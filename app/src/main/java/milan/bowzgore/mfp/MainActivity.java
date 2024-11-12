@@ -1,8 +1,6 @@
 package milan.bowzgore.mfp;
 
-import static milan.bowzgore.mfp.library.FolderLibrary.folders;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 import androidx.activity.OnBackPressedCallback;
@@ -99,6 +97,22 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
 
         setupBackNavigation();
     }
+    @Override
+    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {}
+    @Override
+    public void onActivityStarted(@NonNull Activity activity) {}
+    @Override
+    public void onActivityResumed(@NonNull Activity activity) {super.onResume();}
+    @Override
+    public void onActivityPaused(@NonNull Activity activity) {super.onPause();}
+    @Override
+    public void onActivityStopped(@NonNull Activity activity) {super.onStop();}
+    @Override
+    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {}
+    @Override
+    public void onActivityDestroyed(@NonNull Activity activity) {
+        super.onDestroy();
+    }
 
     private void checkAndRequestPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -127,41 +141,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
                         REQUEST_CODE);
             }
         }
-    }
-
-    @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-
-    }
-
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {
-        super.onResume();
-    }
-
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {
-        super.onPause();
-    }
-
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-        super.onStop();
-    }
-
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
-        super.onDestroy();
     }
 
     private void createNotificationChannel() {
@@ -232,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
                     viewPagerAdapter.updateFragment(1, new FolderFragment());
                     viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
                 }
-                this.handleOnBackPressed();
             }
         };
         getOnBackPressedDispatcher().addCallback(
