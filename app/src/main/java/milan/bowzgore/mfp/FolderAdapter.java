@@ -5,6 +5,7 @@ import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.FolderLibrary.folders;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.MainActivity.viewPager;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -56,20 +57,20 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         holder.itemView.setOnClickListener(v -> {
             ViewPagerAdapter adapter = (ViewPagerAdapter) viewPager.getAdapter();
             if (adapter != null && position != RecyclerView.NO_POSITION) {
-                int previousSelectedPosition = folders.indexOf(selectedFolder);
-                FolderLibrary.selectedFolder = folderName; // Update the selected folder
+                int previousSelectedPosition = folders.indexOf(tempFolder);
+                tempFolder = folderName;
                 int newSelectedPosition = folders.indexOf(folderName);
                 if (previousSelectedPosition != -1) {
                     notifyItemChanged(previousSelectedPosition);
                 }
                 notifyItemChanged(newSelectedPosition);
 
-                addSongsFragment();
+                addSongsFragment(folderName);
             }
         });
     }
 
-    public static void addSongsFragment(){
+    public static void addSongsFragment(String folder){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(1,new SongsFragment());
             viewPager.setCurrentItem(1, true);

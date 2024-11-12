@@ -15,6 +15,7 @@ import java.util.Set;
 public class FolderLibrary {
     public static List<String> folders = new ArrayList<>();
     public static String selectedFolder;
+    public static String tempFolder;
     private static final String PREFS_NAME = "FolderLibraryPrefs";
     private static final String FOLDERS_KEY = "folders";
 
@@ -68,8 +69,8 @@ public class FolderLibrary {
     }
 
     public static String getFolderDisplay() {
-        int lastSlashIndex = (selectedFolder != null) ? selectedFolder.lastIndexOf("/") : -1;
-        return (lastSlashIndex != -1) ? selectedFolder.substring(lastSlashIndex) : "SONGS";
+        int lastSlashIndex = (tempFolder != null) ? tempFolder.lastIndexOf("/") : -1;
+        return (lastSlashIndex != -1) ? tempFolder.substring(lastSlashIndex) : "SONGS";
     }
 
 }

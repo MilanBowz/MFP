@@ -1,9 +1,7 @@
 package milan.bowzgore.mfp;
 
-import static android.app.PendingIntent.getActivity;
 import static milan.bowzgore.mfp.MainActivity.viewPager;
-import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
@@ -20,10 +18,10 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.notification.NotificationService;
@@ -44,14 +42,15 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public List<AudioModel> items ;
 
     public SongAdapter(Context context) {
-        if(!songsList.isEmpty() && songsList.get(0).getPath().contains(selectedFolder)){
+        if(!songsList.isEmpty() && songsList.get(0).getPath().contains(tempFolder)){
             this.items = songsList;
         }
         else {
-            this.items = SongLibrary.getAllAudioFromDevice(context,selectedFolder );
+            this.items = SongLibrary.getAllAudioFromDevice(context,tempFolder );
         }
         this.context = context;
     }
+
 
     @NonNull
     @Override
@@ -88,7 +87,8 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             if (context instanceof AppCompatActivity && songNumber != RecyclerView.NO_POSITION) {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
-                library.changePlaying(songNumber);
+                FolderLibrary.selectedFolder = tempFolder;
+                SongLibrary.changePlaying(songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
                 notifyItemChanged(songNumber); // Notify that the current item has changed
@@ -117,6 +117,11 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             titleTextView = itemView.findViewById(R.id.music_title_text);
             iconImageView = itemView.findViewById(R.id.icon_view);
         }
+    }
+
+    public String getFolderDisplay(String folder) {
+        int lastSlashIndex = (folder != null) ? folder.lastIndexOf("/") : -1;
+        return (lastSlashIndex != -1) ? folder.substring(lastSlashIndex) : "SONGS";
     }
 
 

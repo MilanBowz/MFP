@@ -1,6 +1,7 @@
 package milan.bowzgore.mfp.library;
 
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
@@ -81,7 +82,7 @@ public class SongLibrary {
                 .orElse(null); // Handle case where song is not found
 
         songNumber = songsList.indexOf(currentSong);
-        selectedFolder = folderPath;
+        tempFolder = folderPath;
 
         if( mediaPlayer != null && isPlaying ){
             mediaPlayer.reset();

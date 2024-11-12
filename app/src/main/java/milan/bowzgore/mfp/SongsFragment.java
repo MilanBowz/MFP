@@ -2,6 +2,7 @@ package milan.bowzgore.mfp;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 
 import android.content.BroadcastReceiver;
@@ -22,6 +23,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import java.util.Objects;
@@ -44,6 +46,7 @@ public class SongsFragment extends Fragment {
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private AtomicBoolean isRunning = new AtomicBoolean(true);
     private BroadcastReceiver receiver;
+
 
 
     public SongsFragment() {
@@ -83,15 +86,12 @@ public class SongsFragment extends Fragment {
         // Initialize RecyclerView and Button
         recyclerView = view.findViewById(R.id.recycler_view);
         textFolder = view.findViewById(R.id.songs_text);
-        Button backButton = view.findViewById(R.id.back_button);
+        ImageButton backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
-            /*if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                getActivity().getSupportFragmentManager().popBackStack();
-            }*/
         });
 
-        if (FolderLibrary.selectedFolder != null) {
+        if (FolderLibrary.tempFolder != null) {
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
             textFolder.setText(FolderLibrary.getFolderDisplay());

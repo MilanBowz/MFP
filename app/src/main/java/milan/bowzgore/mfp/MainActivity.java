@@ -66,8 +66,10 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         viewPagerAdapter = new ViewPagerAdapter(this);
         // Add fragments to the adapter
         viewPagerAdapter.addFragment(new PlayingFragment());
-        if (FolderLibrary.selectedFolder != null)
+        if (FolderLibrary.selectedFolder != null){
+            FolderLibrary.tempFolder = selectedFolder;
             viewPagerAdapter.addFragment(new SongsFragment());
+        }
         else{
             viewPagerAdapter.addFragment(new FolderFragment());
         }
@@ -164,7 +166,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
 
     @Override
     public void onActivityDestroyed(@NonNull Activity activity) {
-        //mediaPlayer.release();
         super.onDestroy();
     }
 
@@ -192,13 +193,8 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }
-                    FolderAdapter.addSongsFragment();
                 });
-            } else {
-                // Handle the case where filePath is null
             }
-        } else {
-            // Handle the case where audioUri is null
         }
 
         Intent mainIntent2 = new Intent(this, NotificationService.class);
