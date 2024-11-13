@@ -70,7 +70,7 @@ public class SongLibrary {
     }
     public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
 
-        if(currentSong != null){
+        if( mediaPlayer != null && currentSong != null){
             mediaPlayer.stop();
         }
         songsList = getAllAudioFromDevice(context, folderPath);

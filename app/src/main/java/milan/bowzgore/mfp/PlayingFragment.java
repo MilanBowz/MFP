@@ -97,12 +97,14 @@ public class PlayingFragment extends Fragment {
         Handler handler = new Handler();
         Runnable updateUIRunnable = () -> {
             try {
-                if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                    currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                    pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                    pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                if(currentSong != null){
+                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                        pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+                    } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -170,12 +172,14 @@ public class PlayingFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                        pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                    } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                    if(currentSong != null){
+                        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                            seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+                        } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                        }
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);

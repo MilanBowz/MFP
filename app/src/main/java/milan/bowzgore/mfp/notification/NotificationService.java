@@ -1,5 +1,6 @@
 package milan.bowzgore.mfp.notification;
 
+import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 
 import android.app.PendingIntent;
@@ -33,18 +34,23 @@ public class NotificationService extends Service {
 
     private PowerManager.WakeLock wakeLock;
 
-    public static MediaPlayer mediaPlayer = new MediaPlayer() ;
+    public static MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionCompat mediaSession;
 
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
 
+    public NotificationService(){
+
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
+
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
@@ -82,7 +88,6 @@ public class NotificationService extends Service {
         };
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(headsetReceiver, filter);
-        wakeLock.acquire();
     }
 
     private void updateMediaSessionPlaybackState(int state) {
@@ -115,26 +120,34 @@ public class NotificationService extends Service {
                 case "PLAY":
                 case "PAUSE":
                     playPauseMusic();
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "PREV":
                     playPreviousSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "START":
+                    if(isListPlaying && !wakeLock.isHeld())
+                        wakeLock.acquire();
                     playMusic();
                     requestAudioFocus();
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "STOP":
-                    onDestroy();
-                    System.exit(2);
+                    this.onDestroy();
+                    sendBroadcast(new Intent("CLOSE_MAIN_ACTIVITY"));
                     break;
             }
-            updateMetadata();
-            showNotification();
         }
         return START_STICKY;
     }
@@ -256,7 +269,6 @@ public class NotificationService extends Service {
         super.onDestroy();
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            mediaPlayer = null;
             audioManager.abandonAudioFocus(afChangeListener);
         }
         if (mediaSession != null) {
@@ -265,6 +277,8 @@ public class NotificationService extends Service {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+        currentSong = null;
+
         stopForeground(true);
     }
 

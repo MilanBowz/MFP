@@ -119,10 +119,4 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         }
     }
 
-    public String getFolderDisplay(String folder) {
-        int lastSlashIndex = (folder != null) ? folder.lastIndexOf("/") : -1;
-        return (lastSlashIndex != -1) ? folder.substring(lastSlashIndex) : "SONGS";
-    }
-
-
 }

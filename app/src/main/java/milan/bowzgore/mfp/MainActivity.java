@@ -12,12 +12,15 @@ import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 
 import android.database.Cursor;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -41,21 +44,31 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class MainActivity extends AppCompatActivity implements Application.ActivityLifecycleCallbacks {
+public class MainActivity extends AppCompatActivity  {
 
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
     private static final int REQUEST_CODE = 123;
 
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
+
+    private final BroadcastReceiver closeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("CLOSE_MAIN_ACTIVITY".equals(intent.getAction())) {
+                viewPagerAdapter.clear();
+                finish();  // Properly close MainActivity
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        NotificationService.mediaPlayer = new MediaPlayer();
         // Check and request permissions as before
         checkAndRequestPermissions();
 
@@ -64,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         viewPagerAdapter = new ViewPagerAdapter(this);
         // Add fragments to the adapter
         viewPagerAdapter.addFragment(new PlayingFragment());
-        if (FolderLibrary.selectedFolder != null){
+        if (selectedFolder != null){
             FolderLibrary.tempFolder = selectedFolder;
             viewPagerAdapter.addFragment(new SongsFragment());
         }
@@ -95,22 +108,20 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             }
         });
 
+        Uri audioUri = getIntent().getData();
+        if (audioUri != null) {
+            handleAudioFile(audioUri);  // Use your logic to handle the file
+        }
         setupBackNavigation();
+        IntentFilter filter = new IntentFilter("CLOSE_MAIN_ACTIVITY");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(closeReceiver, filter);
+        }
     }
+
     @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {}
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {}
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {super.onResume();}
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {super.onPause();}
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {super.onStop();}
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {}
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
+    protected void onDestroy() {
+        unregisterReceiver(closeReceiver);
         super.onDestroy();
     }
 
@@ -188,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             cursor.close();
             return filePath;
         }
-        return null; // Return null if unable to retrieve path
+        return null;
     }
 
     @Override
@@ -198,9 +209,9 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
 
         Uri audioUri = intent.getData();
         if (audioUri != null) {
-            viewPager.setCurrentItem(0, false);
             handleAudioFile(audioUri);
             viewPagerAdapter.updateFragment(1, new FolderFragment());
+            viewPager.setCurrentItem(0, false);
         }
     }
     private void setupBackNavigation() {
