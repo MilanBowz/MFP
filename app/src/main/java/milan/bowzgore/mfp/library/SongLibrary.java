@@ -36,7 +36,6 @@ public class SongLibrary {
         private static final SongLibrary INSTANCE = new SongLibrary();
     }
 
-    // Public method to provide access to the Singleton instance
     public static SongLibrary getSongLibrary(){
         return Holder.INSTANCE;
     }
@@ -65,8 +64,6 @@ public class SongLibrary {
             c.close();
         }
         return audioModels;
-
-        //updateUI();
     }
     public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
 
@@ -75,11 +72,10 @@ public class SongLibrary {
         }
         songsList = getAllAudioFromDevice(context, folderPath);
 
-        // Find the specific song from the list using Stream API
         currentSong = songsList.stream()
-                .filter(c -> c.getTitle().equals(song)) // Use equals() for String comparison
+                .filter(c -> c.getTitle().equals(song))
                 .findFirst()
-                .orElse(null); // Handle case where song is not found
+                .orElse(null);
 
         songNumber = songsList.indexOf(currentSong);
         tempFolder = folderPath;
@@ -88,7 +84,7 @@ public class SongLibrary {
             mediaPlayer.reset();
         }
         try {
-                Log.d("MiniPlayer", "Media path: " + currentSong.getPath()); // Check what path is being passed
+                Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
                 mediaPlayer.setDataSource(currentSong.getPath());
                 System.out.println(currentSong.getPath());
                 isPlaying = true;

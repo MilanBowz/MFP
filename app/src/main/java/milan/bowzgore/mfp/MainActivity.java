@@ -44,7 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class MainActivity extends AppCompatActivity  {
+public class MainActivity extends AppCompatActivity  implements Application.ActivityLifecycleCallbacks {
 
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
@@ -54,28 +54,19 @@ public class MainActivity extends AppCompatActivity  {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
-    private final BroadcastReceiver closeReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if ("CLOSE_MAIN_ACTIVITY".equals(intent.getAction())) {
-                viewPagerAdapter.clear();
-                finish();  // Properly close MainActivity
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        NotificationService.isMainActivityActive = true;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        NotificationService.mediaPlayer = new MediaPlayer();
-        // Check and request permissions as before
+
         checkAndRequestPermissions();
 
         viewPager = findViewById(R.id.fragmentContainerView);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        // Add fragments to the adapter
+
         viewPagerAdapter.addFragment(new PlayingFragment());
         if (selectedFolder != null){
             FolderLibrary.tempFolder = selectedFolder;
@@ -92,7 +83,6 @@ public class MainActivity extends AppCompatActivity  {
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
         createNotificationChannel();
 
-        // Set a listener for page changes in ViewPager2
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -110,19 +100,9 @@ public class MainActivity extends AppCompatActivity  {
 
         Uri audioUri = getIntent().getData();
         if (audioUri != null) {
-            handleAudioFile(audioUri);  // Use your logic to handle the file
+            handleAudioFile(audioUri);
         }
         setupBackNavigation();
-        IntentFilter filter = new IntentFilter("CLOSE_MAIN_ACTIVITY");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(closeReceiver, filter);
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        unregisterReceiver(closeReceiver);
-        super.onDestroy();
     }
 
     private void checkAndRequestPermissions() {
@@ -230,4 +210,39 @@ public class MainActivity extends AppCompatActivity  {
         );
     }
 
+    @Override
+    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityStarted(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = true;
+    }
+
+    @Override
+    public void onActivityResumed(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = true;
+    }
+
+    @Override
+    public void onActivityPaused(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+    }
+
+    @Override
+    public void onActivityStopped(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityDestroyed(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+        super.onDestroy();
+    }
 }
