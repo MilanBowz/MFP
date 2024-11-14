@@ -28,23 +28,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.SongsFragment;
 
-import org.jaudiotagger.audio.AudioFile;
-import org.jaudiotagger.audio.AudioFileIO;
-import org.jaudiotagger.tag.Tag;
-import org.jaudiotagger.tag.datatype.Artwork;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Objects;
-
-import android.graphics.Bitmap;
-import android.net.Uri;
 
 public class Coverart {
     public static ActivityResultLauncher<Intent> pickImageLauncher;
