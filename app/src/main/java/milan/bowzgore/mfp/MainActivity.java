@@ -1,10 +1,9 @@
 package milan.bowzgore.mfp;
 
-import static milan.bowzgore.mfp.library.FolderLibrary.folders;
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewpager2.widget.ViewPager2;
@@ -13,12 +12,15 @@ import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 
 import android.database.Cursor;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -42,31 +44,34 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class MainActivity extends AppCompatActivity implements Application.ActivityLifecycleCallbacks {
+public class MainActivity extends AppCompatActivity  implements Application.ActivityLifecycleCallbacks {
 
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
     private static final int REQUEST_CODE = 123;
 
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        NotificationService.isMainActivityActive = true;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Check and request permissions as before
         checkAndRequestPermissions();
 
         viewPager = findViewById(R.id.fragmentContainerView);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        // Add fragments to the adapter
+
         viewPagerAdapter.addFragment(new PlayingFragment());
-        if (FolderLibrary.selectedFolder != null)
+        if (selectedFolder != null){
+            FolderLibrary.tempFolder = selectedFolder;
             viewPagerAdapter.addFragment(new SongsFragment());
+        }
         else{
             viewPagerAdapter.addFragment(new FolderFragment());
         }
@@ -78,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
         createNotificationChannel();
 
-        // Set a listener for page changes in ViewPager2
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -94,11 +98,11 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             }
         });
 
-        // Check if launched with VIEW intent (file selected)
         Uri audioUri = getIntent().getData();
         if (audioUri != null) {
             handleAudioFile(audioUri);
         }
+        setupBackNavigation();
     }
 
     private void checkAndRequestPermissions() {
@@ -130,42 +134,6 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         }
     }
 
-    @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-
-    }
-
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {
-        super.onResume();
-    }
-
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {
-        super.onPause();
-    }
-
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-        super.onStop();
-    }
-
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
-        //mediaPlayer.release();
-        super.onDestroy();
-    }
-
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "Music Channel";
@@ -182,28 +150,23 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         if (audioUri != null) {
             String filePath = getRealPathFromURI(this, audioUri);
             if (filePath != null) {
-                String songTitle = filePath.substring(filePath.lastIndexOf("/")+1); // You might want to parse this better
-                filePath = filePath.substring(0,filePath.lastIndexOf("/"));
+                int folderSplit = filePath.lastIndexOf("/");
+                String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
+                filePath = filePath.substring(0,folderSplit);
+                selectedFolder = filePath;
                 SongLibrary.getAllAudioFromDevice(this, filePath, songTitle);
                 executorService.execute(() -> {
                     for (AudioModel song : songsList) {
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }
-                    FolderAdapter.addSongsFragment();
                 });
-            } else {
-                // Handle the case where filePath is null
             }
-        } else {
-            // Handle the case where audioUri is null
         }
 
         Intent mainIntent2 = new Intent(this, NotificationService.class);
         mainIntent2.setAction("START");
         startService(mainIntent2);
-
-
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {
@@ -216,19 +179,70 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
             cursor.close();
             return filePath;
         }
-        return null; // Return null if unable to retrieve path
+        return null;
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent);  // Ensure that the new intent is available
+        setIntent(intent);
 
-        // Handle any data passed via the intent (if necessary)
         Uri audioUri = intent.getData();
         if (audioUri != null) {
-            handleAudioFile(audioUri);  // Use your logic to handle the file
+            handleAudioFile(audioUri);
+            viewPagerAdapter.updateFragment(1, new FolderFragment());
+            viewPager.setCurrentItem(0, false);
         }
     }
+    private void setupBackNavigation() {
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
+                    viewPagerAdapter.updateFragment(1, new FolderFragment());
+                    viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(
+                this, // LifecycleOwner
+                callback
+        );
+    }
 
+    @Override
+    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityStarted(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = true;
+    }
+
+    @Override
+    public void onActivityResumed(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = true;
+    }
+
+    @Override
+    public void onActivityPaused(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+    }
+
+    @Override
+    public void onActivityStopped(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityDestroyed(@NonNull Activity activity) {
+        NotificationService.isMainActivityActive = false;
+        super.onDestroy();
+    }
 }

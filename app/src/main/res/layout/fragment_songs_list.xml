@@ -11,12 +11,16 @@ xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <Button
+
+        <ImageButton
             android:id="@+id/back_button"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Back"
-            android:background="?attr/selectableItemBackgroundBorderless"/>
+            android:layout_height="match_parent"
+            android:src="@drawable/baseline_arrow_back_24"
+            app:tint="@color/color"
+            android:backgroundTint="@color/invisible"
+            android:padding="10dp"
+            android:contentDescription="@string/back_to_foldersfragment" />
         <TextView
             android:id="@+id/songs_text"
             android:text="@string/songs"

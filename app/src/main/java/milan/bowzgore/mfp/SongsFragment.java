@@ -2,6 +2,8 @@ package milan.bowzgore.mfp;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
+import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -21,8 +23,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,12 +40,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SongsFragment extends Fragment {
 
     private RecyclerView recyclerView;
-    private SongAdapter adapter;
+    public SongAdapter adapter;
     private TextView textFolder;
 
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private AtomicBoolean isRunning = new AtomicBoolean(true);
     private BroadcastReceiver receiver;
+
 
 
     public SongsFragment() {
@@ -50,7 +55,6 @@ public class SongsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setupBackNavigation();
     }
     @Override
     public void onDetach() {
@@ -82,15 +86,12 @@ public class SongsFragment extends Fragment {
         // Initialize RecyclerView and Button
         recyclerView = view.findViewById(R.id.recycler_view);
         textFolder = view.findViewById(R.id.songs_text);
-        Button backButton = view.findViewById(R.id.back_button);
+        ImageButton backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
-            /*if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                getActivity().getSupportFragmentManager().popBackStack();
-            }*/
         });
 
-        if (FolderLibrary.selectedFolder != null) {
+        if (FolderLibrary.tempFolder != null) {
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
             textFolder.setText(FolderLibrary.getFolderDisplay());
@@ -117,6 +118,7 @@ public class SongsFragment extends Fragment {
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
         return view;
     }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -133,23 +135,20 @@ public class SongsFragment extends Fragment {
             viewPager.setCurrentItem(1, true);
         }
     }
-    private void setupBackNavigation() {
-        // Register a callback for the back press
-        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                // Check if the current fragment is SongsFragment
-                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
-                    // Replace SongsFragment with FolderFragment at position 1
-                    viewPagerAdapter.updateFragment(1, new FolderFragment());
-                    viewPager.setCurrentItem(1, true);  // Navigate to FolderFragment
-                }
-            }
-        };
-        requireActivity().getOnBackPressedDispatcher().addCallback(
-                this, // LifecycleOwner
-                callback
-        );
+
+    public void updateCurrentSong(AudioModel song) {
+        if (songNumber < 0 || songNumber >= adapter.items.size()) {
+            return;  // Prevent IndexOutOfBoundsException
+        }
+        AudioModel currentSong = adapter.items.get(songNumber);
+        // Update image only if it's different
+        if (!Objects.equals(currentSong.getImage(), song.getImage())) {
+            currentSong.setImage(song.getImage());
+            adapter.notifyItemChanged(songNumber); // Refresh the RecyclerView item
+            //notifyDataSetChanged();
+        }
+        adapter.notifyItemChanged(songNumber);
     }
+
 
 }
