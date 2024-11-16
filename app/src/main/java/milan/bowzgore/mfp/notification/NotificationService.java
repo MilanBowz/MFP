@@ -1,7 +1,9 @@
 package milan.bowzgore.mfp.notification;
 
+import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 
+import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -20,6 +22,8 @@ import android.view.KeyEvent;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.util.List;
+
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -33,18 +37,25 @@ public class NotificationService extends Service {
 
     private PowerManager.WakeLock wakeLock;
 
-    public static MediaPlayer mediaPlayer = new MediaPlayer() ;
+    public static MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionCompat mediaSession;
 
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
 
+    public static boolean isMainActivityActive = false;
+
+    public NotificationService(){
+
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
+
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
@@ -82,7 +93,6 @@ public class NotificationService extends Service {
         };
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(headsetReceiver, filter);
-        wakeLock.acquire();
     }
 
     private void updateMediaSessionPlaybackState(int state) {
@@ -103,7 +113,6 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
-            // Handle the case where the intent is null
             return START_NOT_STICKY;
         }
         String action = intent.getAction();
@@ -115,26 +124,33 @@ public class NotificationService extends Service {
                 case "PLAY":
                 case "PAUSE":
                     playPauseMusic();
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "PREV":
                     playPreviousSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "START":
+                    if(isListPlaying && !wakeLock.isHeld())
+                        wakeLock.acquire();
                     playMusic();
                     requestAudioFocus();
+                    updateMetadata();
+                    showNotification();
                     break;
                 case "STOP":
-                    onDestroy();
-                    System.exit(2);
+                    onStopFromNotification();
                     break;
             }
-            updateMetadata();
-            showNotification();
         }
         return START_STICKY;
     }
@@ -146,7 +162,7 @@ public class NotificationService extends Service {
         Intent nextIntent = new Intent(this, NotificationService.class).setAction("NEXT");
         Intent prevIntent = new Intent(this, NotificationService.class).setAction("PREV");
         Intent stopIntent = new Intent(this, NotificationService.class).setAction("STOP");
-        Intent notificationIntent = new Intent(this, MainActivity.class); // Open GUI activity
+        Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent playPendingIntent = PendingIntent.getService(this, 0, playIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -170,17 +186,18 @@ public class NotificationService extends Service {
                 .setLargeIcon(currentSong.getImage())
                 .setShowWhen(false)
                 .addAction(prevAction)
-                .addAction(actionToShow) // Show the appropriate action
+                .addAction(actionToShow)
                 .addAction(nextAction)
-                .addAction(stopAction) // Add the stop action
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2, 3)// Show actions in compact view
                         .setMediaSession(mediaSession.getSessionToken()));
+        if (!isPlaying) {
+            builder.addAction(stopAction);
+        }
         startForeground(NOTIFICATION_ID, builder.build());
-        //updateMetadata();
     }
 
 
@@ -200,8 +217,6 @@ public class NotificationService extends Service {
         mediaSession.setMetadata(metadata);
     }
 
-    // music player actions
-
     public void playMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         mediaPlayer.start();
@@ -210,6 +225,9 @@ public class NotificationService extends Service {
     public void pauseMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         mediaPlayer.pause();
+        if (wakeLock.isHeld()) {
+            wakeLock.release(); // Release WakeLock on pause
+        }
         isPlaying = false;
         showNotification();
     }
@@ -218,6 +236,9 @@ public class NotificationService extends Service {
         if (isPlaying) {
             updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
             mediaPlayer.pause();
+            if (wakeLock.isHeld()) {
+                wakeLock.release(); // Release WakeLock on pause
+            }
             isPlaying = false;
 
         } else {
@@ -248,7 +269,19 @@ public class NotificationService extends Service {
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.pause();
         mediaPlayer.release();
+        if (wakeLock.isHeld()) {
+            wakeLock.release(); // Release WakeLock when playback stops
+        }
         isPlaying = false;
+    }
+
+    public void onStopFromNotification(){
+        if(!isPlaying){
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+            stopForeground(true);
+        }
     }
 
     @Override
@@ -256,7 +289,6 @@ public class NotificationService extends Service {
         super.onDestroy();
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            mediaPlayer = null;
             audioManager.abandonAudioFocus(afChangeListener);
         }
         if (mediaSession != null) {
@@ -265,6 +297,8 @@ public class NotificationService extends Service {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+        currentSong = null;
+        isPlaying = false;
         stopForeground(true);
     }
 
@@ -274,7 +308,6 @@ public class NotificationService extends Service {
                 AudioManager.AUDIOFOCUS_GAIN);
 
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            // Start playback if we have audio focus
             playMusic();
         }
     }
@@ -283,7 +316,7 @@ public class NotificationService extends Service {
         mediaSession = new MediaSessionCompat(this, "NotificationService");
         mediaSession.setMediaButtonReceiver(PendingIntent.getBroadcast(
                 this, 0, new Intent(Intent.ACTION_MEDIA_BUTTON), PendingIntent.FLAG_UPDATE_CURRENT));
-        // Set up MediaSession Callback to handle media actions
+
         mediaSession.setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
                         MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS

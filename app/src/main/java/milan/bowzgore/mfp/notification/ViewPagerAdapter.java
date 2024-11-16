@@ -58,4 +58,12 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         }
         return false;
     }
+    public void clear() {
+        for (Fragment fr:fragmentList) {
+            fr.onDestroy();
+        }
+        fragmentList.clear();
+
+        notifyDataSetChanged();
+    }
 }

@@ -5,6 +5,7 @@ import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
+import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -35,21 +36,10 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import org.jaudiotagger.audio.AudioFile;
-import org.jaudiotagger.audio.AudioFileIO;
-import org.jaudiotagger.tag.Tag;
-import org.jaudiotagger.tag.datatype.Artwork;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
+import milan.bowzgore.mfp.model.Coverart;
 import milan.bowzgore.mfp.notification.NotificationService;
 
 public class PlayingFragment extends Fragment {
@@ -58,9 +48,9 @@ public class PlayingFragment extends Fragment {
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
     private BroadcastReceiver receiver;
-    Handler handler = new Handler();
+    Handler handler ;
 
-    private ActivityResultLauncher<Intent> pickImageLauncher;
+    Coverart art = new Coverart();
 
     public PlayingFragment() {
     }
@@ -94,21 +84,7 @@ public class PlayingFragment extends Fragment {
         setupSeekBarListener();
         seekBar.setProgress(mediaPlayer.getCurrentPosition());
         titleTv.setSelected(true);
-        Handler handler = new Handler();
-        Runnable updateUIRunnable = () -> {
-            try {
-                if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                    currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                    pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                    pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        };
-        handler.post(updateUIRunnable);
+        setupRunnable();
 
         receiver = new BroadcastReceiver() {
             @Override
@@ -128,7 +104,7 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        pickImageLauncher = registerForActivityResult(
+        Coverart.pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
@@ -137,13 +113,14 @@ public class PlayingFragment extends Fragment {
                             // Convert the selected image to a Bitmap
                             Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
                             // Save the image to a temporary file and update the cover art
-                            updateCoverArt(saveBitmapToFile(bitmap));
+                            art.updateCoverArt(art.saveBitmapToFile(requireActivity(),bitmap));
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     }
                 }
         );
+
         musicIcon.setOnLongClickListener(v -> {
             showChangeCoverArtDialog();
             return true;
@@ -165,26 +142,8 @@ public class PlayingFragment extends Fragment {
         setupSeekBarListener();
         seekBar.setProgress(mediaPlayer.getCurrentPosition());
         titleTv.setSelected(true);
-        Handler handler = new Handler();
-        Runnable updateUIRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                        pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                    } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    handler.postDelayed(this, 100); // Continue updating every 100ms
-                }
-            }
-        };
-        handler.post(updateUIRunnable);
+        setupRunnable();
+
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -202,7 +161,6 @@ public class PlayingFragment extends Fragment {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
             }
         });
-
     }
     private void setupSeekBarListener() {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -282,7 +240,31 @@ public class PlayingFragment extends Fragment {
         }
     }
 
-
+    private void setupRunnable(){
+        this.handler = new Handler();
+        Handler handler = this.handler;
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if(currentSong != null){
+                        if (mediaPlayer != null && isPlaying) {
+                            seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+                        } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    handler.postDelayed(this, 100); // Continue updating every 100ms
+                }
+            }
+        };
+        handler.post(runner);
+    }
 
     private void startMusicService(String action) {
         Intent intent = new Intent(getContext(), NotificationService.class);
@@ -293,10 +275,20 @@ public class PlayingFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+        resetFragment();
         super.onDestroy();
+    }
+    @Override
+    public void onPause(){
+        resetFragment();
+        super.onPause();
+    }
+
+    public void resetFragment(){
         // Unregister the receiver to avoid memory leaks
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
         if (handler != null) {
+            handler.removeCallbacks(null);
             handler = null;
         }
     }
@@ -308,75 +300,11 @@ public class PlayingFragment extends Fragment {
         Button selectCoverButton = dialog.findViewById(R.id.select_cover_button);
         selectCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
-            openImagePicker();
+            art.openImagePicker();
             dialog.dismiss();
         });
 
         dialog.show();
-    }
-    private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        pickImageLauncher.launch(intent);
-    }
-
-    private String saveBitmapToFile(Bitmap bitmap) throws IOException {
-        Bitmap resizedBitmap = resizeBitmap(bitmap, 800, 800);
-        String fileName = "cover_art_" + System.currentTimeMillis() + ".jpg";
-        File file = new File(requireActivity().getCacheDir(), fileName);
-        FileOutputStream outputStream = new FileOutputStream(file);
-        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream);
-        outputStream.flush();
-        outputStream.close();
-        return file.getAbsolutePath();
-    }
-    private Bitmap resizeBitmap(Bitmap originalBitmap, int maxWidth, int maxHeight) {
-        int width = originalBitmap.getWidth();
-        int height = originalBitmap.getHeight();
-
-        float aspectRatio = (float) width / height;
-        if (width > height) {
-            width = maxWidth;
-            height = (int) (maxWidth / aspectRatio);
-        } else {
-            height = maxHeight;
-            width = (int) (maxHeight * aspectRatio);
-        }
-
-        return Bitmap.createScaledBitmap(originalBitmap, width, height, true);
-    }
-
-    public void updateCoverArt(String coverArtPath) throws Exception {
-        String filePath = currentSong.getPath();
-        AudioFile audioFile ;
-        try {
-            audioFile = AudioFileIO.read(new File(filePath));
-        } catch (Exception e) {
-            Log.e("CoverArtUpdate", "Failed to read audio file", e);
-            throw e;
-        }
-
-        Tag tag = audioFile.getTagOrCreateAndSetDefault();
-
-        byte[] imageData = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            imageData = Files.readAllBytes(Paths.get(coverArtPath));
-        }
-
-        Artwork artwork = new Artwork();
-        artwork.setBinaryData(imageData);
-        artwork.setMimeType("image/jpeg");
-
-        try {
-            tag.deleteArtworkField();
-            tag.setField(artwork);
-            audioFile.commit();
-        } catch (Exception e) {
-            Log.e("CoverArtUpdate", "Failed to update artwork", e);
-            throw e;
-        }
-        currentSong.getEmbeddedArtwork(currentSong.getPath());
-        setMusicResources();
-        viewPagerAdapter.updateFragment(2, new SongsFragment());
     }
 
     public void setListPlaying() {

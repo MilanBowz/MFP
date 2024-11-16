@@ -1,6 +1,7 @@
 package milan.bowzgore.mfp.library;
 
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
@@ -35,7 +36,6 @@ public class SongLibrary {
         private static final SongLibrary INSTANCE = new SongLibrary();
     }
 
-    // Public method to provide access to the Singleton instance
     public static SongLibrary getSongLibrary(){
         return Holder.INSTANCE;
     }
@@ -64,30 +64,27 @@ public class SongLibrary {
             c.close();
         }
         return audioModels;
-
-        //updateUI();
     }
     public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
 
-        if(currentSong != null){
+        if( mediaPlayer != null && currentSong != null){
             mediaPlayer.stop();
         }
         songsList = getAllAudioFromDevice(context, folderPath);
 
-        // Find the specific song from the list using Stream API
         currentSong = songsList.stream()
-                .filter(c -> c.getTitle().equals(song)) // Use equals() for String comparison
+                .filter(c -> c.getTitle().equals(song))
                 .findFirst()
-                .orElse(null); // Handle case where song is not found
+                .orElse(null);
 
         songNumber = songsList.indexOf(currentSong);
-        selectedFolder = folderPath;
+        tempFolder = folderPath;
 
         if( mediaPlayer != null && isPlaying ){
             mediaPlayer.reset();
         }
         try {
-                Log.d("MiniPlayer", "Media path: " + currentSong.getPath()); // Check what path is being passed
+                Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
                 mediaPlayer.setDataSource(currentSong.getPath());
                 System.out.println(currentSong.getPath());
                 isPlaying = true;
