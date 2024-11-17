@@ -37,7 +37,6 @@ import java.util.Objects;
 public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
-    SongLibrary library = getSongLibrary();
 
     public List<AudioModel> items ;
 
@@ -82,13 +81,13 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         holder.itemView.setOnClickListener(v -> {
             int previousSongNumber = songNumber;
             songNumber = holder.getAbsoluteAdapterPosition();
-            library.songsList = items;
+            songsList = items;
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && songNumber != RecyclerView.NO_POSITION) {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
                 FolderLibrary.selectedFolder = tempFolder;
-                SongLibrary.changePlaying(songNumber);
+                NotificationService.changePlaying(songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
                 notifyItemChanged(songNumber); // Notify that the current item has changed

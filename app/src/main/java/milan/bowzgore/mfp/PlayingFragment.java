@@ -2,13 +2,11 @@ package milan.bowzgore.mfp;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
-import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
-import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
 import android.annotation.SuppressLint;
@@ -27,7 +25,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,6 +77,7 @@ public class PlayingFragment extends Fragment {
         setGeneralResources();
         setMusicResources();
 
+
         currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
         setupSeekBarListener();
         seekBar.setProgress(mediaPlayer.getCurrentPosition());
@@ -104,7 +102,7 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        Coverart.pickImageLauncher = registerForActivityResult(
+        art.pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
@@ -166,25 +164,21 @@ public class PlayingFragment extends Fragment {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (mediaPlayer != null && fromUser) {
+                if (fromUser) {
                     mediaPlayer.seekTo(progress);
                 }
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                // Optional: Add logic if needed
-            }
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                // Optional: Add logic if needed
-                if (mediaPlayer != null) {
-                    mediaPlayer.seekTo(seekBar.getProgress());
-                }
+                mediaPlayer.seekTo(seekBar.getProgress());
             }
         });
     }
+
     void setGeneralResources(){
         if(currentSong != null){
             pausePlay.setOnClickListener(view -> pausePlay());
@@ -247,14 +241,17 @@ public class PlayingFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    if(currentSong != null){
-                        if (mediaPlayer != null && isPlaying) {
-                            seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                        } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                        }
+                    if (currentSong == null) {
+                        return;
+                    }
+                    int currentPosition = mediaPlayer.getCurrentPosition();
+
+                    if (isPlaying) {
+                        seekBar.setProgress(currentPosition);
+                        currentTimeTv.setText(convertToMMSS(String.valueOf(currentPosition)));
+                        pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+                    } else {
+                        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);

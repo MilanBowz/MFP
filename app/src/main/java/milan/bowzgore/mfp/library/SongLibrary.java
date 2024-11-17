@@ -1,24 +1,16 @@
 package milan.bowzgore.mfp.library;
 
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
-import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
-import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
 
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.util.Log;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import milan.bowzgore.mfp.FolderAdapter;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.notification.NotificationService;
 
@@ -28,7 +20,10 @@ public class SongLibrary {
     public static int songNumber = 0 ;
     public static AudioModel currentSong;
 
+
+
     private SongLibrary() {
+
     }
 
     // Inner static class responsible for holding the Singleton instance
@@ -66,10 +61,6 @@ public class SongLibrary {
         return audioModels;
     }
     public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
-
-        if( mediaPlayer != null && currentSong != null){
-            mediaPlayer.stop();
-        }
         songsList = getAllAudioFromDevice(context, folderPath);
 
         currentSong = songsList.stream()
@@ -80,38 +71,9 @@ public class SongLibrary {
         songNumber = songsList.indexOf(currentSong);
         tempFolder = folderPath;
 
-        if( mediaPlayer != null && isPlaying ){
-            mediaPlayer.reset();
-        }
-        try {
-                Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
-                mediaPlayer.setDataSource(currentSong.getPath());
-                System.out.println(currentSong.getPath());
-                isPlaying = true;
-                mediaPlayer.prepare();
-                currentSong.getEmbeddedArtwork(currentSong.getPath());
-        }
-        catch (IOException e)
-        {
-                e.printStackTrace();
-                Log.println(Log.ERROR,"mediaplayer","mediaplayer error init datasource Songlibrary");
-        }
-
+        NotificationService.init_device_get();
 
         return songsList;
-    }
-
-    public static void changePlaying(int index){
-        songNumber = index;
-        currentSong = songsList.get(songNumber);
-        mediaPlayer.reset();
-        try {
-            mediaPlayer.setDataSource(currentSong.getPath());
-            System.out.println(currentSong.getPath());
-            mediaPlayer.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 

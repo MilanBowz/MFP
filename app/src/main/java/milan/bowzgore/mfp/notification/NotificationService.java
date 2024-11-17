@@ -2,6 +2,8 @@ package milan.bowzgore.mfp.notification;
 
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
+import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
+import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 import android.app.ActivityManager;
 import android.app.PendingIntent;
@@ -12,16 +14,19 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 import android.view.KeyEvent;
 
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.IOException;
 import java.util.List;
 
 import milan.bowzgore.mfp.MainActivity;
@@ -29,7 +34,7 @@ import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
 
 public class NotificationService extends Service {
-    private static final int NOTIFICATION_ID = 1;
+    private final int NOTIFICATION_ID = 1;
     public static final String CHANNEL_ID = "media_playback_channel";
 
     public static boolean isPlaying = false;
@@ -37,17 +42,23 @@ public class NotificationService extends Service {
 
     private PowerManager.WakeLock wakeLock;
 
-    public static MediaPlayer mediaPlayer = new MediaPlayer();
+    public static final MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionCompat mediaSession;
 
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
 
-    public static boolean isMainActivityActive = false;
-
     public NotificationService(){
 
+    }
+
+    private final IBinder binder = (IBinder) new LocalBinder();
+
+    public class LocalBinder extends Binder {
+        public NotificationService getService() {
+            return NotificationService.this; // Return this instance of the service
+        }
     }
 
     @Override
@@ -74,8 +85,15 @@ public class NotificationService extends Service {
         afChangeListener = focusChange -> {
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                case AudioManager.AUDIOFOCUS_LOSS:
                     pauseMusic();
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    stopMusic();
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    if (!isPlaying) {
+                        playMusic();
+                    }
                     break;
             }
         };
@@ -217,55 +235,83 @@ public class NotificationService extends Service {
         mediaSession.setMetadata(metadata);
     }
 
-    public void playMusic(){
+    private void playMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         mediaPlayer.start();
         isPlaying = true;
+        //showNotification();
     }
-    public void pauseMusic(){
+    private void pauseMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         mediaPlayer.pause();
         if (wakeLock.isHeld()) {
             wakeLock.release(); // Release WakeLock on pause
         }
         isPlaying = false;
+        //showNotification();
+    }
+
+    private void playPauseMusic() {
+        if (isPlaying) {
+            pauseMusic();
+        } else {
+            playMusic();
+        }
+    }
+    private void playNextSong(){
+        if(songNumber == songsList.size()-1){
+            changePlaying(0);
+            playMusic();
+            return;
+        }
+        changePlaying(songNumber +1);
+        playMusic();
         showNotification();
     }
-
-    public void playPauseMusic() {
-        if (isPlaying) {
-            updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-            mediaPlayer.pause();
-            if (wakeLock.isHeld()) {
-                wakeLock.release(); // Release WakeLock on pause
-            }
-            isPlaying = false;
-
-        } else {
-            updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-            mediaPlayer.start();
+    private void playPreviousSong(){
+        if(songNumber == 0){
+            changePlaying(songsList.size()-1);
+            playMusic();
+            return;
+        }
+        changePlaying(songNumber -1);
+        playMusic();
+        showNotification();
+    }
+    public static void changePlaying(int index){
+        SongLibrary.songNumber = index;
+        currentSong = SongLibrary.songsList.get(SongLibrary.songNumber);
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(currentSong.getPath());
+            System.out.println(currentSong.getPath());
+            mediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void init_device_get(){
+        if( mediaPlayer != null && currentSong != null){
+            mediaPlayer.stop();
+        }
+        if( mediaPlayer != null && isPlaying ){
+            mediaPlayer.reset();
+        }
+        try {
+            Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
+            mediaPlayer.setDataSource(currentSong.getPath());
+            System.out.println(currentSong.getPath());
             isPlaying = true;
+            mediaPlayer.prepare();
+            currentSong.getEmbeddedArtwork(currentSong.getPath());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            Log.println(Log.ERROR,"mediaplayer","mediaplayer error init datasource Songlibrary");
         }
     }
-    public void playNextSong(){
-        if(SongLibrary.songNumber == SongLibrary.songsList.size()-1){
-            SongLibrary.changePlaying(0);
-            playMusic();
-            return;
-        }
-        SongLibrary.changePlaying(SongLibrary.songNumber +1);
-        playMusic();
-    }
-    public void playPreviousSong(){
-        if(SongLibrary.songNumber == 0){
-            SongLibrary.changePlaying(SongLibrary.songsList.size()-1);
-            playMusic();
-            return;
-        }
-        SongLibrary.changePlaying(SongLibrary.songNumber -1);
-        playMusic();
-    }
-    public void stopMusic(){
+    private void stopMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.pause();
         mediaPlayer.release();
@@ -273,6 +319,7 @@ public class NotificationService extends Service {
             wakeLock.release(); // Release WakeLock when playback stops
         }
         isPlaying = false;
+        stopForeground(true);
     }
 
     public void onStopFromNotification(){
@@ -406,6 +453,21 @@ public class NotificationService extends Service {
             }
         });
         mediaSession.setActive(true);
+    }
+    public int getCurrentPosition() {
+        return mediaPlayer.getCurrentPosition();
+    }
+
+    public int getDuration() {
+        return mediaPlayer.getDuration();
+    }
+
+    public void seekTo(int progress){
+        mediaPlayer.seekTo(progress);
+    }
+
+    public boolean isPlaying() {
+        return mediaPlayer.isPlaying();
     }
 
 }
