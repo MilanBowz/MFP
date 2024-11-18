@@ -69,38 +69,8 @@ public class PlayingFragment extends Fragment {
         previousBtn = binding.previous;
         musicIcon = binding.musicIconBig;
         togglePlayMode = binding.togglePlayMode;
-        if (isListPlaying) {
-            togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
-        } else {
-            togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
-        }
-        setGeneralResources();
-        setMusicResources();
 
-
-        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-        setupSeekBarListener();
-        seekBar.setProgress(mediaPlayer.getCurrentPosition());
-        titleTv.setSelected(true);
-        setupRunnable();
-
-        receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                setMusicResources();  // Update UI based on notification changes
-            }
-        };
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
-
-        togglePlayMode.setOnClickListener(v -> {
-            setListPlaying();
-            if (isListPlaying) {
-                togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
-            } else {
-                togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
-            }
-        });
+        setupFragment();
 
         art.pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -119,15 +89,15 @@ public class PlayingFragment extends Fragment {
                 }
         );
 
-        musicIcon.setOnLongClickListener(v -> {
-            showChangeCoverArtDialog();
-            return true;
-        });
         return binding.getRoot();
     }
     @Override
     public void onResume() {
         super.onResume();
+        setupFragment();
+    }
+
+    public void setupFragment(){
         setGeneralResources();
         setMusicResources();
 
@@ -136,11 +106,16 @@ public class PlayingFragment extends Fragment {
         } else {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
         }
-        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-        setupSeekBarListener();
-        seekBar.setProgress(mediaPlayer.getCurrentPosition());
-        titleTv.setSelected(true);
-        setupRunnable();
+
+        // Make sure the MediaPlayer and SeekBar are synchronized
+        if (mediaPlayer != null) {
+            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+            setupSeekBarListener();
+            seekBar.setMax(mediaPlayer.getDuration()); // Set SeekBar max to media duration
+            seekBar.setProgress(mediaPlayer.getCurrentPosition());
+            titleTv.setSelected(true);
+            setupRunnable();
+        }
 
         receiver = new BroadcastReceiver() {
             @Override
@@ -150,7 +125,6 @@ public class PlayingFragment extends Fragment {
         };
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
-
         togglePlayMode.setOnClickListener(v -> {
             setListPlaying();
             if (isListPlaying) {
@@ -159,7 +133,14 @@ public class PlayingFragment extends Fragment {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
             }
         });
+
+
+        musicIcon.setOnLongClickListener(v -> {
+            showChangeCoverArtDialog();
+            return true;
+        });
     }
+
     private void setupSeekBarListener() {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -184,12 +165,9 @@ public class PlayingFragment extends Fragment {
             pausePlay.setOnClickListener(view -> pausePlay());
             nextBtn.setOnClickListener(v-> playNextSong());
             previousBtn.setOnClickListener(v-> playPreviousSong());
-
-        }
-        else{
-            titleTv.setText(R.string.no_music_loaded);
         }
     }
+
 
     void setMusicResources(){
         if(currentSong != null){
@@ -205,6 +183,11 @@ public class PlayingFragment extends Fragment {
         }
         else{
             titleTv.setText(R.string.no_music_loaded);
+            musicIcon.setImageResource(R.drawable.music_icon_big);
+            seekBar.setMax(0);
+            seekBar.setProgress(0);
+            totalTimeTv.setText("00:00");
+            currentTimeTv.setText("00:00");
         }
     }
 
@@ -242,11 +225,16 @@ public class PlayingFragment extends Fragment {
             public void run() {
                 try {
                     if (currentSong == null) {
+                        titleTv.setText(R.string.no_music_loaded);
+                        musicIcon.setImageResource(R.drawable.music_icon_big);
+                        seekBar.setMax(0);
+                        seekBar.setProgress(0);
+                        totalTimeTv.setText("00:00");
+                        currentTimeTv.setText("00:00");
                         return;
                     }
-                    int currentPosition = mediaPlayer.getCurrentPosition();
-
                     if (isPlaying) {
+                        int currentPosition = mediaPlayer.getCurrentPosition();
                         seekBar.setProgress(currentPosition);
                         currentTimeTv.setText(convertToMMSS(String.valueOf(currentPosition)));
                         pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);

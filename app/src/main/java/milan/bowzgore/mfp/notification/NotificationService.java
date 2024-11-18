@@ -1,11 +1,8 @@
 package milan.bowzgore.mfp.notification;
-
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
-import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -14,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
@@ -29,6 +25,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import java.io.IOException;
 import java.util.List;
 
+import milan.bowzgore.mfp.FolderFragment;
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -53,20 +50,11 @@ public class NotificationService extends Service {
 
     }
 
-    private final IBinder binder = (IBinder) new LocalBinder();
-
-    public class LocalBinder extends Binder {
-        public NotificationService getService() {
-            return NotificationService.this; // Return this instance of the service
-        }
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
-
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
@@ -85,10 +73,8 @@ public class NotificationService extends Service {
         afChangeListener = focusChange -> {
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                    pauseMusic();
-                    break;
                 case AudioManager.AUDIOFOCUS_LOSS:
-                    stopMusic();
+                    pauseMusic();
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
                     if (!isPlaying) {
@@ -143,7 +129,6 @@ public class NotificationService extends Service {
                 case "PAUSE":
                     playPauseMusic();
                     updateMetadata();
-                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -236,19 +221,19 @@ public class NotificationService extends Service {
     }
 
     private void playMusic(){
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         mediaPlayer.start();
         isPlaying = true;
-        //showNotification();
+        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        showNotification();
     }
     private void pauseMusic(){
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         mediaPlayer.pause();
+        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         if (wakeLock.isHeld()) {
             wakeLock.release(); // Release WakeLock on pause
         }
         isPlaying = false;
-        //showNotification();
+        showNotification();
     }
 
     private void playPauseMusic() {
@@ -313,17 +298,19 @@ public class NotificationService extends Service {
     }
     private void stopMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-        mediaPlayer.pause();
-        mediaPlayer.release();
+        mediaPlayer.reset();
+        audioManager.abandonAudioFocus(afChangeListener);
+        isPlaying = false;
+        currentSong = null;
         if (wakeLock.isHeld()) {
             wakeLock.release(); // Release WakeLock when playback stops
         }
-        isPlaying = false;
         stopForeground(true);
     }
 
     public void onStopFromNotification(){
         if(!isPlaying){
+            stopMusic();
             if (wakeLock != null && wakeLock.isHeld()) {
                 wakeLock.release();
             }
@@ -334,13 +321,8 @@ public class NotificationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            audioManager.abandonAudioFocus(afChangeListener);
-        }
-        if (mediaSession != null) {
-            mediaSession.release();
-        }
+        stopMusic();
+
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -398,12 +380,8 @@ public class NotificationService extends Service {
             }
             @Override
             public void onStop() {
+                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
                 super.onStop();
-                if (mediaPlayer != null) {
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-                    stopMusic();
-                    stopSelf();
-                }
             }
             @Override
             public void onSkipToNext() {
@@ -437,9 +415,7 @@ public class NotificationService extends Service {
                         case KeyEvent.KEYCODE_MEDIA_PLAY:
                         case KeyEvent.KEYCODE_MEDIA_PAUSE:
                         case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                            if (mediaPlayer != null) {
-                                playPauseMusic();
-                            }
+                            playPauseMusic();
                             return true;
                         case KeyEvent.KEYCODE_MEDIA_NEXT:
                             startMusicService("NEXT");
@@ -454,20 +430,4 @@ public class NotificationService extends Service {
         });
         mediaSession.setActive(true);
     }
-    public int getCurrentPosition() {
-        return mediaPlayer.getCurrentPosition();
-    }
-
-    public int getDuration() {
-        return mediaPlayer.getDuration();
-    }
-
-    public void seekTo(int progress){
-        mediaPlayer.seekTo(progress);
-    }
-
-    public boolean isPlaying() {
-        return mediaPlayer.isPlaying();
-    }
-
 }
