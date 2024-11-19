@@ -1,6 +1,6 @@
 # MFP (Music Folder Player) for Android
 
-Music player that reads the .mp3 files of an folder (Android smartphone)
+Music player that reads the .mp3 files of an Android device with playlist for each folder.
 
 ## basic controls
 - Basic controls play,pause,next,previous for music
