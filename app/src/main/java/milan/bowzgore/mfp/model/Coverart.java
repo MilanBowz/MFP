@@ -32,7 +32,7 @@ import milan.bowzgore.mfp.SongsFragment;
 
 
 public class Coverart {
-    public static ActivityResultLauncher<Intent> pickImageLauncher;
+    public ActivityResultLauncher<Intent> pickImageLauncher;
 
     public void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);

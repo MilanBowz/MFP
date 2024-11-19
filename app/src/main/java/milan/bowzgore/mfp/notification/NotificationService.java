@@ -1,9 +1,8 @@
 package milan.bowzgore.mfp.notification;
-
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
+import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
+import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
-import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -17,19 +16,22 @@ import android.os.PowerManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 import android.view.KeyEvent;
 
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.IOException;
 import java.util.List;
 
+import milan.bowzgore.mfp.FolderFragment;
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
 
 public class NotificationService extends Service {
-    private static final int NOTIFICATION_ID = 1;
+    private final int NOTIFICATION_ID = 1;
     public static final String CHANNEL_ID = "media_playback_channel";
 
     public static boolean isPlaying = false;
@@ -37,14 +39,12 @@ public class NotificationService extends Service {
 
     private PowerManager.WakeLock wakeLock;
 
-    public static MediaPlayer mediaPlayer = new MediaPlayer();
+    public static final MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionCompat mediaSession;
 
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
-
-    public static boolean isMainActivityActive = false;
 
     public NotificationService(){
 
@@ -55,7 +55,6 @@ public class NotificationService extends Service {
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
-
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
@@ -76,6 +75,11 @@ public class NotificationService extends Service {
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                 case AudioManager.AUDIOFOCUS_LOSS:
                     pauseMusic();
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    if (!isPlaying) {
+                        playMusic();
+                    }
                     break;
             }
         };
@@ -125,7 +129,6 @@ public class NotificationService extends Service {
                 case "PAUSE":
                     playPauseMusic();
                     updateMetadata();
-                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -217,14 +220,15 @@ public class NotificationService extends Service {
         mediaSession.setMetadata(metadata);
     }
 
-    public void playMusic(){
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+    private void playMusic(){
         mediaPlayer.start();
         isPlaying = true;
+        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        showNotification();
     }
-    public void pauseMusic(){
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+    private void pauseMusic(){
         mediaPlayer.pause();
+        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         if (wakeLock.isHeld()) {
             wakeLock.release(); // Release WakeLock on pause
         }
@@ -232,51 +236,81 @@ public class NotificationService extends Service {
         showNotification();
     }
 
-    public void playPauseMusic() {
+    private void playPauseMusic() {
         if (isPlaying) {
-            updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-            mediaPlayer.pause();
-            if (wakeLock.isHeld()) {
-                wakeLock.release(); // Release WakeLock on pause
-            }
-            isPlaying = false;
-
+            pauseMusic();
         } else {
-            updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-            mediaPlayer.start();
+            playMusic();
+        }
+    }
+    private void playNextSong(){
+        if(songNumber == songsList.size()-1){
+            changePlaying(0);
+            playMusic();
+            return;
+        }
+        changePlaying(songNumber +1);
+        playMusic();
+        showNotification();
+    }
+    private void playPreviousSong(){
+        if(songNumber == 0){
+            changePlaying(songsList.size()-1);
+            playMusic();
+            return;
+        }
+        changePlaying(songNumber -1);
+        playMusic();
+        showNotification();
+    }
+    public static void changePlaying(int index){
+        SongLibrary.songNumber = index;
+        currentSong = SongLibrary.songsList.get(SongLibrary.songNumber);
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(currentSong.getPath());
+            System.out.println(currentSong.getPath());
+            mediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void init_device_get(){
+        if( mediaPlayer != null && currentSong != null){
+            mediaPlayer.stop();
+        }
+        if( mediaPlayer != null && isPlaying ){
+            mediaPlayer.reset();
+        }
+        try {
+            Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
+            mediaPlayer.setDataSource(currentSong.getPath());
+            System.out.println(currentSong.getPath());
             isPlaying = true;
+            mediaPlayer.prepare();
+            currentSong.getEmbeddedArtwork(currentSong.getPath());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            Log.println(Log.ERROR,"mediaplayer","mediaplayer error init datasource Songlibrary");
         }
     }
-    public void playNextSong(){
-        if(SongLibrary.songNumber == SongLibrary.songsList.size()-1){
-            SongLibrary.changePlaying(0);
-            playMusic();
-            return;
-        }
-        SongLibrary.changePlaying(SongLibrary.songNumber +1);
-        playMusic();
-    }
-    public void playPreviousSong(){
-        if(SongLibrary.songNumber == 0){
-            SongLibrary.changePlaying(SongLibrary.songsList.size()-1);
-            playMusic();
-            return;
-        }
-        SongLibrary.changePlaying(SongLibrary.songNumber -1);
-        playMusic();
-    }
-    public void stopMusic(){
+    private void stopMusic(){
         updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-        mediaPlayer.pause();
-        mediaPlayer.release();
+        mediaPlayer.reset();
+        audioManager.abandonAudioFocus(afChangeListener);
+        isPlaying = false;
+        currentSong = null;
         if (wakeLock.isHeld()) {
             wakeLock.release(); // Release WakeLock when playback stops
         }
-        isPlaying = false;
+        stopForeground(true);
     }
 
     public void onStopFromNotification(){
         if(!isPlaying){
+            stopMusic();
             if (wakeLock != null && wakeLock.isHeld()) {
                 wakeLock.release();
             }
@@ -287,13 +321,8 @@ public class NotificationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            audioManager.abandonAudioFocus(afChangeListener);
-        }
-        if (mediaSession != null) {
-            mediaSession.release();
-        }
+        stopMusic();
+
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -351,12 +380,8 @@ public class NotificationService extends Service {
             }
             @Override
             public void onStop() {
+                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
                 super.onStop();
-                if (mediaPlayer != null) {
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-                    stopMusic();
-                    stopSelf();
-                }
             }
             @Override
             public void onSkipToNext() {
@@ -390,9 +415,7 @@ public class NotificationService extends Service {
                         case KeyEvent.KEYCODE_MEDIA_PLAY:
                         case KeyEvent.KEYCODE_MEDIA_PAUSE:
                         case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                            if (mediaPlayer != null) {
-                                playPauseMusic();
-                            }
+                            playPauseMusic();
                             return true;
                         case KeyEvent.KEYCODE_MEDIA_NEXT:
                             startMusicService("NEXT");
@@ -407,5 +430,4 @@ public class NotificationService extends Service {
         });
         mediaSession.setActive(true);
     }
-
 }

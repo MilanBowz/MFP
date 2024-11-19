@@ -44,12 +44,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class MainActivity extends AppCompatActivity  implements Application.ActivityLifecycleCallbacks {
+public class MainActivity extends AppCompatActivity  {
 
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
-    private static final int REQUEST_CODE = 123;
+    private final int REQUEST_CODE = 123;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity  implements Application.Acti
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        NotificationService.isMainActivityActive = true;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -208,41 +207,5 @@ public class MainActivity extends AppCompatActivity  implements Application.Acti
                 this, // LifecycleOwner
                 callback
         );
-    }
-
-    @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-        NotificationService.isMainActivityActive = true;
-    }
-
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {
-        NotificationService.isMainActivityActive = true;
-    }
-
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {
-        NotificationService.isMainActivityActive = false;
-    }
-
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-        NotificationService.isMainActivityActive = false;
-    }
-
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
-
-    }
-
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
-        NotificationService.isMainActivityActive = false;
-        super.onDestroy();
     }
 }
