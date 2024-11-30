@@ -37,7 +37,7 @@ xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:id="@+id/recycler_view"
-    tools:context=".SongsFragment"
+    tools:context=".fragment.SongsFragment"
     tools:listitem="@layout/fragment_songs"
     android:layout_below="@id/nav_list"/>
 

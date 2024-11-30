@@ -4,23 +4,16 @@ import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.viewpager2.widget.ViewPager2;
 
-import android.app.Activity;
-import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 
 import android.database.Cursor;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,11 +25,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import milan.bowzgore.mfp.fragment.FolderFragment;
+import milan.bowzgore.mfp.fragment.PlayingFragment;
+import milan.bowzgore.mfp.fragment.SongsFragment;
 import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
-import milan.bowzgore.mfp.notification.NotificationService;
-import milan.bowzgore.mfp.notification.ViewPagerAdapter;
+import milan.bowzgore.mfp.service.NotificationService;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.concurrent.ExecutorService;

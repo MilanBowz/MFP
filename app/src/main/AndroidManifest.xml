@@ -53,7 +53,7 @@
         </activity>
 
         <service
-            android:name=".notification.NotificationService"
+            android:name=".service.NotificationService"
             android:enabled="true"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|screenLayout|smallestScreenSize"

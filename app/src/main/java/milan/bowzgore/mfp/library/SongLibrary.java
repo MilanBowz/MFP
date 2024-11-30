@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 
 import milan.bowzgore.mfp.model.AudioModel;
-import milan.bowzgore.mfp.notification.NotificationService;
+import milan.bowzgore.mfp.service.NotificationService;
 
 public class SongLibrary {
 

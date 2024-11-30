@@ -1,4 +1,4 @@
-package milan.bowzgore.mfp.notification;
+package milan.bowzgore.mfp;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;

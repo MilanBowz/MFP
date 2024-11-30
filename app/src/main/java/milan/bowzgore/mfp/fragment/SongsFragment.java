@@ -1,8 +1,7 @@
-package milan.bowzgore.mfp;
+package milan.bowzgore.mfp.fragment;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 
 import android.content.BroadcastReceiver;
@@ -11,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -22,7 +20,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -30,6 +27,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;

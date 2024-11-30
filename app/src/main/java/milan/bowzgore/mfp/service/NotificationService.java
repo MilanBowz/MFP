@@ -1,4 +1,4 @@
-package milan.bowzgore.mfp.notification;
+package milan.bowzgore.mfp.service;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
@@ -13,19 +13,14 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
-import android.view.KeyEvent;
 
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
-import java.util.List;
 
-import milan.bowzgore.mfp.FolderFragment;
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -35,12 +30,11 @@ public class NotificationService extends Service {
     public static final String CHANNEL_ID = "media_playback_channel";
 
     public static boolean isPlaying = false;
-    public static boolean isListPlaying = false;
 
-    private PowerManager.WakeLock wakeLock;
+    private PowerHandler powerHandler;
 
     public static final MediaPlayer mediaPlayer = new MediaPlayer();
-    private MediaSessionCompat mediaSession;
+    private MediaSessionHandler mediaSession;
 
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
@@ -53,20 +47,10 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
+        powerHandler = new PowerHandler(this);
 
         mediaPlayer.setOnCompletionListener(mp -> {
-            if (isListPlaying) {
-                if(!wakeLock.isHeld())
-                    wakeLock.acquire();
-                startMusicService("NEXT");
-            }
-            else {
-                if(wakeLock.isHeld())
-                    wakeLock.release();
-                startMusicService("START");
-            }
+            powerHandler.setWakelock();
         });
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
@@ -84,7 +68,7 @@ public class NotificationService extends Service {
             }
         };
 
-        setupMedaSession();
+        mediaSession = new MediaSessionHandler(this);
 
         final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
             @Override
@@ -99,21 +83,6 @@ public class NotificationService extends Service {
         registerReceiver(headsetReceiver, filter);
     }
 
-    private void updateMediaSessionPlaybackState(int state) {
-        PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder()
-                .setActions(
-                        PlaybackStateCompat.ACTION_PLAY |
-                                PlaybackStateCompat.ACTION_PAUSE |
-                                PlaybackStateCompat.ACTION_PLAY_PAUSE |
-                                PlaybackStateCompat.ACTION_STOP |
-                                PlaybackStateCompat.ACTION_SEEK_TO |
-                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
-                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-                )
-                .setState(state, mediaPlayer.getCurrentPosition(), 1.0f);
-
-        mediaSession.setPlaybackState(playbackStateBuilder.build());
-    }
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
@@ -128,26 +97,25 @@ public class NotificationService extends Service {
                 case "PLAY":
                 case "PAUSE":
                     playPauseMusic();
-                    updateMetadata();
+                    mediaSession.updateMetadata();
                     break;
                 case "NEXT":
                     playNextSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
-                    updateMetadata();
+                    mediaSession.updateMetadata();
                     showNotification();
                     break;
                 case "PREV":
                     playPreviousSong();
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
-                    updateMetadata();
+                    mediaSession.updateMetadata();
                     showNotification();
                     break;
                 case "START":
-                    if(isListPlaying && !wakeLock.isHeld())
-                        wakeLock.acquire();
+                    powerHandler.acquireWakeLock();
                     playMusic();
                     requestAudioFocus();
-                    updateMetadata();
+                    mediaSession.updateMetadata();
                     showNotification();
                     break;
                 case "STOP":
@@ -210,28 +178,17 @@ public class NotificationService extends Service {
         return null;
     }
 
-    private void updateMetadata() {
-        MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART,
-                        currentSong.getImage())
-                .build();
-
-        mediaSession.setMetadata(metadata);
-    }
 
     private void playMusic(){
         mediaPlayer.start();
         isPlaying = true;
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
     }
     private void pauseMusic(){
         mediaPlayer.pause();
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-        if (wakeLock.isHeld()) {
-            wakeLock.release(); // Release WakeLock on pause
-        }
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        powerHandler.releaseWakeLock();
         isPlaying = false;
         showNotification();
     }
@@ -297,23 +254,19 @@ public class NotificationService extends Service {
         }
     }
     private void stopMusic(){
-        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.reset();
         audioManager.abandonAudioFocus(afChangeListener);
         isPlaying = false;
         currentSong = null;
-        if (wakeLock.isHeld()) {
-            wakeLock.release(); // Release WakeLock when playback stops
-        }
+        powerHandler.releaseWakeLock();
         stopForeground(true);
     }
 
     public void onStopFromNotification(){
         if(!isPlaying){
             stopMusic();
-            if (wakeLock != null && wakeLock.isHeld()) {
-                wakeLock.release();
-            }
+            powerHandler.releaseWakeLock();
             stopForeground(true);
         }
     }
@@ -323,111 +276,18 @@ public class NotificationService extends Service {
         super.onDestroy();
         stopMusic();
 
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
+        powerHandler.releaseWakeLock();
         currentSong = null;
         isPlaying = false;
         stopForeground(true);
     }
 
-    private void requestAudioFocus() {
+    void requestAudioFocus() {
         int result = audioManager.requestAudioFocus(afChangeListener,
                 AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN);
-
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            playMusic();
+            powerHandler.acquireWakeLock();
         }
-    }
-
-    private void setupMedaSession(){
-        mediaSession = new MediaSessionCompat(this, "NotificationService");
-        mediaSession.setMediaButtonReceiver(PendingIntent.getBroadcast(
-                this, 0, new Intent(Intent.ACTION_MEDIA_BUTTON), PendingIntent.FLAG_UPDATE_CURRENT));
-
-        mediaSession.setFlags(
-                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-                        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
-        );
-        mediaSession.setCallback(new MediaSessionCompat.Callback() {
-            @Override
-            public void onPlay() {
-                super.onPlay();
-                if (mediaPlayer != null) {
-                    startMusicService("PLAY");
-                    if(isPlaying){
-                        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-                    }
-                    else {
-                        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                    }
-                }
-            }
-            @Override
-            public void onPause() {
-                super.onPause();
-                if (mediaPlayer != null) {
-                    startMusicService("PAUSE");
-                    if(isPlaying){
-                        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-                    }
-                    else {
-                        updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                    }
-                }
-
-            }
-            @Override
-            public void onStop() {
-                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-                super.onStop();
-            }
-            @Override
-            public void onSkipToNext() {
-                super.onSkipToNext();
-                if (mediaPlayer != null) {
-                    startMusicService("NEXT");
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
-                }
-            }
-            @Override
-            public void onSkipToPrevious() {
-                super.onSkipToPrevious();
-                if (mediaPlayer != null) {
-                    startMusicService("PREV");
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
-                }
-            }
-
-            @Override
-            public void onSeekTo(long pos) {
-                super.onSeekTo(pos);
-                if (mediaPlayer != null) {
-                    mediaPlayer.seekTo((int) pos);
-                }
-            }
-            @Override
-            public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
-                KeyEvent event = mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
-                if (event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
-                    switch (event.getKeyCode()) {
-                        case KeyEvent.KEYCODE_MEDIA_PLAY:
-                        case KeyEvent.KEYCODE_MEDIA_PAUSE:
-                        case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                            playPauseMusic();
-                            return true;
-                        case KeyEvent.KEYCODE_MEDIA_NEXT:
-                            startMusicService("NEXT");
-                            return true;
-                        case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                            startMusicService("PREV");
-                            return true;
-                    }
-                }
-                return super.onMediaButtonEvent(mediaButtonIntent);
-            }
-        });
-        mediaSession.setActive(true);
     }
 }

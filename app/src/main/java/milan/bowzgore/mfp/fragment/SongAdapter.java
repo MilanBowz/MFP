@@ -1,9 +1,8 @@
-package milan.bowzgore.mfp;
+package milan.bowzgore.mfp.fragment;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
-import static milan.bowzgore.mfp.library.SongLibrary.getSongLibrary;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
@@ -21,10 +20,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
-import milan.bowzgore.mfp.notification.NotificationService;
+import milan.bowzgore.mfp.service.NotificationService;
 
 import java.util.List;
 import java.util.Objects;

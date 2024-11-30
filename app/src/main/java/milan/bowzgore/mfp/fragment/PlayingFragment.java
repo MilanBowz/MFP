@@ -1,11 +1,11 @@
-package milan.bowzgore.mfp;
+package milan.bowzgore.mfp.fragment;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.library.SongLibrary.*;
-import static milan.bowzgore.mfp.notification.NotificationService.isListPlaying;
-import static milan.bowzgore.mfp.notification.NotificationService.isPlaying;
-import static milan.bowzgore.mfp.notification.NotificationService.mediaPlayer;
+import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
+import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
+import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 
@@ -35,9 +35,10 @@ import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import java.util.concurrent.TimeUnit;
 
+import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
 import milan.bowzgore.mfp.model.Coverart;
-import milan.bowzgore.mfp.notification.NotificationService;
+import milan.bowzgore.mfp.service.NotificationService;
 
 public class PlayingFragment extends Fragment {
 

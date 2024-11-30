@@ -25,7 +25,7 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/folder_recyclerview"
-        tools:context=".FolderFragment"
+        tools:context=".fragment.FolderFragment"
         android:layout_below="@id/nav_list"
         tools:listitem="@layout/fragment_folder"
         android:layout_width="match_parent"

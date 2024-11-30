@@ -1,4 +1,4 @@
-package milan.bowzgore.mfp;
+package milan.bowzgore.mfp.fragment;
 
 import android.os.Bundle;
 import androidx.annotation.NonNull;
@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 
 import java.util.Collections;
 
+import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.FolderLibrary;
 
 /**

@@ -1,4 +1,4 @@
-package milan.bowzgore.mfp;
+package milan.bowzgore.mfp.fragment;
 
 
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
@@ -19,8 +19,8 @@ import android.widget.TextView;
 
 import java.util.Objects;
 
-import milan.bowzgore.mfp.library.FolderLibrary;
-import milan.bowzgore.mfp.notification.ViewPagerAdapter;
+import milan.bowzgore.mfp.R;
+import milan.bowzgore.mfp.ViewPagerAdapter;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link String}.
