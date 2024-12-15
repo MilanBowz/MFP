@@ -32,8 +32,6 @@ public class NotificationService extends Service {
     public static final MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionHandler mediaSession;
 
-
-
     public NotificationService() {
 
     }
@@ -259,6 +257,4 @@ public class NotificationService extends Service {
         isPlaying = false;
         stopForeground(true);
     }
-
-
 }
