@@ -1,9 +1,15 @@
 package milan.bowzgore.mfp.service;
 
+import android.Manifest;
+import android.bluetooth.BluetoothClass;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.PowerManager;
+
+import androidx.core.app.ActivityCompat;
 
 public class PowerHandler {
 
@@ -49,5 +55,18 @@ public class PowerHandler {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+    }
+    private boolean isBluetoothAudioDevice(BluetoothDevice device) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (device.getBluetoothClass() != null) {
+                int deviceClass = device.getBluetoothClass().getDeviceClass();
+                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER;
+            }
+        }
+        return false;
     }
 }

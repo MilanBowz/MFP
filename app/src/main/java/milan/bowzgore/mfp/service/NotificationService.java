@@ -1,14 +1,21 @@
 package milan.bowzgore.mfp.service;
+
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
@@ -16,10 +23,12 @@ import android.os.PowerManager;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
+import java.util.List;
 
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
@@ -40,7 +49,7 @@ public class NotificationService extends Service {
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private boolean isInitialized = false;
 
-    public NotificationService(){
+    public NotificationService() {
 
     }
 
@@ -69,17 +78,41 @@ public class NotificationService extends Service {
         };
 
         mediaSession = new MediaSessionHandler(this);
+        setupBroadcast();
+    }
 
+    public void setupBroadcast() {
         final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) && isInitialized) {
+                String action = intent.getAction();
+
+                // Handle wired headset
+                if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
                     pauseMusic(); // Headset is unplugged, pause music
+                }
+
+                // Handle Bluetooth device connection
+                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (device != null && isSpeaker(device)) {
+                        pauseMusic(); // Pause music when a new Bluetooth audio speaker connects
+                    }
+                }
+                // Handle Bluetooth device disconnection
+                if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (device != null && (isHeadset(device) || isSpeaker(device))) {
+                        pauseMusic(); // Pause music when a new Bluetooth audio device connects
+                    }
                 }
                 isInitialized = true;
             }
         };
+
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         registerReceiver(headsetReceiver, filter);
     }
 
@@ -91,6 +124,7 @@ public class NotificationService extends Service {
         String action = intent.getAction();
         return startMusicService(action);
     }
+
     public int startMusicService(String action) {
         if (currentSong != null) {
             switch (action) {
@@ -172,20 +206,20 @@ public class NotificationService extends Service {
     }
 
 
-
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 
 
-    private void playMusic(){
+    private void playMusic() {
         mediaPlayer.start();
         isPlaying = true;
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
     }
-    private void pauseMusic(){
+
+    private void pauseMusic() {
         mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         powerHandler.releaseWakeLock();
@@ -200,27 +234,30 @@ public class NotificationService extends Service {
             playMusic();
         }
     }
-    private void playNextSong(){
-        if(songNumber == songsList.size()-1){
+
+    private void playNextSong() {
+        if (songNumber == songsList.size() - 1) {
             changePlaying(0);
             playMusic();
             return;
         }
-        changePlaying(songNumber +1);
+        changePlaying(songNumber + 1);
         playMusic();
         showNotification();
     }
-    private void playPreviousSong(){
-        if(songNumber == 0){
-            changePlaying(songsList.size()-1);
+
+    private void playPreviousSong() {
+        if (songNumber == 0) {
+            changePlaying(songsList.size() - 1);
             playMusic();
             return;
         }
-        changePlaying(songNumber -1);
+        changePlaying(songNumber - 1);
         playMusic();
         showNotification();
     }
-    public static void changePlaying(int index){
+
+    public static void changePlaying(int index) {
         SongLibrary.songNumber = index;
         currentSong = SongLibrary.songsList.get(SongLibrary.songNumber);
         mediaPlayer.reset();
@@ -232,11 +269,12 @@ public class NotificationService extends Service {
             e.printStackTrace();
         }
     }
-    public static void init_device_get(){
-        if( mediaPlayer != null && currentSong != null){
+
+    public static void init_device_get() {
+        if (mediaPlayer != null && currentSong != null) {
             mediaPlayer.stop();
         }
-        if( mediaPlayer != null && isPlaying ){
+        if (mediaPlayer != null && isPlaying) {
             mediaPlayer.reset();
         }
         try {
@@ -246,14 +284,13 @@ public class NotificationService extends Service {
             isPlaying = true;
             mediaPlayer.prepare();
             currentSong.getEmbeddedArtwork(currentSong.getPath());
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
-            Log.println(Log.ERROR,"mediaplayer","mediaplayer error init datasource Songlibrary");
+            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init datasource Songlibrary");
         }
     }
-    private void stopMusic(){
+
+    private void stopMusic() {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.reset();
         audioManager.abandonAudioFocus(afChangeListener);
@@ -263,8 +300,8 @@ public class NotificationService extends Service {
         stopForeground(true);
     }
 
-    public void onStopFromNotification(){
-        if(!isPlaying){
+    public void onStopFromNotification() {
+        if (!isPlaying) {
             stopMusic();
             powerHandler.releaseWakeLock();
             stopForeground(true);
@@ -289,5 +326,29 @@ public class NotificationService extends Service {
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             powerHandler.acquireWakeLock();
         }
+    }
+
+    private boolean isHeadset(BluetoothDevice device) {
+        // Check if the device is a headset
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (device.getBluetoothClass() != null) {
+                int deviceClass = device.getBluetoothClass().getDeviceClass();
+                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES;
+            }
+        }
+        return false;
+    }
+
+    private boolean isSpeaker(BluetoothDevice device) {
+        // Check if the device is a speaker
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (device.getBluetoothClass() != null) {
+                int deviceClass = device.getBluetoothClass().getDeviceClass();
+                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER;
+            }
+        }
+        return false;
     }
 }

@@ -20,8 +20,6 @@ public class SongLibrary {
     public static int songNumber = 0 ;
     public static AudioModel currentSong;
 
-
-
     private SongLibrary() {
 
     }

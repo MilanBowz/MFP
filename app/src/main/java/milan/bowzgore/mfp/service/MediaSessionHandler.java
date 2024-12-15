@@ -3,13 +3,19 @@ package milan.bowzgore.mfp.service;
 import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
+import android.Manifest;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothClass;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
+
+import androidx.core.app.ActivityCompat;
 
 
 public class MediaSessionHandler {
@@ -21,7 +27,7 @@ public class MediaSessionHandler {
         setupMediaSession();
     }
 
-    public void startMusicService(String action){
+    public void startMusicService(String action) {
         Intent playIntent = new Intent(context, NotificationService.class);
         playIntent.setAction(action);  // Action that the service will handle
         context.startService(playIntent);
@@ -42,7 +48,6 @@ public class MediaSessionHandler {
 
         mediaSession.setPlaybackState(playbackStateBuilder.build());
     }
-
 
 
     public MediaSessionCompat.Token getSessionToken() {
@@ -76,6 +81,7 @@ public class MediaSessionHandler {
                     startMusicService("PLAY");
                 }
             }
+
             @Override
             public void onPause() {
                 super.onPause();
@@ -84,11 +90,13 @@ public class MediaSessionHandler {
                 }
 
             }
+
             @Override
             public void onStop() {
                 updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
                 super.onStop();
             }
+
             @Override
             public void onSkipToNext() {
                 super.onSkipToNext();
@@ -97,6 +105,7 @@ public class MediaSessionHandler {
                     updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
                 }
             }
+
             @Override
             public void onSkipToPrevious() {
                 super.onSkipToPrevious();
@@ -113,6 +122,7 @@ public class MediaSessionHandler {
                     mediaPlayer.seekTo((int) pos);
                 }
             }
+
             @Override
             public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
                 KeyEvent event = mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
