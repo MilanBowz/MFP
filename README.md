@@ -19,4 +19,4 @@ Music player that reads the .mp3 files of an Android device with playlist for ea
 
 ## Install and download
 
-Application is found in './apk_result/app-release.apk' ( 6,2 MB )
+Application is found in './apk_result/app-release.apk'
