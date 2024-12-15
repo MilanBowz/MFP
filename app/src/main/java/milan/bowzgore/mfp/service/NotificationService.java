@@ -4,31 +4,18 @@ import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
-import android.Manifest;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
-import java.util.List;
 
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
@@ -45,9 +32,7 @@ public class NotificationService extends Service {
     public static final MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionHandler mediaSession;
 
-    private AudioManager audioManager;
-    private AudioManager.OnAudioFocusChangeListener afChangeListener;
-    private boolean isInitialized = false;
+
 
     public NotificationService() {
 
@@ -61,59 +46,10 @@ public class NotificationService extends Service {
         mediaPlayer.setOnCompletionListener(mp -> {
             powerHandler.setWakelock();
         });
-        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
-        afChangeListener = focusChange -> {
-            switch (focusChange) {
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                case AudioManager.AUDIOFOCUS_LOSS:
-                    pauseMusic();
-                    break;
-                case AudioManager.AUDIOFOCUS_GAIN:
-                    if (!isPlaying) {
-                        playMusic();
-                    }
-                    break;
-            }
-        };
-
+        powerHandler.setupMediaManager();
         mediaSession = new MediaSessionHandler(this);
-        setupBroadcast();
-    }
-
-    public void setupBroadcast() {
-        final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-
-                // Handle wired headset
-                if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
-                    pauseMusic(); // Headset is unplugged, pause music
-                }
-
-                // Handle Bluetooth device connection
-                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null && isSpeaker(device)) {
-                        pauseMusic(); // Pause music when a new Bluetooth audio speaker connects
-                    }
-                }
-                // Handle Bluetooth device disconnection
-                if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null && (isHeadset(device) || isSpeaker(device))) {
-                        pauseMusic(); // Pause music when a new Bluetooth audio device connects
-                    }
-                }
-                isInitialized = true;
-            }
-        };
-
-        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        registerReceiver(headsetReceiver, filter);
+        powerHandler.setupBroadcast();
     }
 
     @Override
@@ -128,9 +64,16 @@ public class NotificationService extends Service {
     public int startMusicService(String action) {
         if (currentSong != null) {
             switch (action) {
-                case "PLAY":
-                case "PAUSE":
+                case "PLAYPAUSE":
                     playPauseMusic();
+                    mediaSession.updateMetadata();
+                    break;
+                case "PLAY":
+                    playMusic();
+                    mediaSession.updateMetadata();
+                    break;
+                case "PAUSE":
+                    pauseMusic();
                     mediaSession.updateMetadata();
                     break;
                 case "NEXT":
@@ -148,7 +91,7 @@ public class NotificationService extends Service {
                 case "START":
                     powerHandler.acquireWakeLock();
                     playMusic();
-                    requestAudioFocus();
+                    powerHandler.requestAudioFocus();
                     mediaSession.updateMetadata();
                     showNotification();
                     break;
@@ -222,7 +165,7 @@ public class NotificationService extends Service {
     private void pauseMusic() {
         mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-        powerHandler.releaseWakeLock();
+        powerHandler.releaseWakeLockAndAudioFocus();
         isPlaying = false;
         showNotification();
     }
@@ -293,17 +236,16 @@ public class NotificationService extends Service {
     private void stopMusic() {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.reset();
-        audioManager.abandonAudioFocus(afChangeListener);
         isPlaying = false;
         currentSong = null;
-        powerHandler.releaseWakeLock();
+        powerHandler.releaseWakeLockAndAudioFocus();
         stopForeground(true);
     }
 
     public void onStopFromNotification() {
         if (!isPlaying) {
             stopMusic();
-            powerHandler.releaseWakeLock();
+            powerHandler.releaseWakeLockAndAudioFocus();
             stopForeground(true);
         }
     }
@@ -312,43 +254,11 @@ public class NotificationService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopMusic();
-
-        powerHandler.releaseWakeLock();
+        powerHandler.releaseWakeLockAndAudioFocus();
         currentSong = null;
         isPlaying = false;
         stopForeground(true);
     }
 
-    void requestAudioFocus() {
-        int result = audioManager.requestAudioFocus(afChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN);
-        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            powerHandler.acquireWakeLock();
-        }
-    }
 
-    private boolean isHeadset(BluetoothDevice device) {
-        // Check if the device is a headset
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            if (device.getBluetoothClass() != null) {
-                int deviceClass = device.getBluetoothClass().getDeviceClass();
-                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES;
-            }
-        }
-        return false;
-    }
-
-    private boolean isSpeaker(BluetoothDevice device) {
-        // Check if the device is a speaker
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            if (device.getBluetoothClass() != null) {
-                int deviceClass = device.getBluetoothClass().getDeviceClass();
-                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER;
-            }
-        }
-        return false;
-    }
 }

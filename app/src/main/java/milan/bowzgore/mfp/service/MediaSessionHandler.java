@@ -131,7 +131,7 @@ public class MediaSessionHandler {
                         case KeyEvent.KEYCODE_MEDIA_PLAY:
                         case KeyEvent.KEYCODE_MEDIA_PAUSE:
                         case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                            startMusicService("PLAY");
+                            startMusicService("PLAYPAUSE");
                             return true;
                         case KeyEvent.KEYCODE_MEDIA_NEXT:
                             startMusicService("NEXT");

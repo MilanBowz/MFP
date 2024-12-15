@@ -193,7 +193,7 @@ public class PlayingFragment extends Fragment {
     }
 
     private void pausePlay(){
-        startMusicService("PAUSE");
+        startMusicService("PLAYPAUSE");
     }
 
     private void playNextSong(){

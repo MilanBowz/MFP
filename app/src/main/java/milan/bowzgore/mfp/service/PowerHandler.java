@@ -1,10 +1,14 @@
 package milan.bowzgore.mfp.service;
 
+import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
+
 import android.Manifest;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.PowerManager;
@@ -17,6 +21,10 @@ public class PowerHandler {
     private PowerManager.WakeLock wakeLock;
 
     public static boolean isListPlaying = false;
+    private boolean isInitialized = false;
+
+    private AudioManager audioManager;
+    private AudioManager.OnAudioFocusChangeListener afChangeListener;
 
     public PowerHandler(Context context) {
         this.context = context;
@@ -35,7 +43,9 @@ public class PowerHandler {
         }
         else {
             startMusicService("START");
-            releaseWakeLock();
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
         }
     }
 
@@ -51,19 +61,94 @@ public class PowerHandler {
     }
 
     // Method to release the wake lock
-    protected void releaseWakeLock() {
+    protected void releaseWakeLockAndAudioFocus() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+        if(audioManager != null){
+            audioManager.abandonAudioFocus(afChangeListener);
+        }
     }
-    private boolean isBluetoothAudioDevice(BluetoothDevice device) {
+    protected void requestAudioFocus() {
+        int result = audioManager.requestAudioFocus(afChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN);
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            acquireWakeLock();
+        }
+    }
+
+    protected void setupMediaManager(){
+        audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+
+        afChangeListener = focusChange -> {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    startMusicService("PAUSE");
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    if (!isPlaying) {
+                        startMusicService("PAUSE");
+                    }
+                    break;
+            }
+        };
+    }
+    protected void setupBroadcast() {
+        final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+
+                // Handle wired headset
+                if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
+                    //pauseMusic(); // Headset is unplugged, pause music
+                    startMusicService("PAUSE");
+                }
+
+                // Handle Bluetooth device connection
+                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (device != null && isSpeaker(device)) {
+                        startMusicService("PAUSE"); // Pause music when a new Bluetooth audio speaker connects
+                    }
+                }
+                // Handle Bluetooth device disconnection
+                if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (device != null && (isHeadset(device) || isSpeaker(device))) {
+                        startMusicService("PAUSE");// Pause music when a new Bluetooth audio device connects
+                    }
+                }
+                isInitialized = true;
+            }
+        };
+
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        context.registerReceiver(headsetReceiver, filter);
+    }
+
+    private boolean isHeadset(BluetoothDevice device) {
+        // Check if the device is a headset
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             if (device.getBluetoothClass() != null) {
                 int deviceClass = device.getBluetoothClass().getDeviceClass();
                 return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES;
+            }
+        }
+        return false;
+    }
+
+    private boolean isSpeaker(BluetoothDevice device) {
+        // Check if the device is a speaker
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (device.getBluetoothClass() != null) {
+                int deviceClass = device.getBluetoothClass().getDeviceClass();
+                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
                         deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER;
             }
         }
