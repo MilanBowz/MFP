@@ -24,4 +24,3 @@ navigation-fragment = { group = "androidx.navigation", name = "navigation-fragme
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-

@@ -45,9 +45,8 @@ public class NotificationService extends Service {
             powerHandler.setWakelock();
         });
 
-        powerHandler.setupMediaManager();
+        powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
-        powerHandler.setupBroadcast();
     }
 
     @Override
