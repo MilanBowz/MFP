@@ -1,9 +1,5 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
-import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
-import static milan.bowzgore.mfp.library.SongLibrary.songsList;
-
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -45,9 +41,8 @@ public class NotificationService extends Service {
             powerHandler.setWakelock();
         });
 
-        powerHandler.setupMediaManager();
+        powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
-        powerHandler.setupBroadcast();
     }
 
     @Override
@@ -60,7 +55,7 @@ public class NotificationService extends Service {
     }
 
     public int startMusicService(String action) {
-        if (currentSong != null) {
+        if (SongLibrary.get().currentSong != null) {
             switch (action) {
                 case "PLAYPAUSE":
                     playPauseMusic();
@@ -127,9 +122,9 @@ public class NotificationService extends Service {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.icon)
-                .setContentTitle(SongLibrary.currentSong.getTitle())
+                .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(currentSong.getImage())
+                .setLargeIcon(SongLibrary.get().currentSong.getImage())
                 .setShowWhen(false)
                 .addAction(prevAction)
                 .addAction(actionToShow)
@@ -177,34 +172,33 @@ public class NotificationService extends Service {
     }
 
     private void playNextSong() {
-        if (songNumber == songsList.size() - 1) {
+        if (SongLibrary.get().songNumber == SongLibrary.get().songsList.size() - 1) {
             changePlaying(0);
             playMusic();
             return;
         }
-        changePlaying(songNumber + 1);
+        changePlaying(SongLibrary.get().songNumber + 1);
         playMusic();
         showNotification();
     }
 
     private void playPreviousSong() {
-        if (songNumber == 0) {
-            changePlaying(songsList.size() - 1);
+        if (SongLibrary.get().songNumber == 0) {
+            changePlaying(SongLibrary.get().songsList.size() - 1);
             playMusic();
             return;
         }
-        changePlaying(songNumber - 1);
+        changePlaying(SongLibrary.get().songNumber - 1);
         playMusic();
         showNotification();
     }
 
     public static void changePlaying(int index) {
-        SongLibrary.songNumber = index;
-        currentSong = SongLibrary.songsList.get(SongLibrary.songNumber);
+        SongLibrary.get().songNumber = index;
+        SongLibrary.get().currentSong = SongLibrary.get().songsList.get(SongLibrary.get().songNumber);
         mediaPlayer.reset();
         try {
-            mediaPlayer.setDataSource(currentSong.getPath());
-            System.out.println(currentSong.getPath());
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
@@ -212,19 +206,18 @@ public class NotificationService extends Service {
     }
 
     public static void init_device_get() {
-        if (mediaPlayer != null && currentSong != null) {
+        if (mediaPlayer != null && SongLibrary.get().currentSong != null) {
             mediaPlayer.stop();
         }
         if (mediaPlayer != null && isPlaying) {
             mediaPlayer.reset();
         }
         try {
-            Log.d("MiniPlayer", "Media path: " + currentSong.getPath());
-            mediaPlayer.setDataSource(currentSong.getPath());
-            System.out.println(currentSong.getPath());
+            Log.d("MiniPlayer", "Media path: " + SongLibrary.get().currentSong.getPath());
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             isPlaying = true;
             mediaPlayer.prepare();
-            currentSong.getEmbeddedArtwork(currentSong.getPath());
+            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
         } catch (IOException e) {
             e.printStackTrace();
             Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init datasource Songlibrary");
@@ -235,7 +228,7 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.reset();
         isPlaying = false;
-        currentSong = null;
+        SongLibrary.get().currentSong = null;
         powerHandler.releaseWakeLockAndAudioFocus();
         stopForeground(true);
     }
@@ -253,7 +246,7 @@ public class NotificationService extends Service {
         super.onDestroy();
         stopMusic();
         powerHandler.releaseWakeLockAndAudioFocus();
-        currentSong = null;
+        SongLibrary.get().currentSong = null;
         isPlaying = false;
         stopForeground(true);
     }

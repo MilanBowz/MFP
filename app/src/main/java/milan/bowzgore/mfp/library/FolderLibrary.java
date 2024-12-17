@@ -24,11 +24,11 @@ public class FolderLibrary {
     }
 
     // Public method to provide access to the Singleton instance
-    public static FolderLibrary getFolderLibrary(){
+    public static FolderLibrary get(){
         return FolderLibrary.Holder.INSTANCE;
     }
 
-    public static void getMusicFolders(Context context, boolean reloadFolders) {
+    public void getMusicFolders(Context context, boolean reloadFolders) {
         if (!reloadFolders) {
             loadFolders(context);
             if (!folders.isEmpty()) {
@@ -55,7 +55,7 @@ public class FolderLibrary {
         saveFolders(context);
     }
 
-    public static void loadFolders(Context context) {
+    public void loadFolders(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         Set<String> folderSet = preferences.getStringSet(FOLDERS_KEY, new HashSet<>());
         folders = new ArrayList<>(folderSet);

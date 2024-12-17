@@ -1,21 +1,16 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
-import android.Manifest;
 import android.app.PendingIntent;
-import android.bluetooth.BluetoothClass;
-import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
-import androidx.core.app.ActivityCompat;
+import milan.bowzgore.mfp.library.SongLibrary;
 
 
 public class MediaSessionHandler {
@@ -56,9 +51,9 @@ public class MediaSessionHandler {
 
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentSong.getTitle())
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART,
-                        currentSong.getImage())
+                        SongLibrary.get().currentSong.getImage())
                 .build();
 
         mediaSession.setMetadata(metadata);

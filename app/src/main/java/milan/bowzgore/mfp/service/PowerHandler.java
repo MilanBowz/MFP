@@ -78,24 +78,29 @@ public class PowerHandler {
         }
     }
 
-    protected void setupMediaManager(){
+    protected void setup(){
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-
+        requestAudioFocus();
         afChangeListener = focusChange -> {
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                    startMusicService("PAUSE");
+                    break;
                 case AudioManager.AUDIOFOCUS_LOSS:
                     startMusicService("PAUSE");
+                    releaseWakeLockAndAudioFocus();
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
                     if (!isPlaying) {
-                        startMusicService("PAUSE");
+                        startMusicService("PLAY");
+                        requestAudioFocus();
                     }
                     break;
             }
         };
+        setupBroadcast();
     }
-    protected void setupBroadcast() {
+    private void setupBroadcast() {
         final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {

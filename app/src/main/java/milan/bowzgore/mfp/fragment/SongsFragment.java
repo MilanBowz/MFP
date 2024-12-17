@@ -2,7 +2,6 @@ package milan.bowzgore.mfp.fragment;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -97,7 +96,7 @@ public class SongsFragment extends Fragment {
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         updateUI();
-        if(adapter.items != SongLibrary.songsList){
+        if(!adapter.items.isEmpty()){
             executorService.execute(() -> {
                 for (AudioModel song : adapter.items) {
                     if (!isRunning.get()) break;
@@ -135,17 +134,16 @@ public class SongsFragment extends Fragment {
     }
 
     public void updateCurrentSong(AudioModel song) {
-        if (songNumber < 0 || songNumber >= adapter.items.size()) {
+        if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }
-        AudioModel currentSong = adapter.items.get(songNumber);
+        AudioModel currentSong = adapter.items.get(SongLibrary.get().songNumber);
         // Update image only if it's different
         if (!Objects.equals(currentSong.getImage(), song.getImage())) {
             currentSong.setImage(song.getImage());
-            adapter.notifyItemChanged(songNumber); // Refresh the RecyclerView item
-            //notifyDataSetChanged();
+            adapter.notifyItemChanged(SongLibrary.get().songNumber); // Refresh the RecyclerView item
         }
-        adapter.notifyItemChanged(songNumber);
+        adapter.notifyItemChanged(SongLibrary.get().songNumber);
     }
 
 

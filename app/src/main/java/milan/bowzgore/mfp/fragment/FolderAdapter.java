@@ -65,12 +65,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
                 }
                 notifyItemChanged(newSelectedPosition);
 
-                addSongsFragment(folderName);
+                addSongsFragment();
             }
         });
     }
 
-    public static void addSongsFragment(String folder){
+    public static void addSongsFragment(){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(1,new SongsFragment());
             viewPager.setCurrentItem(1, true);
