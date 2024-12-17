@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
+import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.Coverart;
 import milan.bowzgore.mfp.service.NotificationService;
 
@@ -162,7 +163,7 @@ public class PlayingFragment extends Fragment {
     }
 
     void setGeneralResources(){
-        if(currentSong != null){
+        if(SongLibrary.get().currentSong != null){
             pausePlay.setOnClickListener(view -> pausePlay());
             nextBtn.setOnClickListener(v-> playNextSong());
             previousBtn.setOnClickListener(v-> playPreviousSong());
@@ -171,13 +172,13 @@ public class PlayingFragment extends Fragment {
 
 
     void setMusicResources(){
-        if(currentSong != null){
-            titleTv.setText(currentSong.getTitle());
-            totalTimeTv.setText(convertToMMSS(currentSong.getDuration()));
+        if(SongLibrary.get().currentSong != null){
+            titleTv.setText(SongLibrary.get().currentSong.getTitle());
+            totalTimeTv.setText(convertToMMSS(SongLibrary.get().currentSong.getDuration()));
             seekBar.setMax(mediaPlayer.getDuration());
 
-            if (currentSong.getImage() != null) {
-                musicIcon.setImageBitmap(currentSong.getImage());
+            if (SongLibrary.get().currentSong.getImage() != null) {
+                musicIcon.setImageBitmap(SongLibrary.get().currentSong.getImage());
             } else {
                 musicIcon.setImageResource(R.drawable.music_icon_big); // Fallback image
             }
@@ -225,7 +226,7 @@ public class PlayingFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    if (currentSong == null) {
+                    if (SongLibrary.get().currentSong == null) {
                         titleTv.setText(R.string.no_music_loaded);
                         musicIcon.setImageResource(R.drawable.music_icon_big);
                         seekBar.setMax(0);

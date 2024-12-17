@@ -1,8 +1,6 @@
 package milan.bowzgore.mfp.model;
 
-import static androidx.activity.result.ActivityResultCallerKt.registerForActivityResult;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -24,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import milan.bowzgore.mfp.fragment.SongsFragment;
+import milan.bowzgore.mfp.library.SongLibrary;
 
 
 public class Coverart {
@@ -61,7 +60,7 @@ public class Coverart {
     }
 
     public void updateCoverArt(String coverArtPath) throws Exception {
-        String filePath = currentSong.getPath();
+        String filePath = SongLibrary.get().currentSong.getPath();
         AudioFile audioFile ;
         try {
             audioFile = AudioFileIO.read(new File(filePath));
@@ -89,11 +88,11 @@ public class Coverart {
             Log.e("CoverArtUpdate", "Failed to update artwork", e);
             throw e;
         }
-        currentSong.getEmbeddedArtwork(currentSong.getPath());
+        SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
 
         if(viewPagerAdapter.getItem(1) instanceof SongsFragment){
             SongsFragment songsFragment = (SongsFragment) viewPagerAdapter.getItem(1);
-            songsFragment.updateCurrentSong(currentSong);
+            songsFragment.updateCurrentSong(SongLibrary.get().currentSong);
         }
     }
 }

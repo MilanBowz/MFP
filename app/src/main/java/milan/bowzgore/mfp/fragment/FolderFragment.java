@@ -38,7 +38,7 @@ public class FolderFragment extends Fragment {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        FolderLibrary.getMusicFolders(getContext(), true);
+        FolderLibrary.get().getMusicFolders(getContext(), true);
         Collections.sort(FolderLibrary.folders);
 
         FolderAdapter folderAdapter = new FolderAdapter(getContext());

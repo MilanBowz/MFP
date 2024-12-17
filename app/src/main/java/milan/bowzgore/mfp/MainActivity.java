@@ -1,7 +1,6 @@
 package milan.bowzgore.mfp;
 
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
-import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.viewpager2.widget.ViewPager2;
@@ -162,9 +161,9 @@ public class MainActivity extends AppCompatActivity  {
                 String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
                 filePath = filePath.substring(0,folderSplit);
                 selectedFolder = filePath;
-                SongLibrary.getAllAudioFromDevice(this, filePath, songTitle);
+                SongLibrary.get().getAllAudioFromDevice(this, filePath, songTitle);
                 executorService.execute(() -> {
-                    for (AudioModel song : songsList) {
+                    for (AudioModel song : SongLibrary.get().songsList) {
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }

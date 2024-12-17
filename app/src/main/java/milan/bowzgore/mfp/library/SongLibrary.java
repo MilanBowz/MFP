@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,9 +17,9 @@ import milan.bowzgore.mfp.service.NotificationService;
 
 public class SongLibrary {
 
-    public static List<AudioModel> songsList = new ArrayList<>();
-    public static int songNumber = 0 ;
-    public static AudioModel currentSong;
+    public List<AudioModel> songsList = new ArrayList<>();
+    public int songNumber = 0 ;
+    public AudioModel currentSong;
 
     private SongLibrary() {
 
@@ -29,11 +30,11 @@ public class SongLibrary {
         private static final SongLibrary INSTANCE = new SongLibrary();
     }
 
-    public static SongLibrary getSongLibrary(){
+    public static SongLibrary get(){
         return Holder.INSTANCE;
     }
 
-    public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath)  {
+    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath)  {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
                 MediaStore.Audio.AudioColumns.DATA,
@@ -56,10 +57,11 @@ public class SongLibrary {
             Collections.sort(audioModels);
             c.close();
         }
-        return audioModels;
+        Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
+        return songsList = audioModels;
     }
-    public static List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
-        songsList = getAllAudioFromDevice(context, folderPath);
+    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
+        getAllAudioFromDevice(context, folderPath);
 
         currentSong = songsList.stream()
                 .filter(c -> c.getTitle().equals(song))
@@ -70,7 +72,7 @@ public class SongLibrary {
         tempFolder = folderPath;
 
         NotificationService.init_device_get();
-
+        Log.d("SongLibrary", "Number of songs fetched: " + songsList.size());
         return songsList;
     }
 

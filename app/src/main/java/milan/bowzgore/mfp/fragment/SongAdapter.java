@@ -2,9 +2,6 @@ package milan.bowzgore.mfp.fragment;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
-import static milan.bowzgore.mfp.library.SongLibrary.currentSong;
-import static milan.bowzgore.mfp.library.SongLibrary.songNumber;
-import static milan.bowzgore.mfp.library.SongLibrary.songsList;
 
 
 import androidx.annotation.NonNull;
@@ -41,11 +38,11 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public List<AudioModel> items ;
 
     public SongAdapter(Context context) {
-        if(!songsList.isEmpty() && songsList.get(0).getPath().contains(tempFolder)){
-            this.items = songsList;
+        if(!SongLibrary.get().songsList.isEmpty() && SongLibrary.get().songsList.get(0).getPath().contains(tempFolder)){
+            this.items = SongLibrary.get().songsList;
         }
         else {
-            this.items = SongLibrary.getAllAudioFromDevice(context,tempFolder );
+            this.items = SongLibrary.get().getAllAudioFromDevice(context,tempFolder);
         }
         this.context = context;
     }
@@ -63,9 +60,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         AudioModel songData = items.get(position);
         holder.titleTextView.setText(songData.getTitle());
 
-        if (currentSong != null) {
-            if (songNumber == holder.getBindingAdapterPosition()
-                    && Objects.equals(currentSong.getTitle(), songData.getTitle())) {
+        if (SongLibrary.get().currentSong != null) {
+            if (SongLibrary.get().songNumber == holder.getBindingAdapterPosition()
+                    && Objects.equals(SongLibrary.get().currentSong.getTitle(), songData.getTitle())) {
                 holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
             } else {
                 holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
@@ -79,18 +76,18 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         }
 
         holder.itemView.setOnClickListener(v -> {
-            int previousSongNumber = songNumber;
-            songNumber = holder.getAbsoluteAdapterPosition();
-            songsList = items;
+            int previousSongNumber = SongLibrary.get().songNumber;
+            SongLibrary.get().songNumber = holder.getAbsoluteAdapterPosition();
+            SongLibrary.get().songsList = items;
             // Navigate to PlayingFragment
-            if (context instanceof AppCompatActivity && songNumber != RecyclerView.NO_POSITION) {
+            if (context instanceof AppCompatActivity && SongLibrary.get().songNumber != RecyclerView.NO_POSITION) {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
                 FolderLibrary.selectedFolder = tempFolder;
-                NotificationService.changePlaying(songNumber);
+                NotificationService.changePlaying(SongLibrary.get().songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
-                notifyItemChanged(songNumber); // Notify that the current item has changed
+                notifyItemChanged(SongLibrary.get().songNumber); // Notify that the current item has changed
             }
         });
 
