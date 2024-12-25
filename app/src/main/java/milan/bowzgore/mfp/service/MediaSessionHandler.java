@@ -1,5 +1,6 @@
 package milan.bowzgore.mfp.service;
 
+import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
 import android.app.PendingIntent;
@@ -52,8 +53,10 @@ public class MediaSessionHandler {
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART,
-                        SongLibrary.get().currentSong.getImage())
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getImage())
+                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, SongLibrary.get().currentSong.getPath())
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, SongLibrary.get().currentSong.getImage())
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
 
         mediaSession.setMetadata(metadata);
@@ -115,6 +118,9 @@ public class MediaSessionHandler {
                 super.onSeekTo(pos);
                 if (mediaPlayer != null) {
                     mediaPlayer.seekTo((int) pos);
+                    mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+                            .setActions(PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
+                            .build());
                 }
             }
 

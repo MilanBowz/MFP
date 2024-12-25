@@ -3,12 +3,15 @@ package milan.bowzgore.mfp.service;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.graphics.drawable.IconCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
@@ -124,8 +127,9 @@ public class NotificationService extends Service {
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(SongLibrary.get().currentSong.getImage())
-                .setShowWhen(false)
+                .setLargeIcon(SongLibrary.get().currentSong.getImage() != null
+                        ? SongLibrary.get().currentSong.getImage()
+                        : BitmapFactory.decodeResource(getResources(), R.drawable.music_icon_big))
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)

@@ -38,15 +38,12 @@ public class PowerHandler {
 
     protected void setWakelock(){
         if (isListPlaying) {
-            acquireWakeLock();
             startMusicService("NEXT");
         }
         else {
             startMusicService("START");
-            if (wakeLock != null && wakeLock.isHeld()) {
-                wakeLock.release();
-            }
         }
+        acquireWakeLock();
     }
 
     protected void acquireWakeLock() {
