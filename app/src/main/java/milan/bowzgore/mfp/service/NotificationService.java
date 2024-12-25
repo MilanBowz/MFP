@@ -3,6 +3,7 @@ package milan.bowzgore.mfp.service;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -88,7 +89,11 @@ public class NotificationService extends Service {
                     mediaSession.updateMetadata();
                     showNotification();
                     break;
+                case "UPDATE":
+                    mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    break;
                 case "STOP":
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
                     onStopFromNotification();
                     break;
             }
@@ -124,14 +129,16 @@ public class NotificationService extends Service {
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(SongLibrary.get().currentSong.getImage())
-                .setShowWhen(false)
+                .setLargeIcon(SongLibrary.get().currentSong.getImage() != null
+                        ? SongLibrary.get().currentSong.getImage()
+                        : BitmapFactory.decodeResource(getResources(), R.drawable.music_icon_big))
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setProgress(mediaPlayer.getDuration(), mediaPlayer.getCurrentPosition(), false)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2, 3)// Show actions in compact view
                         .setMediaSession(mediaSession.getSessionToken()));
@@ -149,8 +156,8 @@ public class NotificationService extends Service {
 
 
     private void playMusic() {
-        mediaPlayer.start();
         isPlaying = true;
+        mediaPlayer.start();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
     }
@@ -178,6 +185,7 @@ public class NotificationService extends Service {
             return;
         }
         changePlaying(SongLibrary.get().songNumber + 1);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
         playMusic();
         showNotification();
     }
@@ -189,6 +197,7 @@ public class NotificationService extends Service {
             return;
         }
         changePlaying(SongLibrary.get().songNumber - 1);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         playMusic();
         showNotification();
     }

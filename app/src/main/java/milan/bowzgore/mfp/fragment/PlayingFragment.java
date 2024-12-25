@@ -2,7 +2,6 @@ package milan.bowzgore.mfp.fragment;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
-import static milan.bowzgore.mfp.library.SongLibrary.*;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
@@ -101,13 +100,14 @@ public class PlayingFragment extends Fragment {
 
     public void setupFragment(){
         setGeneralResources();
-        setMusicResources();
 
         if (isListPlaying) {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
         } else {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
         }
+
+        setMusicResources();
 
         // Make sure the MediaPlayer and SeekBar are synchronized
         if (mediaPlayer != null) {
@@ -158,6 +158,7 @@ public class PlayingFragment extends Fragment {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 mediaPlayer.seekTo(seekBar.getProgress());
+                startMusicService("UPDATE");
             }
         });
     }
@@ -174,7 +175,7 @@ public class PlayingFragment extends Fragment {
     void setMusicResources(){
         if(SongLibrary.get().currentSong != null){
             titleTv.setText(SongLibrary.get().currentSong.getTitle());
-            totalTimeTv.setText(convertToMMSS(SongLibrary.get().currentSong.getDuration()));
+            totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
             seekBar.setMax(mediaPlayer.getDuration());
 
             if (SongLibrary.get().currentSong.getImage() != null) {
@@ -236,9 +237,8 @@ public class PlayingFragment extends Fragment {
                         return;
                     }
                     if (isPlaying) {
-                        int currentPosition = mediaPlayer.getCurrentPosition();
-                        seekBar.setProgress(currentPosition);
-                        currentTimeTv.setText(convertToMMSS(String.valueOf(currentPosition)));
+                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
                         pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
                     } else {
                         pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
@@ -246,7 +246,7 @@ public class PlayingFragment extends Fragment {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
-                    handler.postDelayed(this, 100); // Continue updating every 100ms
+                    handler.postDelayed(this, 1000); // Continue updating every 1000ms
                 }
             }
         };
