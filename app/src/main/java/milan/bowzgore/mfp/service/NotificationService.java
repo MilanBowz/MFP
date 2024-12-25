@@ -185,6 +185,7 @@ public class NotificationService extends Service {
             return;
         }
         changePlaying(SongLibrary.get().songNumber + 1);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
         playMusic();
         showNotification();
     }
@@ -196,6 +197,7 @@ public class NotificationService extends Service {
             return;
         }
         changePlaying(SongLibrary.get().songNumber - 1);
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         playMusic();
         showNotification();
     }
