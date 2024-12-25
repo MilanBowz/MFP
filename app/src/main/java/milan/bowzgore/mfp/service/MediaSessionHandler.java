@@ -14,7 +14,7 @@ import android.view.KeyEvent;
 import milan.bowzgore.mfp.library.SongLibrary;
 
 
-public class MediaSessionHandler {
+class MediaSessionHandler {
     private final Context context;
     private MediaSessionCompat mediaSession;
 
@@ -29,7 +29,7 @@ public class MediaSessionHandler {
         context.startService(playIntent);
     }
 
-    protected void updateMediaSessionPlaybackState(int state) {
+    public void updateMediaSessionPlaybackState(int state) {
         PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder()
                 .setActions(
                         PlaybackStateCompat.ACTION_PLAY |
@@ -58,7 +58,6 @@ public class MediaSessionHandler {
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, SongLibrary.get().currentSong.getImage())
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
-
         mediaSession.setMetadata(metadata);
     }
 
@@ -75,18 +74,13 @@ public class MediaSessionHandler {
             @Override
             public void onPlay() {
                 super.onPlay();
-                if (mediaPlayer != null) {
-                    startMusicService("PLAY");
-                }
+                startMusicService("PLAY");
             }
 
             @Override
             public void onPause() {
                 super.onPause();
-                if (mediaPlayer != null) {
-                    startMusicService("PAUSE");
-                }
-
+                startMusicService("PAUSE");
             }
 
             @Override
@@ -98,30 +92,25 @@ public class MediaSessionHandler {
             @Override
             public void onSkipToNext() {
                 super.onSkipToNext();
-                if (mediaPlayer != null) {
-                    startMusicService("NEXT");
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
-                }
+                startMusicService("NEXT");
+                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
             }
 
             @Override
             public void onSkipToPrevious() {
                 super.onSkipToPrevious();
-                if (mediaPlayer != null) {
-                    startMusicService("PREV");
-                    updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
-                }
+                startMusicService("PREV");
+                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
             }
 
             @Override
             public void onSeekTo(long pos) {
                 super.onSeekTo(pos);
-                if (mediaPlayer != null) {
-                    mediaPlayer.seekTo((int) pos);
-                    mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-                            .setActions(PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
-                            .build());
-                }
+                mediaPlayer.seekTo((int) pos);
+                mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+                        .setState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, 1.0f)
+                        .setActions(PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
+                        .build());
             }
 
             @Override

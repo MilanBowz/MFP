@@ -3,7 +3,6 @@ package milan.bowzgore.mfp.service;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.IBinder;
@@ -11,7 +10,6 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.graphics.drawable.IconCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
@@ -91,7 +89,11 @@ public class NotificationService extends Service {
                     mediaSession.updateMetadata();
                     showNotification();
                     break;
+                case "UPDATE":
+                    mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    break;
                 case "STOP":
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
                     onStopFromNotification();
                     break;
             }
@@ -136,6 +138,7 @@ public class NotificationService extends Service {
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setProgress(mediaPlayer.getDuration(), mediaPlayer.getCurrentPosition(), false)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2, 3)// Show actions in compact view
                         .setMediaSession(mediaSession.getSessionToken()));
@@ -153,8 +156,8 @@ public class NotificationService extends Service {
 
 
     private void playMusic() {
-        mediaPlayer.start();
         isPlaying = true;
+        mediaPlayer.start();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
     }
