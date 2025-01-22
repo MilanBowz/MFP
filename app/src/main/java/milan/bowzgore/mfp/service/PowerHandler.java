@@ -43,7 +43,7 @@ public class PowerHandler {
         else {
             startMusicService("START");
         }
-        acquireWakeLock();
+        requestAudioFocus();
     }
 
     protected void acquireWakeLock() {
@@ -61,9 +61,15 @@ public class PowerHandler {
     protected void releaseWakeLockAndAudioFocus() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
+            if(!wakeLock.isHeld()){
+                audioManager.abandonAudioFocus(afChangeListener);
+            }
         }
-        if(audioManager != null){
-            audioManager.abandonAudioFocus(afChangeListener);
+
+    }
+    protected void releaseWakeLock() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
         }
     }
     protected void requestAudioFocus() {
@@ -85,7 +91,7 @@ public class PowerHandler {
                     break;
                 case AudioManager.AUDIOFOCUS_LOSS:
                     startMusicService("PAUSE");
-                    releaseWakeLockAndAudioFocus();
+                    releaseWakeLock();
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
                     if (!isPlaying) {

@@ -83,10 +83,9 @@ public class NotificationService extends Service {
                     showNotification();
                     break;
                 case "START":
-                    powerHandler.acquireWakeLock();
-                    playMusic();
                     powerHandler.requestAudioFocus();
                     mediaSession.updateMetadata();
+                    playMusic();
                     showNotification();
                     break;
                 case "UPDATE":
@@ -165,7 +164,7 @@ public class NotificationService extends Service {
     private void pauseMusic() {
         mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-        powerHandler.releaseWakeLockAndAudioFocus();
+        powerHandler.releaseWakeLock();
         isPlaying = false;
         showNotification();
     }
@@ -254,7 +253,6 @@ public class NotificationService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopMusic();
-        powerHandler.releaseWakeLockAndAudioFocus();
         SongLibrary.get().currentSong = null;
         isPlaying = false;
         stopForeground(true);
