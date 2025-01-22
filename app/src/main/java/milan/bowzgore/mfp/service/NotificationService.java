@@ -83,9 +83,9 @@ public class NotificationService extends Service {
                     showNotification();
                     break;
                 case "START":
+                    playMusic();
                     powerHandler.requestAudioFocus();
                     mediaSession.updateMetadata();
-                    playMusic();
                     showNotification();
                     break;
                 case "UPDATE":

@@ -195,7 +195,13 @@ public class PlayingFragment extends Fragment {
     }
 
     private void pausePlay(){
-        startMusicService("PLAYPAUSE");
+        if (isPlaying) {
+            startMusicService("PAUSE");
+            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+        } else {
+            startMusicService("PLAY");
+            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+        }
     }
 
     private void playNextSong(){
