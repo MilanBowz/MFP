@@ -69,15 +69,13 @@ public class NotificationService extends Service {
             switch (action) {
                 case "PLAYPAUSE":
                     playPauseMusic();
-                    mediaSession.updateMetadata();
                     break;
                 case "PLAY":
+                case "START":
                     playMusic();
-                    mediaSession.updateMetadata();
                     break;
                 case "PAUSE":
                     pauseMusic();
-                    mediaSession.updateMetadata();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -85,16 +83,9 @@ public class NotificationService extends Service {
                 case "PREV":
                     playPreviousSong();
                     break;
-                case "START":
-                    playMusic();
-                    mediaSession.updateMetadata();
-                    showNotification();
-                    break;
                 case "LOAD":
                     playMusic();
                     pauseMusic();
-                    mediaSession.updateMetadata();
-                    showNotification();
                     break;
                 case "UPDATE":
                     mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
@@ -168,6 +159,7 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
         powerHandler.requestAudioFocus();
+        mediaSession.updateMetadata();
     }
 
     private void pauseMusic() {
@@ -176,6 +168,7 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         showNotification();
         powerHandler.releaseWakeLock();
+        mediaSession.updateMetadata();
     }
 
     private void playPauseMusic() {
@@ -187,6 +180,7 @@ public class NotificationService extends Service {
     }
 
     private void playNextSong() {
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
         if (SongLibrary.get().songNumber == SongLibrary.get().songsList.size() - 1) {
             changePlaying(0);
             playMusic();
@@ -195,12 +189,12 @@ public class NotificationService extends Service {
             changePlaying(SongLibrary.get().songNumber + 1);
             playMusic();
         }
-        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
         mediaSession.updateMetadata();
     }
 
     private void playPreviousSong() {
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         if (SongLibrary.get().songNumber == 0) {
             changePlaying(SongLibrary.get().songsList.size() - 1);
             playMusic();
@@ -209,7 +203,6 @@ public class NotificationService extends Service {
             changePlaying(SongLibrary.get().songNumber - 1);
             playMusic();
         }
-        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PREV"));
         mediaSession.updateMetadata();
         showNotification();
