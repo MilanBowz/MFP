@@ -20,6 +20,7 @@ import java.io.IOException;
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
+import milan.bowzgore.mfp.model.AudioModel;
 
 public class NotificationService extends Service {
     private final int NOTIFICATION_ID = 1;
@@ -231,6 +232,18 @@ public class NotificationService extends Service {
         SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
         songLibrary.songNumber = index;
         songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
+            mediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        songLibrary.saveCurrentSong(context);
+    }
+    public static void changeSong(Context context, AudioModel currentsong) {
+        SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
+        songLibrary.currentSong = currentsong;
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());

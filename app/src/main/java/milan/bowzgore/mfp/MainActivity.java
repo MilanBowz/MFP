@@ -1,6 +1,7 @@
 package milan.bowzgore.mfp;
 
 import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.viewpager2.widget.ViewPager2;
@@ -169,7 +170,6 @@ public class MainActivity extends AppCompatActivity  {
                     }
                 });
             }
-            NotificationService.init_device_get();
             NotificationService.changePlaying(this,SongLibrary.get().songNumber);
             Intent mainIntent2 = new Intent(this, NotificationService.class);
             mainIntent2.setAction("PLAY");
@@ -178,27 +178,28 @@ public class MainActivity extends AppCompatActivity  {
 
 
     }
-    private void handleAudioFile(String audioUri) {
+    private void handleAudioFile(AudioModel audioUri) {
         NotificationService.isPlaying = false;
-        if (audioUri != null) {
-            String filePath = audioUri;
-            if (filePath != null) {
-                int folderSplit = filePath.lastIndexOf("/");
-                String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
-                filePath = filePath.substring(0,folderSplit);
-                selectedFolder = filePath;
-                SongLibrary.get().getAllAudioFromDevice(this, filePath, songTitle);
+            if (audioUri!= null ) {
+                runOnUiThread(() -> {
+                    NotificationService.changeSong(this, audioUri);
+                    // Update UI or notify adapter here if necessary
+                });
+                int folderSplit = audioUri.getPath().lastIndexOf("/");
+                String songTitle = audioUri.getPath().substring(folderSplit+1); // You might want to parse this better
+                selectedFolder = audioUri.getPath().substring(0,audioUri.getPath().lastIndexOf("/")+1);
                 executorService.execute(() -> {
+                    SongLibrary.get().getAllAudioFromDevice(this, selectedFolder);
                     for (AudioModel song : SongLibrary.get().songsList) {
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }
-                });
-                NotificationService.init_device_get();
-                NotificationService.changePlaying(this,SongLibrary.get().songNumber);
-            }
-        }
+                    SongLibrary.get().songNumber = SongLibrary.get().songsList.indexOf(SongLibrary.get().currentSong);
+                    tempFolder = selectedFolder;
 
+                    NotificationService.init_device_get();
+                });
+            }
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {

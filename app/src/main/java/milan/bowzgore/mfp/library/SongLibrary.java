@@ -41,7 +41,7 @@ public class SongLibrary {
         return Holder.INSTANCE;
     }
 
-    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath)  {
+    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath) {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
                 MediaStore.Audio.AudioColumns.DATA,
@@ -53,20 +53,33 @@ public class SongLibrary {
 
         List<AudioModel> audioModels = new ArrayList<>();
 
-        Cursor c = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
-        if (c != null) {
-            audioModels.clear();
-            while (c.moveToNext()) {
-                String title = c.getString(0).substring(c.getString(0).lastIndexOf("/")+1);
-                AudioModel audioModel = new AudioModel(c.getString(0), title, c.getString(1));
-                audioModels.add(audioModel);
+        try (Cursor c = context.getContentResolver().query(uri, projection, selection, selectionArgs, null)) {
+            if (c != null) {
+                int dataIndex = c.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA);
+                int durationIndex = c.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION);
+
+                while (c.moveToNext()) {
+                    String filePath = c.getString(dataIndex);
+                    String title = filePath.substring(filePath.lastIndexOf("/") + 1);
+                    String duration = c.getString(durationIndex);
+
+                    audioModels.add(new AudioModel(filePath, title, duration));
+                }
+
+                // Sorting only if necessary
+                if (!audioModels.isEmpty()) {
+                    Collections.sort(audioModels);
+                    songsList = audioModels;
+                }
             }
-            Collections.sort(audioModels);
-            c.close();
+        } catch (Exception e) {
+            Log.e("SongLibrary", "Error fetching audio files", e);
         }
+
         Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
         return songsList = audioModels;
     }
+
     public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
         getAllAudioFromDevice(context, folderPath);
 
@@ -74,7 +87,6 @@ public class SongLibrary {
                 .filter(c -> c.getTitle().equals(song))
                 .findFirst()
                 .orElse(null);
-        Log.d("Debug", song);
 
         songNumber = songsList.indexOf(currentSong);
         tempFolder = folderPath;
@@ -105,7 +117,7 @@ public class SongLibrary {
     }
 
     // Load the current song from SharedPreferences
-    public String loadCurrentSong(Context context) {
+    public AudioModel loadCurrentSong(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
         String currentSongJson = preferences.getString(KEY_CURRENT_SONG, null);
 
@@ -113,7 +125,9 @@ public class SongLibrary {
             try {
                 JSONObject songJson = new JSONObject(currentSongJson);
                 String path = songJson.getString("path");
-                return path;
+                String title = songJson.getString("title");
+                String duration = songJson.getString("duration");
+                return new AudioModel(path,title,duration);
             } catch (JSONException e) {
                 e.printStackTrace();
 
