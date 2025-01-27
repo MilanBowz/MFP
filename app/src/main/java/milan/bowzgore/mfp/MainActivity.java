@@ -65,10 +65,14 @@ public class MainActivity extends AppCompatActivity  {
         viewPagerAdapter.addFragment(new PlayingFragment());
         if (selectedFolder != null){
             FolderLibrary.tempFolder = selectedFolder;
-            viewPagerAdapter.addFragment(new SongsFragment());
+            executorService.execute(() -> {
+                runOnUiThread(() -> viewPagerAdapter.addFragment(new SongsFragment()));
+            });
         }
         else{
-            viewPagerAdapter.addFragment(new FolderFragment());
+            executorService.execute(() -> {
+                runOnUiThread(() -> viewPagerAdapter.addFragment(new FolderFragment()));
+            });
         }
 
         viewPager.setAdapter(viewPagerAdapter);
@@ -96,6 +100,11 @@ public class MainActivity extends AppCompatActivity  {
         Uri audioUri = getIntent().getData();
         if (audioUri != null) {
             handleAudioFile(audioUri);
+        }
+        else{
+            if(SongLibrary.get().currentSong == null){
+                handleAudioFile(SongLibrary.get().loadCurrentSong(this));
+            }
         }
         setupBackNavigation();
     }
@@ -159,9 +168,8 @@ public class MainActivity extends AppCompatActivity  {
             String filePath = getRealPathFromURI(this, audioUri);
             if (filePath != null) {
                 int folderSplit = filePath.lastIndexOf("/");
-                String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
+                String songTitle = filePath.substring(folderSplit+1);
                 filePath = filePath.substring(0,folderSplit);
-                selectedFolder = filePath;
                 SongLibrary.get().getAllAudioFromDevice(this, filePath, songTitle);
                 executorService.execute(() -> {
                     for (AudioModel song : SongLibrary.get().songsList) {
@@ -169,6 +177,8 @@ public class MainActivity extends AppCompatActivity  {
                         song.getEmbeddedArtwork(song.getPath());
                     }
                 });
+                selectedFolder = filePath;
+                NotificationService.init_device_get();
             }
             NotificationService.changePlaying(this,SongLibrary.get().songNumber);
             Intent mainIntent2 = new Intent(this, NotificationService.class);
@@ -180,26 +190,20 @@ public class MainActivity extends AppCompatActivity  {
     }
     private void handleAudioFile(AudioModel audioUri) {
         NotificationService.isPlaying = false;
-            if (audioUri!= null ) {
-                runOnUiThread(() -> {
-                    NotificationService.changeSong(this, audioUri);
-                    // Update UI or notify adapter here if necessary
-                });
+        if (audioUri != null) {
                 int folderSplit = audioUri.getPath().lastIndexOf("/");
-                String songTitle = audioUri.getPath().substring(folderSplit+1); // You might want to parse this better
-                selectedFolder = audioUri.getPath().substring(0,audioUri.getPath().lastIndexOf("/")+1);
+                String songTitle = audioUri.getPath().substring(folderSplit+1);
                 executorService.execute(() -> {
-                    SongLibrary.get().getAllAudioFromDevice(this, selectedFolder);
+                    SongLibrary.get().getAllAudioFromDevice(this, selectedFolder, songTitle);
                     for (AudioModel song : SongLibrary.get().songsList) {
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }
-                    SongLibrary.get().songNumber = SongLibrary.get().songsList.indexOf(SongLibrary.get().currentSong);
-                    tempFolder = selectedFolder;
-
-                    NotificationService.init_device_get();
                 });
-            }
+                selectedFolder = audioUri.getPath().substring(0,folderSplit);
+                NotificationService.setPlaying(audioUri);
+                NotificationService.init_device_get();
+        }
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {
@@ -246,10 +250,7 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onResume() {
         super.onResume();
-        SongLibrary songLibrary = SongLibrary.get();
-        if(songLibrary.currentSong == null){
-            handleAudioFile(songLibrary.loadCurrentSong(this));
-        }
+
     }
 
 }

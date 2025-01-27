@@ -241,17 +241,10 @@ public class NotificationService extends Service {
         }
         songLibrary.saveCurrentSong(context);
     }
-    public static void changeSong(Context context, AudioModel currentsong) {
-        SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
-        songLibrary.currentSong = currentsong;
-        mediaPlayer.reset();
-        try {
-            mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
-            mediaPlayer.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        songLibrary.saveCurrentSong(context);
+    public static void setPlaying(AudioModel song) {
+        // songLibrary.songNumber = index;
+        SongLibrary.get().currentSong = song;
+        song.getEmbeddedArtwork(song.getPath());
     }
 
     public static void init_device_get() {
@@ -264,11 +257,11 @@ public class NotificationService extends Service {
             }
         }
         try {
+            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
             Log.d("MiniPlayer", "Media path: " + SongLibrary.get().currentSong.getPath());
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             isPlaying = false;
             mediaPlayer.prepare();
-            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
         } catch (IOException e) {
             e.printStackTrace();
             Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init datasource Songlibrary");

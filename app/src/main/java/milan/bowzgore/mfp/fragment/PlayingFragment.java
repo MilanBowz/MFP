@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.databinding.FragmentPlayingBinding;
 import milan.bowzgore.mfp.library.SongLibrary;
+import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.model.Coverart;
 import milan.bowzgore.mfp.service.NotificationService;
 

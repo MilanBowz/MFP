@@ -91,7 +91,6 @@ public class SongLibrary {
         songNumber = songsList.indexOf(currentSong);
         tempFolder = folderPath;
 
-        NotificationService.init_device_get();
         return songsList;
     }
 

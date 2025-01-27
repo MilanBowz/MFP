@@ -26,6 +26,8 @@ public class PowerHandler {
     private AudioManager audioManager;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
 
+    BroadcastReceiver headsetReceiver;
+
     public PowerHandler(Context context) {
         this.context = context;
     }
@@ -98,39 +100,41 @@ public class PowerHandler {
         setupBroadcast();
     }
     private void setupBroadcast() {
-        final BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
+        if(headsetReceiver != null){
+            headsetReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
 
-                // Handle wired headset
-                if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
-                    //pauseMusic(); // Headset is unplugged, pause music
-                    startMusicService("PAUSE");
-                }
-
-                // Handle Bluetooth device connection
-                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null && isSpeaker(device)) {
-                        startMusicService("PAUSE"); // Pause music when a new Bluetooth audio speaker connects
+                    // Handle wired headset
+                    if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
+                        //pauseMusic(); // Headset is unplugged, pause music
+                        startMusicService("PAUSE");
                     }
-                }
-                // Handle Bluetooth device disconnection
-                if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null && (isHeadset(device) || isSpeaker(device))) {
-                        startMusicService("PAUSE");// Pause music when a new Bluetooth audio device connects
-                    }
-                }
-                isInitialized = true;
-            }
-        };
 
-        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        context.registerReceiver(headsetReceiver, filter);
+                    // Handle Bluetooth device connection
+                    if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                        if (device != null && isSpeaker(device)) {
+                            startMusicService("PAUSE"); // Pause music when a new Bluetooth audio speaker connects
+                        }
+                    }
+                    // Handle Bluetooth device disconnection
+                    if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                        if (device != null && (isHeadset(device) || isSpeaker(device))) {
+                            startMusicService("PAUSE");// Pause music when a new Bluetooth audio device connects
+                        }
+                    }
+                    isInitialized = true;
+                }
+            };
+
+            IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+            filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
+            filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+            context.registerReceiver(headsetReceiver, filter);
+        }
     }
 
     private boolean isHeadset(BluetoothDevice device) {
