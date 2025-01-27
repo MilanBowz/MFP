@@ -1,7 +1,10 @@
 package milan.bowzgore.mfp.service;
 
+import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
+
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
@@ -37,14 +40,19 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         powerHandler = new PowerHandler(this);
-
         mediaPlayer.setOnCompletionListener(mp -> {
+            if (isListPlaying) {
+                startMusicService("NEXT");
+            }
+            else {
+                startMusicService("START");
+            }
             powerHandler.setWakelock();
         });
-
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
     }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -72,19 +80,18 @@ public class NotificationService extends Service {
                     break;
                 case "NEXT":
                     playNextSong();
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
-                    mediaSession.updateMetadata();
-                    showNotification();
                     break;
                 case "PREV":
                     playPreviousSong();
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
-                    mediaSession.updateMetadata();
-                    showNotification();
                     break;
                 case "START":
                     playMusic();
-                    powerHandler.requestAudioFocus();
+                    mediaSession.updateMetadata();
+                    showNotification();
+                    break;
+                case "LOAD":
+                    playMusic();
+                    pauseMusic();
                     mediaSession.updateMetadata();
                     showNotification();
                     break;
@@ -159,14 +166,15 @@ public class NotificationService extends Service {
         mediaPlayer.start();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
         showNotification();
+        powerHandler.requestAudioFocus();
     }
 
     private void pauseMusic() {
+        isPlaying = false;
         mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-        powerHandler.releaseWakeLock();
-        isPlaying = false;
         showNotification();
+        powerHandler.releaseWakeLock();
     }
 
     private void playPauseMusic() {
@@ -181,49 +189,71 @@ public class NotificationService extends Service {
         if (SongLibrary.get().songNumber == SongLibrary.get().songsList.size() - 1) {
             changePlaying(0);
             playMusic();
-            return;
         }
-        changePlaying(SongLibrary.get().songNumber + 1);
+        else {
+            changePlaying(SongLibrary.get().songNumber + 1);
+            playMusic();
+        }
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
-        playMusic();
-        showNotification();
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
+        mediaSession.updateMetadata();
     }
 
     private void playPreviousSong() {
         if (SongLibrary.get().songNumber == 0) {
             changePlaying(SongLibrary.get().songsList.size() - 1);
             playMusic();
-            return;
         }
-        changePlaying(SongLibrary.get().songNumber - 1);
+        else {
+            changePlaying(SongLibrary.get().songNumber - 1);
+            playMusic();
+        }
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
-        playMusic();
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PREV"));
+        mediaSession.updateMetadata();
         showNotification();
     }
 
-    public static void changePlaying(int index) {
-        SongLibrary.get().songNumber = index;
-        SongLibrary.get().currentSong = SongLibrary.get().songsList.get(SongLibrary.get().songNumber);
+    public void changePlaying(int index) {
+        SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
+        songLibrary.songNumber = index;
+        songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
         mediaPlayer.reset();
         try {
-            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
+            mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
             mediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        songLibrary.saveCurrentSong(getApplicationContext());
+    }
+    public static void changePlaying(Context context,int index) {
+        SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
+        songLibrary.songNumber = index;
+        songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
+            mediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        songLibrary.saveCurrentSong(context);
     }
 
     public static void init_device_get() {
-        if (mediaPlayer != null && SongLibrary.get().currentSong != null) {
-            mediaPlayer.stop();
-        }
-        if (mediaPlayer != null && isPlaying) {
-            mediaPlayer.reset();
+        if (mediaPlayer != null) {
+            try {
+                mediaPlayer.stop();
+                mediaPlayer.reset();
+            } catch (IllegalStateException e) {
+                Log.e("MiniPlayer", "Error stopping or resetting MediaPlayer: " + e.getMessage());
+            }
         }
         try {
             Log.d("MiniPlayer", "Media path: " + SongLibrary.get().currentSong.getPath());
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
-            isPlaying = true;
+            isPlaying = false;
             mediaPlayer.prepare();
             SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
         } catch (IOException e) {

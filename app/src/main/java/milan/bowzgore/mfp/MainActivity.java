@@ -169,11 +169,36 @@ public class MainActivity extends AppCompatActivity  {
                     }
                 });
             }
+            NotificationService.init_device_get();
+            NotificationService.changePlaying(this,SongLibrary.get().songNumber);
+            Intent mainIntent2 = new Intent(this, NotificationService.class);
+            mainIntent2.setAction("PLAY");
+            startService(mainIntent2);
         }
 
-        Intent mainIntent2 = new Intent(this, NotificationService.class);
-        mainIntent2.setAction("START");
-        startService(mainIntent2);
+
+    }
+    private void handleAudioFile(String audioUri) {
+        NotificationService.isPlaying = false;
+        if (audioUri != null) {
+            String filePath = audioUri;
+            if (filePath != null) {
+                int folderSplit = filePath.lastIndexOf("/");
+                String songTitle = filePath.substring(folderSplit+1); // You might want to parse this better
+                filePath = filePath.substring(0,folderSplit);
+                selectedFolder = filePath;
+                SongLibrary.get().getAllAudioFromDevice(this, filePath, songTitle);
+                executorService.execute(() -> {
+                    for (AudioModel song : SongLibrary.get().songsList) {
+                        if (!isRunning.get()) break;
+                        song.getEmbeddedArtwork(song.getPath());
+                    }
+                });
+                NotificationService.init_device_get();
+                NotificationService.changePlaying(this,SongLibrary.get().songNumber);
+            }
+        }
+
     }
 
     private String getRealPathFromURI(Context context, Uri contentUri) {
@@ -201,6 +226,7 @@ public class MainActivity extends AppCompatActivity  {
             viewPager.setCurrentItem(0, false);
         }
     }
+
     private void setupBackNavigation() {
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
@@ -216,4 +242,13 @@ public class MainActivity extends AppCompatActivity  {
                 callback
         );
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SongLibrary songLibrary = SongLibrary.get();
+        if(songLibrary.currentSong == null){
+            handleAudioFile(songLibrary.loadCurrentSong(this));
+        }
+    }
+
 }

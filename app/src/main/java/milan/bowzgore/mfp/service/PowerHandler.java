@@ -37,14 +37,9 @@ public class PowerHandler {
     }
 
     protected void setWakelock(){
-        if (isListPlaying) {
-            startMusicService("NEXT");
-        }
-        else {
-            startMusicService("START");
-        }
         requestAudioFocus();
     }
+
 
     protected void acquireWakeLock() {
         if (wakeLock == null) {
@@ -96,7 +91,6 @@ public class PowerHandler {
                 case AudioManager.AUDIOFOCUS_GAIN:
                     if (!isPlaying) {
                         startMusicService("PLAY");
-                        requestAudioFocus();
                     }
                     break;
             }

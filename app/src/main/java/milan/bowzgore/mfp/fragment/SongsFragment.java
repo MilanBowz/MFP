@@ -44,8 +44,6 @@ public class SongsFragment extends Fragment {
     private AtomicBoolean isRunning = new AtomicBoolean(true);
     private BroadcastReceiver receiver;
 
-
-
     public SongsFragment() {
     }
 

@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -84,7 +85,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
                 FolderLibrary.selectedFolder = tempFolder;
-                NotificationService.changePlaying(SongLibrary.get().songNumber);
+                NotificationService.changePlaying(context,SongLibrary.get().songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
                 notifyItemChanged(SongLibrary.get().songNumber); // Notify that the current item has changed

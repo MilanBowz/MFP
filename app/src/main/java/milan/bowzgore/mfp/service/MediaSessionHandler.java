@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 import android.view.KeyEvent;
 
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -23,13 +24,13 @@ class MediaSessionHandler {
         setupMediaSession();
     }
 
-    public void startMusicService(String action) {
+    private void startMusicService(String action) {
         Intent playIntent = new Intent(context, NotificationService.class);
         playIntent.setAction(action);  // Action that the service will handle
         context.startService(playIntent);
     }
 
-    public void updateMediaSessionPlaybackState(int state) {
+    protected void updateMediaSessionPlaybackState(int state) {
         PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder()
                 .setActions(
                         PlaybackStateCompat.ACTION_PLAY |

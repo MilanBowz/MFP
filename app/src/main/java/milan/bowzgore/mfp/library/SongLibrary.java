@@ -3,6 +3,7 @@ package milan.bowzgore.mfp.library;
 import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -15,11 +16,17 @@ import java.util.List;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class SongLibrary {
 
     public List<AudioModel> songsList = new ArrayList<>();
     public int songNumber = 0 ;
     public AudioModel currentSong;
+
+    private static final String SHARED_PREFS_NAME = "SongLibraryPrefs";
+    private static final String KEY_CURRENT_SONG = "currentSong";
 
     private SongLibrary() {
 
@@ -67,15 +74,52 @@ public class SongLibrary {
                 .filter(c -> c.getTitle().equals(song))
                 .findFirst()
                 .orElse(null);
+        Log.d("Debug", song);
 
         songNumber = songsList.indexOf(currentSong);
         tempFolder = folderPath;
 
         NotificationService.init_device_get();
-        Log.d("SongLibrary", "Number of songs fetched: " + songsList.size());
         return songsList;
     }
 
 
+    // Save the current song to SharedPreferences
+    public void saveCurrentSong(Context context) {
+        if (currentSong == null) return;
+
+        SharedPreferences preferences = context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+
+        try {
+            JSONObject songJson = new JSONObject();
+            songJson.put("path", currentSong.getPath());
+            songJson.put("title", currentSong.getTitle());
+            songJson.put("duration", currentSong.getDuration());
+
+            editor.putString(KEY_CURRENT_SONG, songJson.toString());
+            editor.apply();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Load the current song from SharedPreferences
+    public String loadCurrentSong(Context context) {
+        SharedPreferences preferences = context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+        String currentSongJson = preferences.getString(KEY_CURRENT_SONG, null);
+
+        if (currentSongJson != null) {
+            try {
+                JSONObject songJson = new JSONObject(currentSongJson);
+                String path = songJson.getString("path");
+                return path;
+            } catch (JSONException e) {
+                e.printStackTrace();
+
+            }
+        }
+        return null;
+    }
 
 }
