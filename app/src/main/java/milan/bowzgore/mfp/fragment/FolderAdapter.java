@@ -2,10 +2,8 @@ package milan.bowzgore.mfp.fragment;
 
 
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.library.FolderLibrary.folders;
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
+import milan.bowzgore.mfp.library.SongLibrary;
 import static milan.bowzgore.mfp.MainActivity.viewPager;
-import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -43,11 +41,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
 
     @Override
     public void onBindViewHolder(@NonNull FolderViewHolder holder, int position) {
-        String folderName = folders.get(position);
+        SongLibrary songLibrary = SongLibrary.get();
+        String folderName = songLibrary.folders.get(position);
         holder.textView.setText(folderName);
 
         // Update text color based on selection
-        if (Objects.equals(selectedFolder, folderName)) {
+        if (Objects.equals(songLibrary.selectedFolder, folderName)) {
             holder.textView.setTextColor(ContextCompat.getColor(context, R.color.blue));
         }
         else {
@@ -57,9 +56,9 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         holder.itemView.setOnClickListener(v -> {
             ViewPagerAdapter adapter = (ViewPagerAdapter) viewPager.getAdapter();
             if (adapter != null && position != RecyclerView.NO_POSITION) {
-                int previousSelectedPosition = folders.indexOf(tempFolder);
-                tempFolder = folderName;
-                int newSelectedPosition = folders.indexOf(folderName);
+                int previousSelectedPosition = songLibrary.folders.indexOf(songLibrary.tempFolder);
+                SongLibrary.get().tempFolder = folderName;
+                int newSelectedPosition = songLibrary.folders.indexOf(folderName);
                 if (previousSelectedPosition != -1) {
                     notifyItemChanged(previousSelectedPosition);
                 }
@@ -79,7 +78,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
 
     @Override
     public int getItemCount() {
-        return folders.size();
+        return SongLibrary.get().folders.size();
     }
 
     static class FolderViewHolder extends RecyclerView.ViewHolder {

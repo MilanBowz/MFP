@@ -1,8 +1,6 @@
 package milan.bowzgore.mfp.fragment;
 
 import static milan.bowzgore.mfp.MainActivity.viewPager;
-import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
-
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,9 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
@@ -39,11 +35,11 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public List<AudioModel> items ;
 
     public SongAdapter(Context context) {
-        if(!SongLibrary.get().songsList.isEmpty() && SongLibrary.get().songsList.get(0).getPath().contains(tempFolder)){
+        if(!SongLibrary.get().songsList.isEmpty() && SongLibrary.get().songsList.get(0).getPath().contains(SongLibrary.get().tempFolder)){
             this.items = SongLibrary.get().songsList;
         }
         else {
-            this.items = SongLibrary.get().getAllAudioFromDevice(context,tempFolder);
+            this.items = SongLibrary.get().getAllAudioFromDevice(context,SongLibrary.get().tempFolder);
         }
         this.context = context;
     }
@@ -84,7 +80,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             if (context instanceof AppCompatActivity && SongLibrary.get().songNumber != RecyclerView.NO_POSITION) {
                 // Begin the fragment transaction
                 viewPager.setCurrentItem(0,true);
-                FolderLibrary.selectedFolder = tempFolder;
+                SongLibrary.get().selectedFolder = SongLibrary.get().tempFolder;
                 NotificationService.changePlaying(context,SongLibrary.get().songNumber);
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed

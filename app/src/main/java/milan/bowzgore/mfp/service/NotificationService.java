@@ -237,7 +237,7 @@ public class NotificationService extends Service {
     public static void setPlaying(AudioModel song) {
         // songLibrary.songNumber = index;
         SongLibrary.get().currentSong = song;
-        song.getEmbeddedArtwork(song.getPath());
+        // song.getEmbeddedArtwork(song.getPath());
     }
 
     public static void init_device_get() {
@@ -250,10 +250,10 @@ public class NotificationService extends Service {
             }
         }
         try {
-            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
-            Log.d("MiniPlayer", "Media path: " + SongLibrary.get().currentSong.getPath());
-            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             isPlaying = false;
+            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
+            AudioModel cs = SongLibrary.get().currentSong;
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();

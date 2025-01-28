@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 
@@ -35,14 +34,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SongsFragment extends Fragment {
-
-    private RecyclerView recyclerView;
     public SongAdapter adapter;
-    private TextView textFolder;
 
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private AtomicBoolean isRunning = new AtomicBoolean(true);
-    private BroadcastReceiver receiver;
 
     public SongsFragment() {
     }
@@ -79,31 +74,34 @@ public class SongsFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_songs_list, container, false);
         // Initialize RecyclerView and Button
-        recyclerView = view.findViewById(R.id.recycler_view);
-        textFolder = view.findViewById(R.id.songs_text);
+        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
+        TextView textFolder = view.findViewById(R.id.songs_text);
         ImageButton backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
 
-        if (FolderLibrary.tempFolder != null) {
+        if (SongLibrary.get().tempFolder != null) {
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
-            textFolder.setText(FolderLibrary.getFolderDisplay());
+            textFolder.setText(SongLibrary.get().getFolderDisplay());
         }
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        updateUI();
+        requireActivity().runOnUiThread(this::updateUI);
         if(!adapter.items.isEmpty()){
-            executorService.execute(() -> {
-                for (AudioModel song : adapter.items) {
-                    if (!isRunning.get()) break;
-                    song.getEmbeddedArtwork(song.getPath());
-                    requireActivity().runOnUiThread(this::updateUI);
-                }
-            });
+            if(adapter.items.get(0).getImage() == null) {
+                executorService.execute(() -> {
+                    for (AudioModel song : adapter.items) {
+                        if (!isRunning.get()) break;
+                        song.getEmbeddedArtwork(song.getPath());
+                        requireActivity().runOnUiThread(this::updateUI);
+                    }
+                });
+            }
         }
-        receiver = new BroadcastReceiver() {
+        // Update UI based on notification changes
+        BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 updateUI();  // Update UI based on notification changes

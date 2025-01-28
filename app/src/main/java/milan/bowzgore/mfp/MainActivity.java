@@ -1,8 +1,5 @@
 package milan.bowzgore.mfp;
 
-import static milan.bowzgore.mfp.library.FolderLibrary.selectedFolder;
-import static milan.bowzgore.mfp.library.FolderLibrary.tempFolder;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -28,7 +25,6 @@ import androidx.core.content.ContextCompat;
 import milan.bowzgore.mfp.fragment.FolderFragment;
 import milan.bowzgore.mfp.fragment.PlayingFragment;
 import milan.bowzgore.mfp.fragment.SongsFragment;
-import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
@@ -63,8 +59,9 @@ public class MainActivity extends AppCompatActivity  {
         viewPagerAdapter = new ViewPagerAdapter(this);
 
         viewPagerAdapter.addFragment(new PlayingFragment());
-        if (selectedFolder != null){
-            FolderLibrary.tempFolder = selectedFolder;
+        SongLibrary library = SongLibrary.get();
+        if (library.selectedFolder != null){
+            library.tempFolder = library.selectedFolder;
             executorService.execute(() -> {
                 runOnUiThread(() -> viewPagerAdapter.addFragment(new SongsFragment()));
             });
@@ -177,7 +174,7 @@ public class MainActivity extends AppCompatActivity  {
                         song.getEmbeddedArtwork(song.getPath());
                     }
                 });
-                selectedFolder = filePath;
+                SongLibrary.get().selectedFolder = filePath;
                 NotificationService.init_device_get();
             }
             NotificationService.changePlaying(this,SongLibrary.get().songNumber);
@@ -194,13 +191,13 @@ public class MainActivity extends AppCompatActivity  {
                 int folderSplit = audioUri.getPath().lastIndexOf("/");
                 String songTitle = audioUri.getPath().substring(folderSplit+1);
                 executorService.execute(() -> {
-                    SongLibrary.get().getAllAudioFromDevice(this, selectedFolder, songTitle);
+                    SongLibrary.get().getAllAudioFromDevice(this, SongLibrary.get().selectedFolder, songTitle);
                     for (AudioModel song : SongLibrary.get().songsList) {
                         if (!isRunning.get()) break;
                         song.getEmbeddedArtwork(song.getPath());
                     }
                 });
-                selectedFolder = audioUri.getPath().substring(0,folderSplit);
+                SongLibrary.get().selectedFolder = audioUri.getPath().substring(0,folderSplit);
                 NotificationService.setPlaying(audioUri);
                 NotificationService.init_device_get();
         }

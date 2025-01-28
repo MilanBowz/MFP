@@ -14,7 +14,7 @@ import android.view.ViewGroup;
 import java.util.Collections;
 
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.library.FolderLibrary;
+import milan.bowzgore.mfp.library.SongLibrary;
 
 /**
  * A fragment representing a list of Items.
@@ -37,9 +37,6 @@ public class FolderFragment extends Fragment {
         }
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        FolderLibrary.get().getMusicFolders(getContext(), true);
-        Collections.sort(FolderLibrary.folders);
 
         FolderAdapter folderAdapter = new FolderAdapter(getContext());
         recyclerView.setAdapter(folderAdapter);
