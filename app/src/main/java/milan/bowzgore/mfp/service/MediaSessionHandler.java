@@ -12,6 +12,8 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import androidx.core.content.ContextCompat;
+
 import milan.bowzgore.mfp.library.SongLibrary;
 
 
@@ -27,7 +29,7 @@ class MediaSessionHandler {
     private void startMusicService(String action) {
         Intent playIntent = new Intent(context, NotificationService.class);
         playIntent.setAction(action);  // Action that the service will handle
-        context.startService(playIntent);
+        ContextCompat.startForegroundService(context,playIntent);
     }
 
     protected void updateMediaSessionPlaybackState(int state) {
@@ -54,9 +56,8 @@ class MediaSessionHandler {
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getImage())
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getArtBitmap(context))
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, SongLibrary.get().currentSong.getPath())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, SongLibrary.get().currentSong.getImage())
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
         mediaSession.setMetadata(metadata);
@@ -94,14 +95,12 @@ class MediaSessionHandler {
             public void onSkipToNext() {
                 super.onSkipToNext();
                 startMusicService("NEXT");
-                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
             }
 
             @Override
             public void onSkipToPrevious() {
                 super.onSkipToPrevious();
                 startMusicService("PREV");
-                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
             }
 
             @Override

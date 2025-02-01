@@ -16,6 +16,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.content.SharedPreferences;
@@ -33,6 +35,11 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.bumptech.glide.Glide;
+
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.R;
@@ -51,6 +58,8 @@ public class PlayingFragment extends Fragment {
     Handler handler ;
 
     Coverart art = new Coverart();
+
+    private final ExecutorService imageLoaderExecutor = Executors.newSingleThreadExecutor();
 
     public PlayingFragment() {
     }
@@ -84,7 +93,10 @@ public class PlayingFragment extends Fragment {
                             // Convert the selected image to a Bitmap
                             Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
                             // Save the image to a temporary file and update the cover art
-                            art.updateCoverArt(art.saveBitmapToFile(requireActivity(),bitmap));
+                            String path = art.updateCoverArt(art.saveBitmapToFile(requireActivity(),bitmap));
+                            if(SongLibrary.get().currentSong.getPath().equals(path)){
+                                musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArtBitmap(requireContext()));
+                            }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -94,23 +106,15 @@ public class PlayingFragment extends Fragment {
 
         return binding.getRoot();
     }
-    @Override
-    public void onResume() {
-        super.onResume();
-        setupFragment();
-    }
 
     public void setupFragment(){
         setGeneralResources();
-
         if (isListPlaying) {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
         } else {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
         }
-
         setMusicResources();
-
         // Make sure the MediaPlayer and SeekBar are synchronized
         if (mediaPlayer != null) {
             currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
@@ -124,6 +128,8 @@ public class PlayingFragment extends Fragment {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                seekBar.setProgress(0);
+                currentTimeTv.setText("00:00");
                 setMusicResources();  // Update UI based on notification changes
             }
         };
@@ -137,8 +143,6 @@ public class PlayingFragment extends Fragment {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
             }
         });
-
-
         musicIcon.setOnLongClickListener(v -> {
             showChangeCoverArtDialog();
             return true;
@@ -151,48 +155,51 @@ public class PlayingFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     mediaPlayer.seekTo(progress);
+                    currentTimeTv.setText(convertToMMSS(String.valueOf(progress)));
                 }
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 mediaPlayer.seekTo(seekBar.getProgress());
-                startMusicService("UPDATE");
             }
         });
     }
 
     void setGeneralResources(){
-        if(SongLibrary.get().currentSong != null){
-            pausePlay.setOnClickListener(view -> pausePlay());
-            nextBtn.setOnClickListener(v-> playNextSong());
-            previousBtn.setOnClickListener(v-> playPreviousSong());
-        }
+        pausePlay.setOnClickListener(view -> pausePlay());
+        nextBtn.setOnClickListener(v-> startMusicService("NEXT"));
+        previousBtn.setOnClickListener(v-> startMusicService("PREV"));
     }
-
-
-    void setMusicResources(){
-        if(SongLibrary.get().currentSong != null){
-            titleTv.setText(SongLibrary.get().currentSong.getTitle());
-            totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
-            seekBar.setMax(mediaPlayer.getDuration());
-
-            if (SongLibrary.get().currentSong.getImage() != null) {
-                musicIcon.setImageBitmap(SongLibrary.get().currentSong.getImage());
-            } else {
-                musicIcon.setImageResource(R.drawable.music_icon_big); // Fallback image
-            }
-        }
-        else{
-            titleTv.setText(R.string.no_music_loaded);
-            musicIcon.setImageResource(R.drawable.music_icon_big);
-            seekBar.setMax(0);
-            seekBar.setProgress(0);
-            totalTimeTv.setText("00:00");
-            currentTimeTv.setText("00:00");
+    void setMusicResources(){ // every time current playing song is changed to other song
+        AudioModel song = SongLibrary.get().currentSong;
+        currentTimeTv.setText("00:00");
+        seekBar.setProgress(0);
+        if (song != null) {
+                titleTv.setText(song.getTitle());
+                totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
+                seekBar.setMax(mediaPlayer.getDuration());
+                imageLoaderExecutor.execute(() -> {
+                Bitmap art = song.getArtBitmap(requireActivity());
+                requireActivity().runOnUiThread(() -> {
+                        if (art != null) {
+                            Glide.with(requireActivity())
+                                    .asBitmap()
+                                    .load(art)
+                                    .error(R.drawable.music_icon_big) // Fallback if loading fails
+                                    .into(musicIcon);
+                        } else {
+                            musicIcon.setImageResource(R.drawable.music_icon_big);
+                        }
+                    });
+                });
+        } else {
+                titleTv.setText(R.string.no_music_loaded);
+                seekBar.setMax(1);
+                totalTimeTv.setText("00:00");
+                musicIcon.setImageResource(R.drawable.music_icon_big);
         }
     }
 
@@ -204,15 +211,6 @@ public class PlayingFragment extends Fragment {
             startMusicService("PLAY");
             pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
         }
-    }
-
-    private void playNextSong(){
-        startMusicService("NEXT");
-        setMusicResources();
-    }
-    private void playPreviousSong(){
-        startMusicService("PREV");
-        setMusicResources();
     }
 
     @SuppressLint("DefaultLocale")
@@ -241,7 +239,7 @@ public class PlayingFragment extends Fragment {
                         seekBar.setMax(0);
                         seekBar.setProgress(0);
                         totalTimeTv.setText("00:00");
-                        currentTimeTv.setText("00:00");
+                        currentTimeTv.setText(0);
                         return;
                     }
                     if (isPlaying) {
@@ -264,41 +262,32 @@ public class PlayingFragment extends Fragment {
     private void startMusicService(String action) {
         Intent intent = new Intent(getContext(), NotificationService.class);
         intent.setAction(action);
-        requireContext().startService(intent);
+        ContextCompat.startForegroundService(requireActivity(),intent);
     }
 
 
     @Override
     public void onDestroy() {
-        resetFragment();
-        super.onDestroy();
-    }
-    @Override
-    public void onPause(){
-        resetFragment();
-        super.onPause();
-    }
-
-    public void resetFragment(){
         // Unregister the receiver to avoid memory leaks
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
         if (handler != null) {
             handler.removeCallbacks(null);
             handler = null;
         }
+        imageLoaderExecutor.shutdown();
+        super.onDestroy();
     }
 
     private void showChangeCoverArtDialog() {
         Dialog dialog = new Dialog(requireContext());
         dialog.setContentView(R.layout.dialog_change_cover_art);
-
+        art.setSongPath(SongLibrary.get().currentSong.getPath());
         Button selectCoverButton = dialog.findViewById(R.id.select_cover_button);
         selectCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
             art.openImagePicker();
             dialog.dismiss();
         });
-
         dialog.show();
     }
 

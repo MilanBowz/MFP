@@ -1,36 +1,43 @@
 package milan.bowzgore.mfp.model;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
-import android.util.Base64;
+import android.util.DisplayMetrics;
+import android.widget.ImageView;
 
-import java.io.ByteArrayOutputStream;
+import com.bumptech.glide.Glide;
+
 import java.io.Serializable;
+import java.lang.annotation.Target;
+import java.lang.ref.SoftReference;
+
+import milan.bowzgore.mfp.R;
 
 public class AudioModel implements Serializable,Comparable<AudioModel> {
     String path;
     String title;
     String duration;
-    Bitmap image;
+
+    // Bitmap image;
+    // Cached album art (SoftReference prevents memory leaks)
+    private transient SoftReference<Bitmap> cachedArt = null;
 
     public AudioModel(String songData) {
         String[] parts = songData.split(",");
         this.path = parts[0];
         this.title = parts[1];
         this.duration = parts[2];
-        this.image = stringToBitmap(parts[3]);
     }
     public AudioModel(String path, String title, String duration) {
         this.path = path;
         this.title = title;
         this.duration = duration;
     }
-    public AudioModel(String path, String title, String duration,Bitmap image) {
+    public AudioModel(String path, String title) {
         this.path = path;
         this.title = title;
-        this.duration = duration;
-        this.image = image;
     }
 
     public String getPath() {
@@ -45,54 +52,59 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public String getDuration() {
         return duration;
     }
 
-    public void setDuration(String duration) {
-        this.duration = duration;
+    public void setCachedArt(Bitmap cachedArt) {
+        this.cachedArt = new SoftReference<>(cachedArt);
     }
 
-    public Bitmap getImage() {
-        return image;
-    }
-
-    public void setImage(Bitmap imageUrl) {
-        this.image = imageUrl;
-    }
-
-    public String bitmapToString(Bitmap bitmap) {
-        if (bitmap == null) return "";
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
-        byte[] b = baos.toByteArray();
-        return Base64.encodeToString(b, Base64.DEFAULT);
-    }
-
-    public Bitmap getEmbeddedArtwork(String filePath) {
+    public Bitmap getArtBitmap(Context context) {
+        if (cachedArt != null && cachedArt.get() != null) {
+            return cachedArt.get();
+        }
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         try {
-            mmr.setDataSource(filePath);
-            byte[] data = mmr.getEmbeddedPicture();
-            if (data != null) {
-                this.image = BitmapFactory.decodeByteArray(data, 0, data.length);
-                return image;
-            }
+            mmr.setDataSource(this.path);
+            byte[] art = mmr.getEmbeddedPicture();
             mmr.release();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+
+            if (art != null) {
+                return decodeSampledBitmap(art, 400);
+            }
+        } catch (Exception ignored) {}
+        return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
+    }
+    private Bitmap decodeSampledBitmap(byte[] imageData, int size) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+
+        // Step 1: Decode only bounds to get original dimensions
+        options.inJustDecodeBounds = true;
+        options.inPreferredConfig = Bitmap.Config.RGB_565; // Uses less memory than ARGB_8888
+        BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+
+        // Step 2: Calculate the appropriate sample size
+        options.inSampleSize = calculateInSampleSize(options, size);
+
+        // Step 3: Decode the image with the determined sample size
+        options.inJustDecodeBounds = false;
+
+        cachedArt = new SoftReference<>(BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options));
+        return cachedArt.get();
     }
 
-    private static Bitmap stringToBitmap(String encodedString) {
-        if (encodedString.isEmpty()) return null;
-        byte[] decodedString = Base64.decode(encodedString, Base64.DEFAULT);
-        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+    // Calculate the best inSampleSize for resizing
+    private int calculateInSampleSize(BitmapFactory.Options options, int size) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+
+        while ((height / inSampleSize) > size && (width / inSampleSize) > size) {
+            inSampleSize *= 2;
+        }
+        return inSampleSize;
     }
 
     @Override

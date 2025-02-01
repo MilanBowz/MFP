@@ -36,9 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SongsFragment extends Fragment {
     public SongAdapter adapter;
 
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
-
     public SongsFragment() {
     }
 
@@ -46,25 +43,23 @@ public class SongsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
+    
     @Override
     public void onDetach() {
-        // Signal to stop background work
-        isRunning.set(false);
-
-        // Properly shut down executor service
-        executorService.shutdownNow();
-        try {
-            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
-                // Handle the case where the executor service did not terminate properly
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
         super.onDetach();
+        if (adapter != null) {
+            adapter = null;  // Remove reference to adapter to help garbage collection
+        }
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (adapter != null) {
+            adapter = null;  // Remove reference to adapter to help garbage collection
+        }
+    }
+
 
 
     @Nullable
@@ -89,17 +84,6 @@ public class SongsFragment extends Fragment {
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         requireActivity().runOnUiThread(this::updateUI);
-        if(!adapter.items.isEmpty()){
-            if(adapter.items.get(0).getImage() == null) {
-                executorService.execute(() -> {
-                    for (AudioModel song : adapter.items) {
-                        if (!isRunning.get()) break;
-                        song.getEmbeddedArtwork(song.getPath());
-                        requireActivity().runOnUiThread(this::updateUI);
-                    }
-                });
-            }
-        }
         // Update UI based on notification changes
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
@@ -133,12 +117,7 @@ public class SongsFragment extends Fragment {
         if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }
-        AudioModel currentSong = adapter.items.get(SongLibrary.get().songNumber);
         // Update image only if it's different
-        if (!Objects.equals(currentSong.getImage(), song.getImage())) {
-            currentSong.setImage(song.getImage());
-            adapter.notifyItemChanged(SongLibrary.get().songNumber); // Refresh the RecyclerView item
-        }
         adapter.notifyItemChanged(SongLibrary.get().songNumber);
     }
 

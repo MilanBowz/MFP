@@ -2,11 +2,11 @@ package milan.bowzgore.mfp.service;
 
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -20,7 +20,6 @@ import java.io.IOException;
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
-import milan.bowzgore.mfp.model.AudioModel;
 
 public class NotificationService extends Service {
     private final int NOTIFICATION_ID = 1;
@@ -48,7 +47,7 @@ public class NotificationService extends Service {
             else {
                 startMusicService("START");
             }
-            powerHandler.setWakelock();
+            powerHandler.requestAudioFocus();
         });
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
@@ -57,7 +56,8 @@ public class NotificationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null) {
+        if (intent == null) {        stopForeground(true);
+
             return START_NOT_STICKY;
         }
         String action = intent.getAction();
@@ -84,11 +84,9 @@ public class NotificationService extends Service {
                     playPreviousSong();
                     break;
                 case "LOAD":
-                    playMusic();
-                    pauseMusic();
-                    break;
                 case "UPDATE":
                     mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    showNotification();
                     break;
                 case "STOP":
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
@@ -109,12 +107,18 @@ public class NotificationService extends Service {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-        PendingIntent playPendingIntent = PendingIntent.getService(this, 0, playIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent pausePendingIntent = PendingIntent.getService(this, 1, pauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent nextPendingIntent = PendingIntent.getService(this, 2, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent prevPendingIntent = PendingIntent.getService(this, 3, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent stopPendingIntent = PendingIntent.getService(this, 4, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent playPendingIntent = PendingIntent.getService(this, 0, playIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pausePendingIntent = PendingIntent.getService(this, 1, pauseIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent nextPendingIntent = PendingIntent.getService(this, 2, nextIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent prevPendingIntent = PendingIntent.getService(this, 3, prevIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent stopPendingIntent = PendingIntent.getService(this, 4, stopIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Action actionToShow = isPlaying ?
                 new NotificationCompat.Action(R.drawable.ic_baseline_pause_circle_outline_24, "Pause", pausePendingIntent) :
@@ -127,13 +131,12 @@ public class NotificationService extends Service {
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(SongLibrary.get().currentSong.getImage() != null
-                        ? SongLibrary.get().currentSong.getImage()
-                        : BitmapFactory.decodeResource(getResources(), R.drawable.music_icon_big))
+                .setLargeIcon(SongLibrary.get().currentSong.getArtBitmap(getBaseContext()))
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)
                 .setOnlyAlertOnce(true)
+                .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setProgress(mediaPlayer.getDuration(), mediaPlayer.getCurrentPosition(), false)
@@ -142,8 +145,10 @@ public class NotificationService extends Service {
                         .setMediaSession(mediaSession.getSessionToken()));
         if (!isPlaying) {
             builder.addAction(stopAction);
+            builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
-        startForeground(NOTIFICATION_ID, builder.build());
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 
 
@@ -167,7 +172,7 @@ public class NotificationService extends Service {
         mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
         showNotification();
-        powerHandler.releaseWakeLock();
+        powerHandler.releaseWakeLockAndAudioFocus();
         mediaSession.updateMetadata();
     }
 
@@ -191,6 +196,7 @@ public class NotificationService extends Service {
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
         mediaSession.updateMetadata();
+        showNotification();
     }
 
     private void playPreviousSong() {
@@ -234,11 +240,6 @@ public class NotificationService extends Service {
         }
         songLibrary.saveCurrentSong(context);
     }
-    public static void setPlaying(AudioModel song) {
-        // songLibrary.songNumber = index;
-        SongLibrary.get().currentSong = song;
-        // song.getEmbeddedArtwork(song.getPath());
-    }
 
     public static void init_device_get() {
         if (mediaPlayer != null) {
@@ -251,8 +252,6 @@ public class NotificationService extends Service {
         }
         try {
             isPlaying = false;
-            SongLibrary.get().currentSong.getEmbeddedArtwork(SongLibrary.get().currentSong.getPath());
-            AudioModel cs = SongLibrary.get().currentSong;
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
         } catch (IOException e) {
@@ -266,15 +265,16 @@ public class NotificationService extends Service {
         mediaPlayer.reset();
         isPlaying = false;
         SongLibrary.get().currentSong = null;
-        powerHandler.releaseWakeLockAndAudioFocus();
+        powerHandler.stop();
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
         stopForeground(true);
+        stopSelf();
     }
 
     public void onStopFromNotification() {
         if (!isPlaying) {
             stopMusic();
-            powerHandler.releaseWakeLockAndAudioFocus();
-            stopForeground(true);
         }
     }
 
@@ -282,8 +282,5 @@ public class NotificationService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopMusic();
-        SongLibrary.get().currentSong = null;
-        isPlaying = false;
-        stopForeground(true);
     }
 }

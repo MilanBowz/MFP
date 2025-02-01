@@ -63,7 +63,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
                     notifyItemChanged(previousSelectedPosition);
                 }
                 notifyItemChanged(newSelectedPosition);
-
                 addSongsFragment();
             }
         });

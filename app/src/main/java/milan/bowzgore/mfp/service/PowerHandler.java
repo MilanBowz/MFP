@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.PowerManager;
+import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 
@@ -38,35 +39,12 @@ public class PowerHandler {
         context.startService(playIntent);
     }
 
-    protected void setWakelock(){
-        requestAudioFocus();
-    }
-
-
-    protected void acquireWakeLock() {
-        if (wakeLock == null) {
-            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
-        }
-
-        if (!wakeLock.isHeld()) {
-            wakeLock.acquire();
-        }
-    }
-
-    // Method to release the wake lock
     protected void releaseWakeLockAndAudioFocus() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
             if(!wakeLock.isHeld()){
                 audioManager.abandonAudioFocus(afChangeListener);
             }
-        }
-
-    }
-    protected void releaseWakeLock() {
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
         }
     }
     protected void requestAudioFocus() {
@@ -88,7 +66,7 @@ public class PowerHandler {
                     break;
                 case AudioManager.AUDIOFOCUS_LOSS:
                     startMusicService("PAUSE");
-                    releaseWakeLock();
+                    releaseWakeLockAndAudioFocus();
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
                     if (!isPlaying) {
@@ -99,19 +77,36 @@ public class PowerHandler {
         };
         setupBroadcast();
     }
+    protected void stop(){
+        releaseWakeLockAndAudioFocus();
+        if (headsetReceiver != null) {
+            try {
+                context.unregisterReceiver(headsetReceiver);
+                headsetReceiver = null;
+            } catch (IllegalArgumentException e) {
+                Log.println(Log.ERROR,"PowerHandler","PowerHandler release error"); // Handle case where receiver is not registered
+            }
+        }
+    }
+    private void acquireWakeLock() {
+        if (wakeLock == null) {
+            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MusicWakeLock");
+        }
+        if (!wakeLock.isHeld()) {
+            wakeLock.acquire(360*60*1000L /* 300 minutes / 5 hours */);
+        }
+    }
     private void setupBroadcast() {
-        if(headsetReceiver != null){
             headsetReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     String action = intent.getAction();
-
                     // Handle wired headset
                     if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
                         //pauseMusic(); // Headset is unplugged, pause music
                         startMusicService("PAUSE");
                     }
-
                     // Handle Bluetooth device connection
                     if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
@@ -129,12 +124,15 @@ public class PowerHandler {
                     isInitialized = true;
                 }
             };
-
+        try {
             IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
             filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
             filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
             context.registerReceiver(headsetReceiver, filter);
+        } catch (IllegalArgumentException e) {
+            Log.println(Log.ERROR, "PowerHandler", "PowerHandler register error"); // Handle case where receiver is not registered
         }
+
     }
 
     private boolean isHeadset(BluetoothDevice device) {

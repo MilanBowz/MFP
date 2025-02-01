@@ -1,6 +1,7 @@
 package milan.bowzgore.mfp;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
@@ -33,7 +34,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class MainActivity extends AppCompatActivity  {
@@ -41,43 +41,32 @@ public class MainActivity extends AppCompatActivity  {
     public static ViewPager2 viewPager;
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
-    private final int REQUEST_CODE = 123;
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private final AtomicBoolean isRunning = new AtomicBoolean(true);
-
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        checkAndRequestPermissions();
-
         viewPager = findViewById(R.id.fragmentContainerView);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
 
         viewPagerAdapter.addFragment(new PlayingFragment());
-        SongLibrary library = SongLibrary.get();
-        if (library.selectedFolder != null){
-            library.tempFolder = library.selectedFolder;
-            executorService.execute(() -> {
-                runOnUiThread(() -> viewPagerAdapter.addFragment(new SongsFragment()));
-            });
-        }
-        else{
-            executorService.execute(() -> {
-                runOnUiThread(() -> viewPagerAdapter.addFragment(new FolderFragment()));
-            });
-        }
 
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
 
+        if (SongLibrary.get().selectedFolder != null){
+            viewPagerAdapter.addFragment(new SongsFragment());
+        }
+        else{
+            viewPagerAdapter.addFragment(new FolderFragment());
+        }
+
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
-        createNotificationChannel();
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
@@ -93,20 +82,14 @@ public class MainActivity extends AppCompatActivity  {
                 }
             }
         });
+        checkAndRequestPermissions();
 
-        Uri audioUri = getIntent().getData();
-        if (audioUri != null) {
-            handleAudioFile(audioUri);
-        }
-        else{
-            if(SongLibrary.get().currentSong == null){
-                handleAudioFile(SongLibrary.get().loadCurrentSong(this));
-            }
-        }
         setupBackNavigation();
+        createNotificationChannel();
     }
 
     private void checkAndRequestPermissions() {
+        int REQUEST_CODE = 123;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
             // Request READ_MEDIA_AUDIO, POST_NOTIFICATIONS
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED ||
@@ -114,6 +97,9 @@ public class MainActivity extends AppCompatActivity  {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS},
                         REQUEST_CODE);
+            }
+            else {
+                onPermissionsGranted(); // Execute code immediately if permission is already granted
             }
             // Bluetooth connect
             if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -135,6 +121,9 @@ public class MainActivity extends AppCompatActivity  {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                         REQUEST_CODE);
+            }
+            else {
+                onPermissionsGranted(); // Execute code immediately if permission is already granted
             }
         }
 
@@ -166,40 +155,36 @@ public class MainActivity extends AppCompatActivity  {
             if (filePath != null) {
                 int folderSplit = filePath.lastIndexOf("/");
                 String songTitle = filePath.substring(folderSplit+1);
-                filePath = filePath.substring(0,folderSplit);
-                SongLibrary.get().getAllAudioFromDevice(this, filePath, songTitle);
+                SongLibrary.get().setPlaying(new AudioModel(filePath,songTitle));
+                final String folderPath = filePath.substring(0,folderSplit);
                 executorService.execute(() -> {
-                    for (AudioModel song : SongLibrary.get().songsList) {
-                        if (!isRunning.get()) break;
-                        song.getEmbeddedArtwork(song.getPath());
-                    }
+                    SongLibrary.get().syncTempAndSelectedFolder(folderPath);
+                    SongLibrary.get().getAllAudioFromDevice(this, folderPath,true);
                 });
-                SongLibrary.get().selectedFolder = filePath;
                 NotificationService.init_device_get();
+                NotificationService.changePlaying(this,SongLibrary.get().songNumber);
+                Intent mainIntent2 = new Intent(this, NotificationService.class);
+                mainIntent2.setAction("PLAY");
+                ContextCompat.startForegroundService(this,mainIntent2);
             }
-            NotificationService.changePlaying(this,SongLibrary.get().songNumber);
-            Intent mainIntent2 = new Intent(this, NotificationService.class);
-            mainIntent2.setAction("PLAY");
-            startService(mainIntent2);
+
         }
-
-
     }
     private void handleAudioFile(AudioModel audioUri) {
         NotificationService.isPlaying = false;
+        SongLibrary.get().setPlaying(audioUri);
         if (audioUri != null) {
                 int folderSplit = audioUri.getPath().lastIndexOf("/");
-                String songTitle = audioUri.getPath().substring(folderSplit+1);
                 executorService.execute(() -> {
-                    SongLibrary.get().getAllAudioFromDevice(this, SongLibrary.get().selectedFolder, songTitle);
-                    for (AudioModel song : SongLibrary.get().songsList) {
-                        if (!isRunning.get()) break;
-                        song.getEmbeddedArtwork(song.getPath());
-                    }
+                    SongLibrary.get().syncTempAndSelectedFolder(audioUri.getPath().substring(0,folderSplit));
+                    SongLibrary.get().getAllAudioFromDevice(this, SongLibrary.get().selectedFolder,true);
                 });
-                SongLibrary.get().selectedFolder = audioUri.getPath().substring(0,folderSplit);
-                NotificationService.setPlaying(audioUri);
                 NotificationService.init_device_get();
+        }
+        else{
+            executorService.execute(() -> {
+                SongLibrary.get().getAllAudioFromDevice(this, null,false);
+            });
         }
     }
 
@@ -247,7 +232,35 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onResume() {
         super.onResume();
+    }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 123) { // Match the request code
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                onPermissionsGranted(); // Execute your code immediately!
+            }
+        }
+    }
+
+    private void onPermissionsGranted() {
+        // Example: Scan folders and load songs
+        Uri audioUri = getIntent().getData();
+        if (audioUri != null) {
+            handleAudioFile(audioUri);
+        }
+        else{
+            handleAudioFile(SongLibrary.get().loadCurrentSong(this));
+        }
     }
 
 }

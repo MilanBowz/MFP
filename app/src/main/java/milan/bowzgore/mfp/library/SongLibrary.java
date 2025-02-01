@@ -45,64 +45,110 @@ public class SongLibrary {
     }
 
     public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath) {
+            Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            String[] projection = {
+                    MediaStore.Audio.AudioColumns.DATA,
+                    MediaStore.Audio.AudioColumns.DURATION
+            };
+
+            // Combine selection criteria
+            String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+
+            folders.clear();
+            List<AudioModel> audioModels = new ArrayList<>();
+            Set<String> musicFolders = new HashSet<>();
+
+            try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, null, null)) {
+                if (cursor != null) {
+                    int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA);
+                    int durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION);
+
+                    while (cursor.moveToNext()) {
+                        String filePath = cursor.getString(dataIndex);
+                        String folder = filePath.substring(0, filePath.lastIndexOf("/"));
+                        musicFolders.add(folder);
+
+                        if(folder.equals(folderPath)){
+                            String title = filePath.substring(filePath.lastIndexOf("/") + 1);
+                            String duration = cursor.getString(durationIndex);
+                            audioModels.add(new AudioModel(filePath, title, duration));
+                        }
+                    }
+                    // Optional: Sort the audio files if needed
+                    if (!audioModels.isEmpty()) {
+                        Collections.sort(audioModels);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("SongLibrary", "Error fetching audio files", e);
+            }
+
+            folders.addAll(musicFolders);
+            Collections.sort(folders);
+
+            Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
+            return songsList = audioModels;
+    }
+
+    public List<AudioModel> getTempAudioFromDevice(Context context, String tempFolder) {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
                 MediaStore.Audio.AudioColumns.DATA,
                 MediaStore.Audio.AudioColumns.DURATION
         };
 
-        // Combine selection criteria
-        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+        // Filter only music files within the given folder path
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " +
+                MediaStore.Audio.Media.DATA + " LIKE ?";
 
-        List<AudioModel> audioModels = new ArrayList<>();
-        Set<String> musicFolders = new HashSet<>();
+        String[] selectionArgs = new String[]{tempFolder + "%"}; // Ensures filtering by location
 
-        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, null, null)) {
+        List<AudioModel> tempAudioModels = new ArrayList<>();
+
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null)) {
             if (cursor != null) {
                 int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA);
                 int durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION);
 
                 while (cursor.moveToNext()) {
                     String filePath = cursor.getString(dataIndex);
-                    String folder = filePath.substring(0, filePath.lastIndexOf("/"));
-                    musicFolders.add(folder);
-
-                    if(folder.equals(folderPath)){
-                        String title = filePath.substring(filePath.lastIndexOf("/") + 1);
-                        String duration = cursor.getString(durationIndex);
-                        audioModels.add(new AudioModel(filePath, title, duration));
-                    }
+                    String title = filePath.substring(filePath.lastIndexOf("/") + 1);
+                    String duration = cursor.getString(durationIndex);
+                    tempAudioModels.add(new AudioModel(filePath, title, duration));
                 }
+
                 // Optional: Sort the audio files if needed
-                if (!audioModels.isEmpty()) {
-                    Collections.sort(audioModels);
+                if (!tempAudioModels.isEmpty()) {
+                    Collections.sort(tempAudioModels);
                 }
             }
         } catch (Exception e) {
-            Log.e("SongLibrary", "Error fetching audio files", e);
+            Log.e("SongLibrary", "Error fetching temp audio files", e);
         }
 
-        // Update folders list if required
-        folders.clear();
-        folders.addAll(musicFolders);
-        Collections.sort(folders);
-
-        Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
-        return songsList = audioModels;
+        Log.d("SongLibrary", "Temp songs fetched from location [" + tempFolder + "]: " + tempAudioModels.size());
+        return tempAudioModels;
     }
 
-    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final String song) {
+    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
         getAllAudioFromDevice(context, folderPath);
-
-        currentSong = songsList.stream()
-                .filter(c -> c.getTitle().equals(song))
-                .findFirst()
-                .orElse(null);
-
-        songNumber = songsList.indexOf(currentSong);
-        tempFolder = folderPath;
-
+        if (song && currentSong != null) {
+            currentSong = songsList.stream()
+                    .filter(audio -> audio.getPath().equals(currentSong.getPath()))
+                    .findFirst()
+                    .orElse(null);
+            songNumber = songsList.indexOf(currentSong);
+            tempFolder = folderPath;
+        }
         return songsList;
+    }
+
+    public void setPlaying(AudioModel song) {
+        // songLibrary.songNumber = index;
+        if(song != null){
+            SongLibrary.get().currentSong = song;
+            tempFolder = song.getPath().substring(0, song.getPath().lastIndexOf("/"));
+        }
     }
 
 
@@ -149,6 +195,11 @@ public class SongLibrary {
     public String getFolderDisplay() {
         int lastSlashIndex = (tempFolder != null) ? tempFolder.lastIndexOf("/") : -1;
         return (lastSlashIndex != -1) ? tempFolder.substring(lastSlashIndex) : "SONGS";
+    }
+
+    public void syncTempAndSelectedFolder(String folder){
+        this.tempFolder = folder;
+        this.selectedFolder = folder;
     }
 
 }
