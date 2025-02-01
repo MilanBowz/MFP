@@ -16,7 +16,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -35,9 +34,6 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.bumptech.glide.Glide;
-
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -181,20 +177,7 @@ public class PlayingFragment extends Fragment {
                 titleTv.setText(song.getTitle());
                 totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
                 seekBar.setMax(mediaPlayer.getDuration());
-                imageLoaderExecutor.execute(() -> {
-                Bitmap art = song.getArtBitmap(requireActivity());
-                requireActivity().runOnUiThread(() -> {
-                        if (art != null) {
-                            Glide.with(requireActivity())
-                                    .asBitmap()
-                                    .load(art)
-                                    .error(R.drawable.music_icon_big) // Fallback if loading fails
-                                    .into(musicIcon);
-                        } else {
-                            musicIcon.setImageResource(R.drawable.music_icon_big);
-                        }
-                    });
-                });
+                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArtBitmap(requireActivity())));
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);
@@ -281,11 +264,17 @@ public class PlayingFragment extends Fragment {
     private void showChangeCoverArtDialog() {
         Dialog dialog = new Dialog(requireContext());
         dialog.setContentView(R.layout.dialog_change_cover_art);
-        art.setSongPath(SongLibrary.get().currentSong.getPath());
+        art.setSong(SongLibrary.get().currentSong);
         Button selectCoverButton = dialog.findViewById(R.id.select_cover_button);
         selectCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
             art.openImagePicker();
+            dialog.dismiss();
+        });
+        Button saveCoverButton = dialog.findViewById(R.id.save_cover_button);
+        saveCoverButton.setOnClickListener(v -> {
+            // Open the file picker to choose a new cover image
+            art.saveCoverArt(getContext(),SongLibrary.get().currentSong);
             dialog.dismiss();
         });
         dialog.show();

@@ -54,6 +54,4 @@ dependencies {
     implementation(libs.recyclerview)
     implementation(libs.navigation.fragment)
     implementation(libs.jaudiotagger)
-    implementation(libs.glide)
-    annotationProcessor(libs.compiler)
 }

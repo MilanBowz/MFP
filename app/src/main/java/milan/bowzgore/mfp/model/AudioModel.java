@@ -1,16 +1,12 @@
 package milan.bowzgore.mfp.model;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
-import android.util.DisplayMetrics;
-import android.widget.ImageView;
-
-import com.bumptech.glide.Glide;
 
 import java.io.Serializable;
-import java.lang.annotation.Target;
 import java.lang.ref.SoftReference;
 
 import milan.bowzgore.mfp.R;
@@ -60,6 +56,17 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         this.cachedArt = new SoftReference<>(cachedArt);
     }
 
+    public byte[] getArtByte() {
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+        try {
+            mmr.setDataSource(this.path);
+            byte[] art = mmr.getEmbeddedPicture();
+            mmr.release();
+            return art;
+        } catch (Exception ignored) { }
+        return new byte[0];
+    }
+
     public Bitmap getArtBitmap(Context context) {
         if (cachedArt != null && cachedArt.get() != null) {
             return cachedArt.get();
@@ -71,7 +78,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             mmr.release();
 
             if (art != null) {
-                return decodeSampledBitmap(art, 400);
+                return decodeSampledBitmap(art, 380);
             }
         } catch (Exception ignored) {}
         return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
