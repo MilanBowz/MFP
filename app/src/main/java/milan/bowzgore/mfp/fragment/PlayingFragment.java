@@ -2,6 +2,7 @@ package milan.bowzgore.mfp.fragment;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
@@ -21,6 +22,7 @@ import androidx.fragment.app.Fragment;
 
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -87,12 +89,18 @@ public class PlayingFragment extends Fragment {
                         Uri imageUri = result.getData().getData();
                         try {
                             // Convert the selected image to a Bitmap
-                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
-                            // Save the image to a temporary file and update the cover art
-                            String path = art.updateCoverArt(art.saveBitmapToFile(requireActivity(),bitmap));
-                            if(SongLibrary.get().currentSong.getPath().equals(path)){
-                                musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArtBitmap(requireContext()));
+                            Bitmap bitmap;
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                                bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(requireActivity().getContentResolver(), imageUri));
+                            } else {
+                                bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
                             }
+                            art.updateCoverArt(requireActivity(),bitmap);
+                            if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
+                                    SongLibrary.get().selectedFolder.equals(SongLibrary.get().tempFolder)) {
+                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(SongLibrary.get().currentSong);
+                            }
+                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArtBitmap(requireContext()));
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -169,7 +177,8 @@ public class PlayingFragment extends Fragment {
         nextBtn.setOnClickListener(v-> startMusicService("NEXT"));
         previousBtn.setOnClickListener(v-> startMusicService("PREV"));
     }
-    void setMusicResources(){ // every time current playing song is changed to other song
+
+    public void setMusicResources() { // every time current playing song is changed to other song
         AudioModel song = SongLibrary.get().currentSong;
         currentTimeTv.setText("00:00");
         seekBar.setProgress(0);
@@ -222,10 +231,9 @@ public class PlayingFragment extends Fragment {
                         seekBar.setMax(0);
                         seekBar.setProgress(0);
                         totalTimeTv.setText("00:00");
-                        currentTimeTv.setText(0);
-                        return;
+                        currentTimeTv.setText("00:00");
                     }
-                    if (isPlaying) {
+                    else if (isPlaying) {
                         seekBar.setProgress(mediaPlayer.getCurrentPosition());
                         currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
                         pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
@@ -274,7 +282,9 @@ public class PlayingFragment extends Fragment {
         Button saveCoverButton = dialog.findViewById(R.id.save_cover_button);
         saveCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
-            art.saveCoverArt(getContext(),SongLibrary.get().currentSong);
+            imageLoaderExecutor.execute(()->{
+                art.saveCoverArt(getContext(),SongLibrary.get().currentSong);
+            });
             dialog.dismiss();
         });
         dialog.show();

@@ -78,7 +78,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             mmr.release();
 
             if (art != null) {
-                return decodeSampledBitmap(art, 380);
+                return decodeSampledBitmap(art, 400);
             }
         } catch (Exception ignored) {}
         return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
@@ -102,17 +102,21 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     }
 
 
-    // Calculate the best inSampleSize for resizing
-    private int calculateInSampleSize(BitmapFactory.Options options, int size) {
-        int height = options.outHeight;
-        int width = options.outWidth;
-        int inSampleSize = 1;
-
-        while ((height / inSampleSize) > size && (width / inSampleSize) > size) {
-            inSampleSize *= 2;
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqSize) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        // Determine the smaller dimension
+        // Calculate the ratio between the smallest dimension and the requested size
+        double ratio = (double) Math.min(height, width) / reqSize;
+        // If the image is smaller than or equal to the target size, no downsampling is needed.
+        if (ratio <= 1) {
+            return 1;
         }
-        return inSampleSize;
+        // Calculate the smallest power of 2 that is greater than or equal to the ratio.
+        // This mimics the loop that doubles the sample size until the condition is violated.
+        return (int) Math.pow(2, Math.ceil(Math.log(ratio) / Math.log(2)));
     }
+
 
     @Override
     public int compareTo(AudioModel other) {

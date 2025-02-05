@@ -8,6 +8,10 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
+import milan.bowzgore.mfp.fragment.FolderFragment;
+import milan.bowzgore.mfp.fragment.PlayingFragment;
+import milan.bowzgore.mfp.fragment.SongsFragment;
+
 public class ViewPagerAdapter extends FragmentStateAdapter {
     private final List<Fragment> fragmentList = new ArrayList<>();
 
@@ -58,6 +62,32 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         }
         return false;
     }
+
+    public void updatePlaying() {
+        // Check if fragment list is initialized and has elements
+        if (fragmentList != null)
+        {
+            if (!fragmentList.isEmpty() && fragmentList.get(0) instanceof PlayingFragment) {
+                PlayingFragment playingFragment = (PlayingFragment) fragmentList.get(0);
+                playingFragment.setMusicResources(); // Update UI
+            }
+            else {
+                fragmentList.add(new PlayingFragment());
+            }
+        }
+    }
+    public void updateSongs() {
+        // Check if fragment list is initialized and has elements
+        if (fragmentList != null)
+        {
+            if (!fragmentList.isEmpty() && fragmentList.get(1) instanceof SongsFragment) {
+                SongsFragment playingFragment = (SongsFragment) fragmentList.get(1);
+                playingFragment.updateUI(); // Update UI
+            }
+        }
+    }
+
+
     public void clear() {
         for (Fragment fr:fragmentList) {
             fr.onDestroy();
