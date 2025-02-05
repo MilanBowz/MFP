@@ -11,6 +11,8 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
+import androidx.core.content.ContextCompat;
+
 import milan.bowzgore.mfp.library.SongLibrary;
 
 
@@ -23,13 +25,13 @@ class MediaSessionHandler {
         setupMediaSession();
     }
 
-    public void startMusicService(String action) {
+    private void startMusicService(String action) {
         Intent playIntent = new Intent(context, NotificationService.class);
         playIntent.setAction(action);  // Action that the service will handle
-        context.startService(playIntent);
+        ContextCompat.startForegroundService(context,playIntent);
     }
 
-    public void updateMediaSessionPlaybackState(int state) {
+    protected void updateMediaSessionPlaybackState(int state) {
         PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder()
                 .setActions(
                         PlaybackStateCompat.ACTION_PLAY |
@@ -53,9 +55,8 @@ class MediaSessionHandler {
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getImage())
-                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, SongLibrary.get().currentSong.getPath())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, SongLibrary.get().currentSong.getImage())
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getArtBitmap(context))
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, SongLibrary.get().currentSong.getArtBitmap(context))
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
         mediaSession.setMetadata(metadata);
@@ -93,14 +94,12 @@ class MediaSessionHandler {
             public void onSkipToNext() {
                 super.onSkipToNext();
                 startMusicService("NEXT");
-                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
             }
 
             @Override
             public void onSkipToPrevious() {
                 super.onSkipToPrevious();
                 startMusicService("PREV");
-                updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
             }
 
             @Override

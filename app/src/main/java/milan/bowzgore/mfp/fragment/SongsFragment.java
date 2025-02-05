@@ -22,29 +22,12 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.library.FolderLibrary;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 public class SongsFragment extends Fragment {
-
-    private RecyclerView recyclerView;
     public SongAdapter adapter;
-    private TextView textFolder;
-
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
-    private BroadcastReceiver receiver;
-
-
 
     public SongsFragment() {
     }
@@ -53,25 +36,23 @@ public class SongsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
+    
     @Override
     public void onDetach() {
-        // Signal to stop background work
-        isRunning.set(false);
-
-        // Properly shut down executor service
-        executorService.shutdownNow();
-        try {
-            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
-                // Handle the case where the executor service did not terminate properly
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
         super.onDetach();
+        if (adapter != null) {
+            adapter = null;  // Remove reference to adapter to help garbage collection
+        }
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (adapter != null) {
+            adapter = null;  // Remove reference to adapter to help garbage collection
+        }
+    }
+
 
 
     @Nullable
@@ -81,31 +62,23 @@ public class SongsFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_songs_list, container, false);
         // Initialize RecyclerView and Button
-        recyclerView = view.findViewById(R.id.recycler_view);
-        textFolder = view.findViewById(R.id.songs_text);
+        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
+        TextView textFolder = view.findViewById(R.id.songs_text);
         ImageButton backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
 
-        if (FolderLibrary.tempFolder != null) {
+        if (SongLibrary.get().tempFolder != null) {
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
-            textFolder.setText(FolderLibrary.getFolderDisplay());
+            textFolder.setText(SongLibrary.get().getFolderDisplay());
         }
         // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        updateUI();
-        if(!adapter.items.isEmpty()){
-            executorService.execute(() -> {
-                for (AudioModel song : adapter.items) {
-                    if (!isRunning.get()) break;
-                    song.getEmbeddedArtwork(song.getPath());
-                    requireActivity().runOnUiThread(this::updateUI);
-                }
-            });
-        }
-        receiver = new BroadcastReceiver() {
+        requireActivity().runOnUiThread(this::updateUI);
+        // Update UI based on notification changes
+        BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 updateUI();  // Update UI based on notification changes
@@ -137,12 +110,7 @@ public class SongsFragment extends Fragment {
         if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }
-        AudioModel currentSong = adapter.items.get(SongLibrary.get().songNumber);
         // Update image only if it's different
-        if (!Objects.equals(currentSong.getImage(), song.getImage())) {
-            currentSong.setImage(song.getImage());
-            adapter.notifyItemChanged(SongLibrary.get().songNumber); // Refresh the RecyclerView item
-        }
         adapter.notifyItemChanged(SongLibrary.get().songNumber);
     }
 
