@@ -29,6 +29,12 @@ import milan.bowzgore.mfp.model.AudioModel;
 public class SongsFragment extends Fragment {
     public SongAdapter adapter;
 
+    BroadcastReceiver receiver;
+
+    private RecyclerView recyclerView;
+    private TextView textFolder;
+    private ImageButton backButton;
+
     public SongsFragment() {
     }
 
@@ -48,12 +54,23 @@ public class SongsFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (adapter != null) {
-            adapter = null;  // Remove reference to adapter to help garbage collection
+        if(adapter!=null){
+            adapter.recycle();
+            adapter.items.clear();
+            adapter = null;
+        }
+        if (receiver != null) {
+            LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
+            receiver = null; // Helps garbage collection
+        }
+        textFolder = null;
+        backButton = null;
+        if (recyclerView != null) {
+            recyclerView.setAdapter(null); // Remove adapter reference
+            recyclerView.setLayoutManager(null); // Remove layout manager
+            recyclerView = null; // Help GC
         }
     }
-
-
 
     @Nullable
     @Override
@@ -62,9 +79,9 @@ public class SongsFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_songs_list, container, false);
         // Initialize RecyclerView and Button
-        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
-        TextView textFolder = view.findViewById(R.id.songs_text);
-        ImageButton backButton = view.findViewById(R.id.back_button);
+        recyclerView = view.findViewById(R.id.recycler_view);
+        textFolder = view.findViewById(R.id.songs_text);
+        backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
@@ -78,7 +95,7 @@ public class SongsFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         requireActivity().runOnUiThread(this::updateUI);
         // Update UI based on notification changes
-        BroadcastReceiver receiver = new BroadcastReceiver() {
+        receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 updateUI();  // Update UI based on notification changes
@@ -113,6 +130,5 @@ public class SongsFragment extends Fragment {
         // Update image only if it's different
         adapter.notifyItemChanged(SongLibrary.get().songNumber);
     }
-
 
 }

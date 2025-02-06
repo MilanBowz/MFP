@@ -55,7 +55,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.fragment_songs,parent,false);
-        return new SongAdapter.ViewHolder(view);
+        return new ViewHolder(view);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     public void loadArtAsync(Context context, ImageView imageView,AudioModel songdata) {
         executor.execute(() -> {
-            Bitmap albumArt = songdata.getArtBitmap(context);
+            Bitmap albumArt = songdata.getArt(context,1);
             ((AppCompatActivity) context).runOnUiThread(() -> {
                 if (albumArt != null) {
                     imageView.setImageBitmap(albumArt);
@@ -130,6 +130,16 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         executor.shutdownNow(); // Stop all running tasks
     }
 
+    public void recycle() {
+        // Clear the image view to release memory
+        if(!SongLibrary.get().selectedFolder.equals(SongLibrary.get().tempFolder)){
+            for (AudioModel song:SongLibrary.get().songsList) {
+                if (song != null) {
+                    song.clearBitmap();  // This recycles and nullifies the bitmap
+                }
+            }
+        }
+    }
 
     public class ViewHolder extends RecyclerView.ViewHolder{
         TextView titleTextView;

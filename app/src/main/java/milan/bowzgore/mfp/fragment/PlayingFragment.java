@@ -100,7 +100,7 @@ public class PlayingFragment extends Fragment {
                                     SongLibrary.get().selectedFolder.equals(SongLibrary.get().tempFolder)) {
                                 ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(SongLibrary.get().currentSong);
                             }
-                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArtBitmap(requireContext()));
+                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -186,7 +186,7 @@ public class PlayingFragment extends Fragment {
                 titleTv.setText(song.getTitle());
                 totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
                 seekBar.setMax(mediaPlayer.getDuration());
-                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArtBitmap(requireActivity())));
+                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);

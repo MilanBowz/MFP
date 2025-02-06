@@ -35,9 +35,20 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     }
     public void updateFragment(int position, Fragment fragment) {
         if (position >= 0 && position < fragmentList.size()) {
-            fragmentList.set(position, fragment);
+            // Remove old fragment to allow GC to reclaim memory
+            Fragment oldFragment = fragmentList.set(position, fragment);
+            if (oldFragment != null) {
+                // If the fragment is attached, detach it to free resources
+                if (oldFragment.isAdded()) {
+                    oldFragment.getParentFragmentManager()
+                            .beginTransaction()
+                            .remove(oldFragment)
+                            .commitNowAllowingStateLoss();
+                }
+                oldFragment.onDestroy();
+                notifyItemChanged(position);
+            }
         }
-        notifyDataSetChanged();
     }
     @Override
     public long getItemId(int position) {

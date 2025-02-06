@@ -67,10 +67,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         return new byte[0];
     }
 
-    public Bitmap getArtBitmap(Context context) {
-        if (cachedArt != null && cachedArt.get() != null) {
-            return cachedArt.get();
-        }
+    private void getBitmap() {
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         try {
             mmr.setDataSource(this.path);
@@ -78,11 +75,62 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             mmr.release();
 
             if (art != null) {
-                return decodeSampledBitmap(art, 400);
+                cachedArt = new SoftReference<>(decodeSampledBitmap(art, 500));
             }
         } catch (Exception ignored) {}
-        return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
     }
+
+    public Bitmap getArt(Context context,int type){
+        if (cachedArt == null || cachedArt.get() == null) {
+            getBitmap();
+        }
+        if(cachedArt != null){
+            switch (type){
+                case 0:
+                    return scaleDownBitmap(cachedArt.get(),500);
+                case 1:
+                    return scaleDownAndCropBitmap(cachedArt.get(),100);
+                case 2:
+                    return scaleDownAndCropBitmap(cachedArt.get(),350);
+                default:
+                    return scaleDownAndCropBitmap(cachedArt.get(),200);
+            }
+        }
+        else {
+            return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
+        }
+    }
+
+    private Bitmap scaleDownAndCropBitmap(Bitmap bitmap, int size) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        // If the image is wider than tall, crop the sides
+        if (width > height) {
+            int xOffset = (width - height) / 2;
+            bitmap = Bitmap.createBitmap(bitmap, xOffset, 0, height, height);
+        }
+        // If the image is taller, crop the top & bottom
+        else if (height > width) {
+            int yOffset = (height - width) / 2;
+            bitmap = Bitmap.createBitmap(bitmap, 0, yOffset, width, width);
+        }
+
+        // Scale down to requested size
+        return Bitmap.createScaledBitmap(bitmap, size, size, true);
+    }
+    private Bitmap scaleDownBitmap(Bitmap bitmap, int size) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        float scale = (float) size / Math.max(width, height);
+
+        int newWidth = Math.round(width * scale);
+        int newHeight = Math.round(height * scale);
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+
     private Bitmap decodeSampledBitmap(byte[] imageData, int size) {
         BitmapFactory.Options options = new BitmapFactory.Options();
 
@@ -97,8 +145,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         // Step 3: Decode the image with the determined sample size
         options.inJustDecodeBounds = false;
 
-        cachedArt = new SoftReference<>(BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options));
-        return cachedArt.get();
+        return BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
     }
 
 
@@ -122,4 +169,15 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     public int compareTo(AudioModel other) {
         return this.title.compareToIgnoreCase(other.title); // Compare titles alphabetically
     }
+    public void clearBitmap() {
+        if (cachedArt != null) {
+            Bitmap bitmap = cachedArt.get();
+            if (bitmap != null && !bitmap.isRecycled()) {
+                bitmap.recycle();  // Recycle to free memory
+            }
+            cachedArt.clear();  // Clear the WeakReference
+            cachedArt = null;   // Help GC collect it
+        }
+    }
+
 }

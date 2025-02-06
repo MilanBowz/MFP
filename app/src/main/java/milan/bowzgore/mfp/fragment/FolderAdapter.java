@@ -56,13 +56,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         holder.itemView.setOnClickListener(v -> {
             ViewPagerAdapter adapter = (ViewPagerAdapter) viewPager.getAdapter();
             if (adapter != null && position != RecyclerView.NO_POSITION) {
-                int previousSelectedPosition = songLibrary.folders.indexOf(songLibrary.tempFolder);
                 SongLibrary.get().tempFolder = folderName;
-                int newSelectedPosition = songLibrary.folders.indexOf(folderName);
-                if (previousSelectedPosition != -1) {
-                    notifyItemChanged(previousSelectedPosition);
-                }
-                notifyItemChanged(newSelectedPosition);
                 addSongsFragment();
             }
         });

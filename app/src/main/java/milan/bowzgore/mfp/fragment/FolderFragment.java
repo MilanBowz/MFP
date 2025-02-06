@@ -16,6 +16,8 @@ import milan.bowzgore.mfp.R;
  * A fragment representing a list of Items.
  */
 public class FolderFragment extends Fragment {
+    private RecyclerView recyclerView;
+    private FolderAdapter folderAdapter;
 
     @Nullable
     @Override
@@ -27,14 +29,28 @@ public class FolderFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        RecyclerView recyclerView = view.findViewById(R.id.folder_recyclerview); // Ensure this ID matches the XML
+        recyclerView = view.findViewById(R.id.folder_recyclerview); // Ensure this ID matches the XML
         if (recyclerView == null) {
             throw new NullPointerException("RecyclerView is null. Check your layout file for correct ID.");
         }
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        FolderAdapter folderAdapter = new FolderAdapter(getContext());
+        folderAdapter = new FolderAdapter(getContext());
         recyclerView.setAdapter(folderAdapter);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (recyclerView != null) {
+            recyclerView.setAdapter(null); // Remove adapter reference
+            recyclerView.setLayoutManager(null); // Remove layout manager
+            recyclerView = null; // Help GC
+
+        }
+        if(folderAdapter !=null){
+            folderAdapter = null;
+        }
     }
 }
