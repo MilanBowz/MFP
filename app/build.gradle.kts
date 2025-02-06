@@ -54,5 +54,5 @@ dependencies {
     implementation(libs.recyclerview)
     implementation(libs.navigation.fragment)
     implementation(libs.jaudiotagger)
-    debugImplementation(libs.leakcanary.android)
+    // debugImplementation(libs.leakcanary.android)
 }

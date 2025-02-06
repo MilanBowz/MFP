@@ -132,7 +132,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     public void recycle() {
         // Clear the image view to release memory
-        if(!SongLibrary.get().selectedFolder.equals(SongLibrary.get().tempFolder)){
+        if(!SongLibrary.get().tempFolder.equals(SongLibrary.get().selectedFolder)){
             for (AudioModel song:SongLibrary.get().songsList) {
                 if (song != null) {
                     song.clearBitmap();  // This recycles and nullifies the bitmap

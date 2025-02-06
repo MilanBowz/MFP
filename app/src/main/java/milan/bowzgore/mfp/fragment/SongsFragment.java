@@ -63,12 +63,16 @@ public class SongsFragment extends Fragment {
             LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
             receiver = null; // Helps garbage collection
         }
+        if(recyclerView != null){
+            recyclerView.setAdapter(null);
+            recyclerView.setLayoutManager(null);
+            recyclerView = null; // Help GC
+        }
         textFolder = null;
         backButton = null;
-        if (recyclerView != null) {
-            recyclerView.setAdapter(null); // Remove adapter reference
-            recyclerView.setLayoutManager(null); // Remove layout manager
-            recyclerView = null; // Help GC
+        View view = getView();
+        if(view!= null){
+            view.setBackground(null);
         }
     }
 

@@ -43,14 +43,17 @@ public class FolderFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (recyclerView != null) {
-            recyclerView.setAdapter(null); // Remove adapter reference
-            recyclerView.setLayoutManager(null); // Remove layout manager
-            recyclerView = null; // Help GC
-
-        }
         if(folderAdapter !=null){
             folderAdapter = null;
+        }
+        if(recyclerView != null){
+            recyclerView.setAdapter(null);
+            recyclerView.setLayoutManager(null);
+            recyclerView = null; // Help GC
+        }
+        View view = getView();
+        if(view!= null){
+            view.setBackground(null);
         }
     }
 }
