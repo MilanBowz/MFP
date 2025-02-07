@@ -1,9 +1,7 @@
 package milan.bowzgore.mfp.model;
 
-import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -13,7 +11,6 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResultLauncher;
 
@@ -31,9 +28,6 @@ import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import milan.bowzgore.mfp.fragment.SongsFragment;
-import milan.bowzgore.mfp.library.SongLibrary;
-
 public class Coverart {
     public ActivityResultLauncher<Intent> pickImageLauncher;
     private AudioModel musicFile;
@@ -44,13 +38,14 @@ public class Coverart {
     }
 
     public void updateCoverArt(Activity activity, Bitmap bitmap) {
+        if(musicFile != null)
             try {
                 File file = new File(activity.getCacheDir(), "art" + System.currentTimeMillis() + ".png");
                 try (FileOutputStream outputStream = new FileOutputStream(file)) {
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
                 }
 
-                String filePath = SongLibrary.get().currentSong.getPath();
+                String filePath = musicFile.getPath();
                 byte[] imageData = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
 
                 AudioFile audioFile = AudioFileIO.read(new File(filePath));
@@ -63,7 +58,7 @@ public class Coverart {
                 audioFile.commit();
                 Bitmap newAlbumArt = BitmapFactory.decodeFile(file.getAbsolutePath());
                 if (newAlbumArt != null) {
-                    SongLibrary.get().currentSong.setCachedArt(newAlbumArt);
+                    musicFile.setCachedArt(newAlbumArt);
                 }
 
             } catch (Exception e) {
@@ -71,15 +66,16 @@ public class Coverart {
             }
     }
 
-    public void saveCoverArt(Context context, AudioModel currentSong) {
-        executorService.execute(() -> {
-            byte[] imageData = currentSong.getArtByte();
+    public void saveCoverArt(Context context) {
+        if(musicFile!=null)
+         executorService.execute(() -> {
+            byte[] imageData = musicFile.getArtByte();
             String mimeType = getImageType(imageData);
             Bitmap.CompressFormat format = getCompressFormat(mimeType);
             if (format == null) return;
 
             ContentValues values = new ContentValues();
-            values.put(MediaStore.Images.Media.DISPLAY_NAME, "art_" + currentSong.getTitle() + getFileExtension(mimeType));
+            values.put(MediaStore.Images.Media.DISPLAY_NAME, "art_" + musicFile.getTitle() + getFileExtension(mimeType));
             values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
             values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MFP/");
 
@@ -126,5 +122,9 @@ public class Coverart {
 
     public void setSong(AudioModel song) {
         musicFile = song;
+    }
+
+    public AudioModel getSong() {
+        return musicFile;
     }
 }
