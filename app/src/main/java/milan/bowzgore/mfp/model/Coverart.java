@@ -37,12 +37,17 @@ public class Coverart {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
 
-    public void updateCoverArt(Activity activity, Bitmap bitmap) {
+    public void updateCoverArt(Activity activity,Bitmap bitmap) {
         if(musicFile != null)
             try {
-                File file = new File(activity.getCacheDir(), "art" + System.currentTimeMillis() + ".png");
+                String safeTitle = musicFile.getTitle().replaceAll("[^a-zA-Z0-9_.-]", "_");
+                File file = new File(activity.getCacheDir(), "art_" + safeTitle + ".png");
                 try (FileOutputStream outputStream = new FileOutputStream(file)) {
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+                }
+                if (!file.exists()) {
+                    Log.e("CoverArtUpdate", "Coverart file does not exist: " + file.getAbsolutePath());
+                    return;
                 }
 
                 String filePath = musicFile.getPath();
@@ -52,7 +57,7 @@ public class Coverart {
                 Tag tag = audioFile.getTagOrCreateAndSetDefault();
                 Artwork artwork = new Artwork();
                 artwork.setBinaryData(imageData);
-                artwork.setMimeType("image/png");
+                artwork.setMimeType(getImageType(imageData));
                 tag.deleteArtworkField();
                 tag.setField(artwork);
                 audioFile.commit();
@@ -60,40 +65,41 @@ public class Coverart {
                 if (newAlbumArt != null) {
                     musicFile.setCachedArt(newAlbumArt);
                 }
-
             } catch (Exception e) {
                 Log.e("CoverArtUpdate", "Failed to update artwork", e);
             }
     }
 
     public void saveCoverArt(Context context) {
-        if(musicFile!=null)
-         executorService.execute(() -> {
-            byte[] imageData = musicFile.getArtByte();
-            String mimeType = getImageType(imageData);
-            Bitmap.CompressFormat format = getCompressFormat(mimeType);
-            if (format == null) return;
+        if(musicFile!=null){
+            executorService.execute(() -> {
+                byte[] imageData = musicFile.getArtByte();
+                if (imageData == null) return;
+                String mimeType = getImageType(imageData);
+                Bitmap.CompressFormat format = getCompressFormat(mimeType);
+                if (format == null) return;
 
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Images.Media.DISPLAY_NAME, "art_" + musicFile.getTitle() + getFileExtension(mimeType));
-            values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MFP/");
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DISPLAY_NAME, "art_" + musicFile.getTitle() + getFileExtension(mimeType));
+                values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
+                values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MFP/");
 
-            Uri imageUri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            if (imageUri == null) {
-                Log.e("CoverArtSaver", "Failed to create MediaStore entry.");
-                return;
-            }
-
-            try (OutputStream outputStream = context.getContentResolver().openOutputStream(imageUri)) {
-                if (outputStream != null) {
-                    BitmapFactory.decodeByteArray(imageData, 0, imageData.length).compress(format, 100, outputStream);
-                    Log.d("CoverArtSaver", "Cover art saved successfully.");
+                Uri imageUri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                if (imageUri == null) {
+                    Log.e("CoverArtSaver", "Failed to create MediaStore entry.");
+                    return;
                 }
-            } catch (IOException e) {
-                Log.e("CoverArtSaver", "Error saving cover art", e);
-            }
-        });
+
+                try (OutputStream outputStream = context.getContentResolver().openOutputStream(imageUri)) {
+                    if (outputStream != null) {
+                        BitmapFactory.decodeByteArray(imageData, 0, imageData.length).compress(format, 100, outputStream);
+                        Log.d("CoverArtSaver", "Cover art saved successfully.");
+                    }
+                } catch (IOException e) {
+                    Log.e("CoverArtSaver", "Error saving cover art", e);
+                }
+            });
+        }
     }
 
     private String getImageType(byte[] imageData) {

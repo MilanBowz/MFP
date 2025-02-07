@@ -64,7 +64,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             mmr.release();
             return art;
         } catch (Exception ignored) { }
-        return new byte[0];
+        return null;
     }
 
     private void getBitmap() {
@@ -179,5 +179,6 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             cachedArt = null;   // Help GC collect it
         }
     }
+
 
 }

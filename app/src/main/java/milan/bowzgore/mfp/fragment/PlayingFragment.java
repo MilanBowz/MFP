@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -85,23 +86,22 @@ public class PlayingFragment extends Fragment {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
-                        Uri imageUri = result.getData().getData();
                         try {
-                            // Convert the selected image to a Bitmap
-                            Bitmap bitmap;
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                                bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(requireActivity().getContentResolver(), imageUri));
-                            } else {
-                                bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
-                            }
-                            art.updateCoverArt(requireActivity(),bitmap);
-                            if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
-                                    SongLibrary.get().isSyncTempSelectedFolder()) {
-                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
-                            }
-                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
+                                Uri imageUri = result.getData().getData();
+                                Bitmap bitmap;
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                                    bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(requireActivity().getContentResolver(), imageUri));
+                                } else {
+                                    bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), imageUri);
+                                }
+                                art.updateCoverArt(requireActivity(),bitmap);
+                                if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
+                                        SongLibrary.get().isSyncTempSelectedFolder()) {
+                                    ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
+                                }
+                                musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            Log.e("AudioFile", "Failed to read audio file", e);
                         }
                     }
                 }
