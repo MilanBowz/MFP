@@ -97,7 +97,7 @@ public class PlayingFragment extends Fragment {
                             art.updateCoverArt(requireActivity(),bitmap);
                             if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
                                     SongLibrary.get().isSyncTempSelectedFolder()) {
-                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong();
+                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
                             }
                             musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
                         } catch (Exception e) {
@@ -282,7 +282,7 @@ public class PlayingFragment extends Fragment {
         saveCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
             imageLoaderExecutor.execute(()->{
-                art.saveCoverArt(getContext(),SongLibrary.get().currentSong);
+                art.saveCoverArt(getContext());
             });
             dialog.dismiss();
         });

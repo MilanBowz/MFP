@@ -135,12 +135,13 @@ public class SongsFragment extends Fragment {
         }
     }
 
-    protected void updateCurrentSong() {
-        if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
+    protected void updateCurrentSong(AudioModel song) {
+        int songnumber = SongLibrary.get().songsList.indexOf(song);
+        if (songnumber < 0 || songnumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }
         // Update image only if it's different
-        adapter.notifyItemChanged(SongLibrary.get().songNumber);
+        adapter.notifyItemChanged(songnumber);
     }
 
 }
