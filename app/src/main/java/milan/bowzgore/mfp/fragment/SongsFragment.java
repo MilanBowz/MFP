@@ -91,7 +91,7 @@ public class SongsFragment extends Fragment {
         });
 
         if (SongLibrary.get().tempFolder != null) {
-            adapter = new SongAdapter(getContext());
+            adapter = new SongAdapter(getContext(),this);
             recyclerView.setAdapter(adapter);
             textFolder.setText(SongLibrary.get().getFolderDisplay());
         }
@@ -118,7 +118,7 @@ public class SongsFragment extends Fragment {
     }
 
 
-    private void updateUI() {
+    protected void updateUI() {
         if (adapter != null) {
             adapter.notifyItemChanged(SongLibrary.get().songNumber);
             if (lastPlayedSong != -1) {

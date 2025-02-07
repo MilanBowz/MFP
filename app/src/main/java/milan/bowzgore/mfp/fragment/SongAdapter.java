@@ -30,14 +30,14 @@ import java.util.concurrent.Executors;
 class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
-
     protected final List<AudioModel> items ;
-
+    private final SongsFragment songsFragment; // Reference to SongsFragment
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
 
-    protected SongAdapter(Context context) {
+    protected SongAdapter(Context context, SongsFragment fragment) {
         SongLibrary lib = SongLibrary.get();
+        this.songsFragment = fragment;
         if(!lib.songsList.isEmpty() && lib.isSyncTempSelectedFolder()){
             this.items = lib.songsList;
             if (lib.songNumber == - 1) {
@@ -75,15 +75,13 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
         holder.itemView.setOnClickListener(v -> {
             // Navigate to PlayingFragment
-            int previousSongNumber = SongLibrary.get().songNumber;
             SongLibrary.get().songNumber = holder.getAbsoluteAdapterPosition();
             SongLibrary.get().selectedFolder = SongLibrary.get().tempFolder;
             SongLibrary.get().songsList = items;
             if (context instanceof AppCompatActivity && SongLibrary.get().songNumber != RecyclerView.NO_POSITION) {
                 NotificationService.changePlaying(context,SongLibrary.get().songNumber);
                 startMusicService();
-                notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
-                notifyItemChanged(SongLibrary.get().songNumber); // Notify that the current item has changed
+                songsFragment.updateUI();
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
             }
