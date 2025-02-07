@@ -8,18 +8,14 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-import milan.bowzgore.mfp.fragment.FolderFragment;
-import milan.bowzgore.mfp.fragment.PlayingFragment;
-import milan.bowzgore.mfp.fragment.SongsFragment;
-
 public class ViewPagerAdapter extends FragmentStateAdapter {
     private final List<Fragment> fragmentList = new ArrayList<>();
 
-    public ViewPagerAdapter(FragmentActivity fa) {
+    protected ViewPagerAdapter(FragmentActivity fa) { // MainActivity only
         super(fa);
     }
 
-    public void addFragment(Fragment fragment) {
+    protected void addFragment(Fragment fragment) { // MainActivity only
         fragmentList.add(fragment);
     }
 
@@ -33,12 +29,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     public int getItemCount() {
         return fragmentList.size();
     }
+
     public void updateFragment(int position, Fragment fragment) {
         if (position >= 0 && position < fragmentList.size()) {
-            // Remove old fragment to allow GC to reclaim memory
             Fragment oldFragment = fragmentList.set(position, fragment);
             if (oldFragment != null) {
-                // If the fragment is attached, detach it to free resources
                 if (oldFragment.isAdded()) {
                     oldFragment.getParentFragmentManager()
                             .beginTransaction()
@@ -50,61 +45,23 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
             }
         }
     }
+
     @Override
     public long getItemId(int position) {
-        // You must override this method and use fragmentList.get(position).hashCode()
-        // This is important to ensure that ViewPager2 re-creates the fragment.
         return fragmentList.get(position).hashCode();
     }
 
     public Fragment getItem(int position) {
-        // You must override this method and use fragmentList.get(position).hashCode()
-        // This is important to ensure that ViewPager2 re-creates the fragment.
         return fragmentList.get(position);
     }
 
     @Override
     public boolean containsItem(long itemId) {
-        // Make sure ViewPager2 recognizes the fragments by their hashCode
         for (Fragment fragment : fragmentList) {
             if (fragment.hashCode() == itemId) {
                 return true;
             }
         }
         return false;
-    }
-
-    public void updatePlaying() {
-        // Check if fragment list is initialized and has elements
-        if (fragmentList != null)
-        {
-            if (!fragmentList.isEmpty() && fragmentList.get(0) instanceof PlayingFragment) {
-                PlayingFragment playingFragment = (PlayingFragment) fragmentList.get(0);
-                playingFragment.setMusicResources(); // Update UI
-            }
-            else {
-                fragmentList.add(new PlayingFragment());
-            }
-        }
-    }
-    public void updateSongs() {
-        // Check if fragment list is initialized and has elements
-        if (fragmentList != null)
-        {
-            if (!fragmentList.isEmpty() && fragmentList.get(1) instanceof SongsFragment) {
-                SongsFragment playingFragment = (SongsFragment) fragmentList.get(1);
-                playingFragment.updateUI(); // Update UI
-            }
-        }
-    }
-
-
-    public void clear() {
-        for (Fragment fr:fragmentList) {
-            fr.onDestroy();
-        }
-        fragmentList.clear();
-
-        notifyDataSetChanged();
     }
 }

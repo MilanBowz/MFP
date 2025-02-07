@@ -24,13 +24,14 @@ import milan.bowzgore.mfp.ViewPagerAdapter;
  * {@link RecyclerView.Adapter} that can display a {@link String}.
  * TODO: Replace the implementation with code for your data type.
  */
-public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder> {
+class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder> {
 
     private final Context context;
 
-    public FolderAdapter(Context context) {
+    protected FolderAdapter(Context context) {
         this.context = context;
     }
+
     @NonNull
     @Override
     public FolderViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -62,7 +63,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         });
     }
 
-    public static void addSongsFragment(){
+    private void addSongsFragment(){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(1,new SongsFragment());
             viewPager.setCurrentItem(1, true);
@@ -74,7 +75,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         return SongLibrary.get().folders.size();
     }
 
-    static class FolderViewHolder extends RecyclerView.ViewHolder {
+    protected static final class FolderViewHolder extends RecyclerView.ViewHolder {
         private final TextView textView;
 
         public FolderViewHolder(@NonNull View itemView) {

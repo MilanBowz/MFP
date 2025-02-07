@@ -90,13 +90,12 @@ public class SongLibrary {
             return songsList = audioModels;
     }
 
-    public List<AudioModel> getTempAudioFromDevice(Context context, String tempFolder) {
+    public List<AudioModel> getTempAudioFromDevice(Context context) {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
                 MediaStore.Audio.AudioColumns.DATA,
                 MediaStore.Audio.AudioColumns.DURATION
         };
-
         // Filter only music files within the given folder path
         String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " +
                 MediaStore.Audio.Media.DATA + " LIKE ?";
@@ -133,12 +132,12 @@ public class SongLibrary {
     public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
         getAllAudioFromDevice(context, folderPath);
         if (song && currentSong != null) {
+            tempFolder = folderPath;
             currentSong = songsList.stream()
                     .filter(audio -> audio.getPath().equals(currentSong.getPath()))
                     .findFirst()
                     .orElse(null);
             songNumber = songsList.indexOf(currentSong);
-            tempFolder = folderPath;
         }
         return songsList;
     }
@@ -200,6 +199,9 @@ public class SongLibrary {
     public void syncTempAndSelectedFolder(String folder){
         this.tempFolder = folder;
         this.selectedFolder = folder;
+    }
+    public boolean isSyncTempSelectedFolder(){
+        return tempFolder.equals(selectedFolder);
     }
 
 }

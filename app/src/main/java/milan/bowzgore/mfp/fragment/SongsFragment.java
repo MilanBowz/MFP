@@ -27,10 +27,8 @@ import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 
 public class SongsFragment extends Fragment {
-    public SongAdapter adapter;
-
-    BroadcastReceiver receiver;
-
+    private SongAdapter adapter;
+    private BroadcastReceiver receiver;
     private RecyclerView recyclerView;
     private TextView textFolder;
     private ImageButton backButton;
@@ -46,9 +44,7 @@ public class SongsFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        if (adapter != null) {
-            adapter = null;  // Remove reference to adapter to help garbage collection
-        }
+        super.onDestroyView();
     }
 
     @Override
@@ -56,7 +52,10 @@ public class SongsFragment extends Fragment {
         super.onDestroyView();
         if(adapter!=null){
             adapter.recycle();
-            adapter.items.clear();
+            if(!SongLibrary.get().isSyncTempSelectedFolder())
+            {
+                adapter.items.clear();
+            }
             adapter = null;
         }
         if (receiver != null) {
@@ -115,19 +114,23 @@ public class SongsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void updateUI() {
+    private void updateUI() {
         if(adapter != null ){
-            adapter.notifyDataSetChanged();
+            int position = SongLibrary.get().songNumber;
+            adapter.notifyItemChanged(position);
+            adapter.notifyItemChanged(position-1);
+            adapter.notifyItemChanged(position+1);
         }
     }
-    public static void addFolderFragment(){
+
+    private void addFolderFragment(){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(1,new FolderFragment());
             viewPager.setCurrentItem(1, true);
         }
     }
 
-    public void updateCurrentSong(AudioModel song) {
+    protected void updateCurrentSong() {
         if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }

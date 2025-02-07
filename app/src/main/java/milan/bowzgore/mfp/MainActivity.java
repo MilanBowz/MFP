@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     public static ViewPagerAdapter viewPagerAdapter;
     private BottomNavigationView bottomNavigationView;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    private static final int REQUEST_CODE = 123;
+    private final int REQUEST_CODE = 123;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

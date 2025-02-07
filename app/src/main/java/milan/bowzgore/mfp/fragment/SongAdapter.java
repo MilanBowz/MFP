@@ -27,25 +27,25 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
+class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
 
-    public List<AudioModel> items ;
+    protected final List<AudioModel> items ;
 
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
 
-    public SongAdapter(Context context) {
+    protected SongAdapter(Context context) {
         SongLibrary lib = SongLibrary.get();
-        if(!lib.songsList.isEmpty() && lib.selectedFolder.equals(lib.tempFolder)){
+        if(!lib.songsList.isEmpty() && lib.isSyncTempSelectedFolder()){
             this.items = lib.songsList;
             if (lib.songNumber == - 1) {
                 lib.songNumber = SongLibrary.get().songsList.indexOf(lib.currentSong);
             }
         }
         else {
-            this.items = SongLibrary.get().getTempAudioFromDevice(context,SongLibrary.get().tempFolder);
+            this.items = SongLibrary.get().getTempAudioFromDevice(context);
         }
         this.context = context;
     }
@@ -91,7 +91,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     }
 
-    public void loadArtAsync(Context context, ImageView imageView,AudioModel songdata) {
+    private void loadArtAsync(Context context, ImageView imageView,AudioModel songdata) {
         executor.execute(() -> {
             Bitmap albumArt = songdata.getArt(context,1);
             ((AppCompatActivity) context).runOnUiThread(() -> {
@@ -130,9 +130,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         executor.shutdownNow(); // Stop all running tasks
     }
 
-    public void recycle() {
+    protected void recycle() {
         // Clear the image view to release memory
-        if(!SongLibrary.get().tempFolder.equals(SongLibrary.get().selectedFolder)){
+        if(!SongLibrary.get().isSyncTempSelectedFolder()){
             for (AudioModel song:SongLibrary.get().songsList) {
                 if (song != null) {
                     song.clearBitmap();  // This recycles and nullifies the bitmap
@@ -141,7 +141,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         }
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
+    protected class ViewHolder extends RecyclerView.ViewHolder{
         TextView titleTextView;
         ImageView iconImageView;
         public ViewHolder(View itemView) {
