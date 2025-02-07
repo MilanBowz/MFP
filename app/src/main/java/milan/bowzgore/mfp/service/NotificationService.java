@@ -131,7 +131,7 @@ public class NotificationService extends Service {
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(SongLibrary.get().currentSong.getArtBitmap(getBaseContext()))
+                .setLargeIcon(SongLibrary.get().currentSong.getArt(getBaseContext(),2))
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)

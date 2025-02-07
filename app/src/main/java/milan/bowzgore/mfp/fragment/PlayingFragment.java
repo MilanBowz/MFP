@@ -53,9 +53,8 @@ public class PlayingFragment extends Fragment {
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
     private BroadcastReceiver receiver;
-    Handler handler ;
-
-    Coverart art = new Coverart();
+    private Handler handler ;
+    private final Coverart art = new Coverart();
 
     private final ExecutorService imageLoaderExecutor = Executors.newSingleThreadExecutor();
 
@@ -97,10 +96,10 @@ public class PlayingFragment extends Fragment {
                             }
                             art.updateCoverArt(requireActivity(),bitmap);
                             if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
-                                    SongLibrary.get().selectedFolder.equals(SongLibrary.get().tempFolder)) {
-                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(SongLibrary.get().currentSong);
+                                    SongLibrary.get().isSyncTempSelectedFolder()) {
+                                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong();
                             }
-                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArtBitmap(requireContext()));
+                            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -111,7 +110,7 @@ public class PlayingFragment extends Fragment {
         return binding.getRoot();
     }
 
-    public void setupFragment(){
+    private void setupFragment(){
         setGeneralResources();
         if (isListPlaying) {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
@@ -172,13 +171,13 @@ public class PlayingFragment extends Fragment {
         });
     }
 
-    void setGeneralResources(){
+    private void setGeneralResources(){
         pausePlay.setOnClickListener(view -> pausePlay());
         nextBtn.setOnClickListener(v-> startMusicService("NEXT"));
         previousBtn.setOnClickListener(v-> startMusicService("PREV"));
     }
 
-    public void setMusicResources() { // every time current playing song is changed to other song
+    protected void setMusicResources() { // every time current playing song is changed to other song
         AudioModel song = SongLibrary.get().currentSong;
         currentTimeTv.setText("00:00");
         seekBar.setProgress(0);
@@ -186,7 +185,7 @@ public class PlayingFragment extends Fragment {
                 titleTv.setText(song.getTitle());
                 totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
                 seekBar.setMax(mediaPlayer.getDuration());
-                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArtBitmap(requireActivity())));
+                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);
@@ -206,7 +205,7 @@ public class PlayingFragment extends Fragment {
     }
 
     @SuppressLint("DefaultLocale")
-    public static String convertToMMSS(String duration) {
+    private String convertToMMSS(String duration) {
         try {
             long millis = Long.parseLong(duration);
             return String.format("%02d:%02d",
@@ -290,7 +289,7 @@ public class PlayingFragment extends Fragment {
         dialog.show();
     }
 
-    public void setListPlaying() {
+    private void setListPlaying() {
         isListPlaying = ! isListPlaying;
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();

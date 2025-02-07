@@ -27,7 +27,11 @@ import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 
 public class SongsFragment extends Fragment {
-    public SongAdapter adapter;
+    private SongAdapter adapter;
+    private BroadcastReceiver receiver;
+    private RecyclerView recyclerView;
+    private TextView textFolder;
+    private ImageButton backButton;
 
     public SongsFragment() {
     }
@@ -40,20 +44,36 @@ public class SongsFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        if (adapter != null) {
-            adapter = null;  // Remove reference to adapter to help garbage collection
-        }
+        super.onDestroyView();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (adapter != null) {
-            adapter = null;  // Remove reference to adapter to help garbage collection
+        if(adapter!=null){
+            adapter.recycle();
+            if(!SongLibrary.get().isSyncTempSelectedFolder())
+            {
+                adapter.items.clear();
+            }
+            adapter = null;
+        }
+        if (receiver != null) {
+            LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
+            receiver = null; // Helps garbage collection
+        }
+        if(recyclerView != null){
+            recyclerView.setAdapter(null);
+            recyclerView.setLayoutManager(null);
+            recyclerView = null; // Help GC
+        }
+        textFolder = null;
+        backButton = null;
+        View view = getView();
+        if(view!= null){
+            view.setBackground(null);
         }
     }
-
-
 
     @Nullable
     @Override
@@ -62,9 +82,9 @@ public class SongsFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_songs_list, container, false);
         // Initialize RecyclerView and Button
-        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
-        TextView textFolder = view.findViewById(R.id.songs_text);
-        ImageButton backButton = view.findViewById(R.id.back_button);
+        recyclerView = view.findViewById(R.id.recycler_view);
+        textFolder = view.findViewById(R.id.songs_text);
+        backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
@@ -78,7 +98,7 @@ public class SongsFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         requireActivity().runOnUiThread(this::updateUI);
         // Update UI based on notification changes
-        BroadcastReceiver receiver = new BroadcastReceiver() {
+        receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 updateUI();  // Update UI based on notification changes
@@ -94,25 +114,28 @@ public class SongsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void updateUI() {
+    private void updateUI() {
         if(adapter != null ){
-            adapter.notifyDataSetChanged();
+            int position = SongLibrary.get().songNumber;
+            adapter.notifyItemChanged(position);
+            adapter.notifyItemChanged(position-1);
+            adapter.notifyItemChanged(position+1);
         }
     }
-    public static void addFolderFragment(){
+
+    private void addFolderFragment(){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(1,new FolderFragment());
             viewPager.setCurrentItem(1, true);
         }
     }
 
-    public void updateCurrentSong(AudioModel song) {
+    protected void updateCurrentSong() {
         if (SongLibrary.get().songNumber < 0 || SongLibrary.get().songNumber >= adapter.items.size()) {
             return;  // Prevent IndexOutOfBoundsException
         }
         // Update image only if it's different
         adapter.notifyItemChanged(SongLibrary.get().songNumber);
     }
-
 
 }
