@@ -1,12 +1,17 @@
 package milan.bowzgore.mfp;
 
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
+
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import milan.bowzgore.mfp.fragment.PlayingFragment;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
     private final List<Fragment> fragmentList = new ArrayList<>();
@@ -30,9 +35,8 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         return fragmentList.size();
     }
 
-    public void updateFragment(int position, Fragment fragment) {
-        if (position >= 0 && position < fragmentList.size()) {
-            Fragment oldFragment = fragmentList.set(position, fragment);
+    public void updateFragment(Fragment fragment) {
+            Fragment oldFragment = fragmentList.set(1, fragment);
             if (oldFragment != null) {
                 if (oldFragment.isAdded()) {
                     oldFragment.getParentFragmentManager()
@@ -41,8 +45,13 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
                             .commitNowAllowingStateLoss();
                 }
                 oldFragment.onDestroy();
-                notifyItemChanged(position);
+                notifyItemChanged(1);
             }
+    }
+
+    public void updatePlayingFragment() { // Update to new song in PlayingFragment
+        if (fragmentList.get(0) instanceof PlayingFragment) {
+            ((PlayingFragment) fragmentList.get(0)).setMusicResources();
         }
     }
 

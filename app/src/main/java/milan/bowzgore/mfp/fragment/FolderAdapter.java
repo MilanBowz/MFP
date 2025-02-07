@@ -65,7 +65,7 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
 
     private void addSongsFragment(){
         if(viewPagerAdapter != null){
-            viewPagerAdapter.updateFragment(1,new SongsFragment());
+            viewPagerAdapter.updateFragment(new SongsFragment());
             viewPager.setCurrentItem(1, true);
         }
     }

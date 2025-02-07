@@ -91,12 +91,18 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
             };
         }
-
         // Check the first permission only
         if (ContextCompat.checkSelfPermission(this, permissions[0]) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
         } else {
-            handleAudioFile(SongLibrary.get().loadCurrentSong(this));
+            if (getIntent().getData() != null) {
+                handleAudioFile(getIntent().getData());
+                if(viewPagerAdapter!=null){
+                    viewPagerAdapter.updateFragment(new SongsFragment());
+                }
+            } else {
+                handleAudioFile(SongLibrary.get().loadCurrentSong(this));
+            }
         }
     }
 
@@ -118,14 +124,12 @@ public class MainActivity extends AppCompatActivity {
         if (filePath == null) return;
 
         String folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
-        SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)));
-
+        SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)),this);
 
         executorService.execute(() -> {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);
             SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
         });
-
         NotificationService.init_device_get();
         ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("PLAY"));
     }
@@ -133,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleAudioFile(AudioModel audioUri) {
         if(SongLibrary.get().currentSong == null){
             NotificationService.isPlaying = false;
-            SongLibrary.get().setPlaying(audioUri);
+            SongLibrary.get().setPlaying(audioUri,this);
             if (audioUri != null) {
                 int folderSplit = audioUri.getPath().lastIndexOf("/");
                 executorService.execute(() -> {
@@ -167,7 +171,8 @@ public class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent.getData() != null) {
             handleAudioFile(intent.getData());
-            viewPagerAdapter.updateFragment(1, new SongsFragment());
+            viewPagerAdapter.updateFragment(new SongsFragment());
+            viewPagerAdapter.updatePlayingFragment();
             viewPager.setCurrentItem(0, false);
         }
     }
@@ -177,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void handleOnBackPressed() {
                 if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
-                    viewPagerAdapter.updateFragment(1, new FolderFragment());
+                    viewPagerAdapter.updateFragment(new FolderFragment());
                     viewPager.setCurrentItem(1, true);
                 }
             }

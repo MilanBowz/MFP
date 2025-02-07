@@ -142,14 +142,14 @@ public class SongLibrary {
         return songsList;
     }
 
-    public void setPlaying(AudioModel song) {
+    public void setPlaying(AudioModel song,Context context) {
         // songLibrary.songNumber = index;
         if(song != null){
             SongLibrary.get().currentSong = song;
-            tempFolder = song.getPath().substring(0, song.getPath().lastIndexOf("/"));
+            syncTempAndSelectedFolder(song.getPath().substring(0, song.getPath().lastIndexOf("/")));
+            saveCurrentSong(context);
         }
     }
-
 
     // Save the current song to SharedPreferences
     public void saveCurrentSong(Context context) {
@@ -200,6 +200,7 @@ public class SongLibrary {
         this.tempFolder = folder;
         this.selectedFolder = folder;
     }
+
     public boolean isSyncTempSelectedFolder(){
         return tempFolder.equals(selectedFolder);
     }

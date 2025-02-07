@@ -84,7 +84,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 startMusicService();
                 notifyItemChanged(previousSongNumber); // Notify that the previous item has changed
                 notifyItemChanged(SongLibrary.get().songNumber); // Notify that the current item has changed
-                updatePlayingFragment();
+                viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
             }
         });
@@ -108,15 +108,6 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         Intent intent = new Intent(context, NotificationService.class);
         intent.setAction("START");
         ContextCompat.startForegroundService(context,intent);
-    }
-
-    private void updatePlayingFragment() {
-        if (context instanceof AppCompatActivity) {
-            PlayingFragment playingFragment = (PlayingFragment) viewPagerAdapter.getItem(0);
-            if (playingFragment != null) {
-                playingFragment.setMusicResources();  // Update the current song in PlayingFragment
-            }
-        }
     }
 
     @Override
