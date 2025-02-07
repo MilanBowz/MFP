@@ -31,13 +31,12 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
     protected final List<AudioModel> items ;
-    private final SongsFragment songsFragment; // Reference to SongsFragment
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private int lastPlayedSong = -1;
 
 
-    protected SongAdapter(Context context, SongsFragment fragment) {
+    protected SongAdapter(Context context) {
         SongLibrary lib = SongLibrary.get();
-        this.songsFragment = fragment;
         if(!lib.songsList.isEmpty() && lib.isSyncTempSelectedFolder()){
             this.items = lib.songsList;
             if (lib.songNumber == - 1) {
@@ -75,15 +74,15 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
         holder.itemView.setOnClickListener(v -> {
             // Navigate to PlayingFragment
-            SongLibrary.get().songNumber = holder.getAbsoluteAdapterPosition();
-            SongLibrary.get().selectedFolder = SongLibrary.get().tempFolder;
-            SongLibrary.get().songsList = items;
-            if (context instanceof AppCompatActivity && SongLibrary.get().songNumber != RecyclerView.NO_POSITION) {
-                NotificationService.changePlaying(context,SongLibrary.get().songNumber);
+            if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
+                SongLibrary.get().songNumber = holder.getAbsoluteAdapterPosition();
+                SongLibrary.get().selectedFolder = SongLibrary.get().tempFolder;
+                SongLibrary.get().songsList = items;
+                NotificationService.changePlaying(context,holder.getAbsoluteAdapterPosition());
                 startMusicService();
-                songsFragment.updateUI();
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
+                updateUI(holder.getAbsoluteAdapterPosition());
             }
         });
 
@@ -117,6 +116,23 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
         executor.shutdownNow(); // Stop all running tasks
+    }
+
+    private void updateUI(int position) { // execute in adapter
+        notifyItemChanged(position);
+        if (lastPlayedSong != -1) {
+            notifyItemChanged(lastPlayedSong);
+        }
+        lastPlayedSong = position;
+    }
+    protected void updateUI() {
+        if (SongLibrary.get().isSyncTempSelectedFolder()) {
+            notifyItemChanged(SongLibrary.get().songNumber);
+            if (lastPlayedSong != -1) {
+                notifyItemChanged(lastPlayedSong);
+            }
+            lastPlayedSong = SongLibrary.get().songNumber;
+        }
     }
 
     protected void recycle() {

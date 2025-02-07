@@ -32,7 +32,6 @@ public class SongsFragment extends Fragment {
     private RecyclerView recyclerView;
     private TextView textFolder;
     private ImageButton backButton;
-    private int lastPlayedSong = -1;
 
     public SongsFragment() {
     }
@@ -89,21 +88,18 @@ public class SongsFragment extends Fragment {
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         if (SongLibrary.get().tempFolder != null) {
-            adapter = new SongAdapter(getContext(),this);
+            adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
             textFolder.setText(SongLibrary.get().getFolderDisplay());
-        }
-        // Set up RecyclerView
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        if(SongLibrary.get().isSyncTempSelectedFolder()){
-            requireActivity().runOnUiThread(this::updateUI);
+            // Set up RecyclerView
+            requireActivity().runOnUiThread(adapter::updateUI);
             // Update UI based on notification changes
             receiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    updateUI();  // Update UI based on notification changes
+                @Override public void onReceive(Context context, Intent intent) {
+                    adapter.updateUI();  // Update UI based on notification changes
                 }
             };
             LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
@@ -117,24 +113,12 @@ public class SongsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-
-    protected void updateUI() {
-        if (adapter != null) {
-            adapter.notifyItemChanged(SongLibrary.get().songNumber);
-            if (lastPlayedSong != -1) {
-                adapter.notifyItemChanged(lastPlayedSong);
-            }
-            lastPlayedSong = SongLibrary.get().songNumber;
-        }
-    }
-
     private void addFolderFragment(){
         if(viewPagerAdapter != null){
             viewPagerAdapter.updateFragment(new FolderFragment());
             viewPager.setCurrentItem(1, true);
         }
     }
-
     protected void updateCurrentSong(AudioModel song) {
         int songnumber = SongLibrary.get().songsList.indexOf(song);
         if (songnumber < 0 || songnumber >= adapter.items.size()) {
