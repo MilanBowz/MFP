@@ -177,7 +177,7 @@ public class PlayingFragment extends Fragment {
         previousBtn.setOnClickListener(v-> startMusicService("PREV"));
     }
 
-    protected void setMusicResources() { // every time current playing song is changed to other song
+    public void setMusicResources() { // every time current playing song is changed to other song
         AudioModel song = SongLibrary.get().currentSong;
         currentTimeTv.setText("00:00");
         seekBar.setProgress(0);

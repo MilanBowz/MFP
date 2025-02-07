@@ -56,8 +56,8 @@ public class NotificationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null) {        stopForeground(true);
-
+        if (intent == null) {
+            stopForeground(true);
             return START_NOT_STICKY;
         }
         String action = intent.getAction();
