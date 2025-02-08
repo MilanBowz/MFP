@@ -169,11 +169,10 @@ public class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent.getData() != null) {
             handleAudioFile(intent.getData());
-            runOnUiThread(()->{
-                viewPagerAdapter.updatePlayingFragment();
-                viewPager.setCurrentItem(0, false);
-                viewPagerAdapter.updateFragment(new SongsFragment());
-            });
+            ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("PLAY"));
+            viewPager.setCurrentItem(0, false);
+            viewPagerAdapter.updatePlayingFragment();
+            viewPagerAdapter.updateFragment(new SongsFragment());
         }
     }
 

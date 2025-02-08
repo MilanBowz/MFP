@@ -1,5 +1,6 @@
 package milan.bowzgore.mfp.service;
 
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 
 import android.app.NotificationManager;
@@ -13,6 +14,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
@@ -234,9 +236,9 @@ public class NotificationService extends Service {
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
-            mediaPlayer.prepareAsync();
+            mediaPlayer.prepare();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
         }
         songLibrary.saveCurrentSong(context);
     }
@@ -251,12 +253,11 @@ public class NotificationService extends Service {
             }
         }
         try {
-            isPlaying = false;
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepareAsync();
+            isPlaying = false;
         } catch (IOException e) {
-            e.printStackTrace();
-            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init datasource Songlibrary");
+            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
         }
     }
 

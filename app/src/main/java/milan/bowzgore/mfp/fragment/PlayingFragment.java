@@ -134,8 +134,6 @@ public class PlayingFragment extends Fragment {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                seekBar.setProgress(0);
-                currentTimeTv.setText("00:00");
                 setMusicResources();  // Update UI based on notification changes
             }
         };
@@ -182,17 +180,19 @@ public class PlayingFragment extends Fragment {
 
     public void setMusicResources() { // every time current playing song is changed to other song
         AudioModel song = SongLibrary.get().currentSong;
-        currentTimeTv.setText("00:00");
-        seekBar.setProgress(0);
         if (song != null) {
                 titleTv.setText(song.getTitle());
                 totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
                 seekBar.setMax(mediaPlayer.getDuration());
+                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                seekBar.setProgress(mediaPlayer.getCurrentPosition());
                 requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);
                 totalTimeTv.setText("00:00");
+                currentTimeTv.setText("00:00");
+                seekBar.setProgress(0);
                 musicIcon.setImageResource(R.drawable.music_icon_big);
         }
     }
