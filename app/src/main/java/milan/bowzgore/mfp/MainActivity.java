@@ -52,8 +52,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.fragmentContainerView);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        viewPagerAdapter.addFragment(new PlayingFragment());
-        viewPagerAdapter.addFragment(new FolderFragment());
+        viewPagerAdapter.initFragments(new PlayingFragment(),new FolderFragment());
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
