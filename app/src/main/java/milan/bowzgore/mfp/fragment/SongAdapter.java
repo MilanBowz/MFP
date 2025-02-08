@@ -77,10 +77,10 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
                 SongLibrary library = SongLibrary.get();
                 library.songNumber = holder.getAbsoluteAdapterPosition();
+                library.songsList = items;
                 library.currentSong = library.songsList.get(library.songNumber);
                 startMusicService();
                 library.selectedFolder = library.tempFolder;
-                library.songsList = items;
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
                 updateUI(holder.getAbsoluteAdapterPosition());

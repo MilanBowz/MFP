@@ -245,6 +245,7 @@ public class NotificationService extends Service {
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(mp->{
+                playMusic();
                 mediaPlayer.setOnCompletionListener(mp1 -> {
                     if (isListPlaying) {
                         startMusicService("NEXT");
