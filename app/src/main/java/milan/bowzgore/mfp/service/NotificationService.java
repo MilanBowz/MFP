@@ -1,5 +1,6 @@
 package milan.bowzgore.mfp.service;
 
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 
 import android.app.NotificationManager;
@@ -13,13 +14,13 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
+import milan.bowzgore.mfp.fragment.SongsFragment;
 import milan.bowzgore.mfp.library.SongLibrary;
 
 public class NotificationService extends Service {
@@ -40,14 +41,6 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         powerHandler = new PowerHandler(this);
-        mediaPlayer.setOnCompletionListener(mp -> {
-            if (isListPlaying) {
-                startMusicService("NEXT");
-            } else {
-                startMusicService("START");
-            }
-            Log.d("MediaPlayer", "Playback completed");
-        });
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
     }
@@ -92,7 +85,6 @@ public class NotificationService extends Service {
                     break;
                 case "INIT":
                     init_device_get();
-                    playMusic();
                     break;
                 case "STOP":
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
@@ -221,6 +213,7 @@ public class NotificationService extends Service {
     }
 
     public void changePlaying(int index) {
+        mediaPlayer.setOnCompletionListener(null);
         SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
         songLibrary.songNumber = index;
         songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
@@ -228,6 +221,17 @@ public class NotificationService extends Service {
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
             mediaPlayer.prepare();
+            mediaPlayer.setOnPreparedListener(mp->{
+                mediaPlayer.setOnCompletionListener(mp1 -> {
+                    if (isListPlaying) {
+                        startMusicService("NEXT");
+                    } else {
+                        startMusicService("START");
+                    }
+                    Log.d("MediaPlayer", "Playback completed");
+                });
+                viewPagerAdapter.updatePlayingFragment();
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -235,30 +239,54 @@ public class NotificationService extends Service {
     }
 
     private void changePlaying() {
+        mediaPlayer.setOnCompletionListener(null);
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
+            mediaPlayer.setOnPreparedListener(mp->{
+                mediaPlayer.setOnCompletionListener(mp1 -> {
+                    if (isListPlaying) {
+                        startMusicService("NEXT");
+                    } else {
+                        startMusicService("START");
+                    }
+                });
+                viewPagerAdapter.updatePlayingFragment();
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public void init_device_get() {
         if (mediaPlayer != null) {
             try {
+                mediaPlayer.setOnCompletionListener(null);
                 mediaPlayer.stop();
                 mediaPlayer.reset();
             } catch (IllegalStateException e) {
                 Log.e("MiniPlayer", "Error stopping or resetting MediaPlayer: " + e.getMessage());
+                return;
             }
-        }
-        try {
-            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
-            mediaPlayer.prepareAsync();
-            isPlaying = false;
-        } catch (IOException e) {
-            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
+            try {
+                mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
+                mediaPlayer.prepareAsync();
+                isPlaying = false;
+                mediaPlayer.setOnPreparedListener(mp->{
+                    mediaPlayer.setOnCompletionListener(mp1 -> {
+                        if (isListPlaying) {
+                            startMusicService("NEXT");
+                        } else {
+                            startMusicService("START");
+                        }
+                    });
+                    viewPagerAdapter.updatePlayingFragment();
+                });
+            } catch (IOException e) {
+                Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
+            }
         }
     }
 
@@ -285,4 +313,6 @@ public class NotificationService extends Service {
         super.onDestroy();
         stopMusic();
     }
+
+
 }
