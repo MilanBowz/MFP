@@ -75,14 +75,16 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         holder.itemView.setOnClickListener(v -> {
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
-                SongLibrary.get().songNumber = holder.getAbsoluteAdapterPosition();
-                SongLibrary.get().selectedFolder = SongLibrary.get().tempFolder;
-                SongLibrary.get().songsList = items;
-                NotificationService.changePlaying(context,holder.getAbsoluteAdapterPosition());
+                SongLibrary library = SongLibrary.get();
+                library.songNumber = holder.getAbsoluteAdapterPosition();
+                library.currentSong = library.songsList.get(library.songNumber);
                 startMusicService();
+                library.selectedFolder = library.tempFolder;
+                library.songsList = items;
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
                 updateUI(holder.getAbsoluteAdapterPosition());
+                library.saveCurrentSong(context);
             }
         });
 
@@ -103,7 +105,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private void startMusicService() {
         Intent intent = new Intent(context, NotificationService.class);
-        intent.setAction("START");
+        intent.setAction("NEW");
         ContextCompat.startForegroundService(context,intent);
     }
 

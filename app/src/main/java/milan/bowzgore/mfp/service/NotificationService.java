@@ -1,6 +1,5 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 
 import android.app.NotificationManager;
@@ -35,7 +34,6 @@ public class NotificationService extends Service {
     private MediaSessionHandler mediaSession;
 
     public NotificationService() {
-
     }
 
     @Override
@@ -45,11 +43,10 @@ public class NotificationService extends Service {
         mediaPlayer.setOnCompletionListener(mp -> {
             if (isListPlaying) {
                 startMusicService("NEXT");
-            }
-            else {
+            } else {
                 startMusicService("START");
             }
-            powerHandler.requestAudioFocus();
+            Log.d("MediaPlayer", "Playback completed");
         });
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
@@ -85,10 +82,17 @@ public class NotificationService extends Service {
                 case "PREV":
                     playPreviousSong();
                     break;
+                case "NEW":
+                    changePlaying();
+                    break;
                 case "LOAD":
                 case "UPDATE":
                     mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
                     showNotification();
+                    break;
+                case "INIT":
+                    init_device_get();
+                    playMusic();
                     break;
                 case "STOP":
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
@@ -223,27 +227,24 @@ public class NotificationService extends Service {
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
-            mediaPlayer.prepareAsync();
+            mediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
         }
         songLibrary.saveCurrentSong(getApplicationContext());
     }
-    public static void changePlaying(Context context,int index) {
-        SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
-        songLibrary.songNumber = index;
-        songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
+
+    private void changePlaying() {
         mediaPlayer.reset();
         try {
-            mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
         } catch (IOException e) {
-            Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
+            e.printStackTrace();
         }
-        songLibrary.saveCurrentSong(context);
     }
 
-    public static void init_device_get() {
+    public void init_device_get() {
         if (mediaPlayer != null) {
             try {
                 mediaPlayer.stop();

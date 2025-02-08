@@ -128,8 +128,7 @@ public class MainActivity extends AppCompatActivity {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);
             SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
         });
-        NotificationService.init_device_get();
-        ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("PLAY"));
+        ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
     }
 
     private void handleAudioFile(AudioModel audioUri) {
@@ -142,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                     SongLibrary.get().syncTempAndSelectedFolder(audioUri.getPath().substring(0, folderSplit));
                     SongLibrary.get().getAllAudioFromDevice(this, SongLibrary.get().selectedFolder, true);
                 });
-                NotificationService.init_device_get();
+                ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
             }
             else{
                 executorService.execute(() -> {
