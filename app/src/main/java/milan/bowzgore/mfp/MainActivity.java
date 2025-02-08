@@ -56,10 +56,8 @@ public class MainActivity extends AppCompatActivity {
         viewPagerAdapter.addFragment(new FolderFragment());
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
-
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
-
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -171,9 +169,11 @@ public class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent.getData() != null) {
             handleAudioFile(intent.getData());
-            viewPagerAdapter.updateFragment(new SongsFragment());
-            viewPagerAdapter.updatePlayingFragment();
-            viewPager.setCurrentItem(0, false);
+            runOnUiThread(()->{
+                viewPagerAdapter.updatePlayingFragment();
+                viewPager.setCurrentItem(0, false);
+                viewPagerAdapter.updateFragment(new SongsFragment());
+            });
         }
     }
 
