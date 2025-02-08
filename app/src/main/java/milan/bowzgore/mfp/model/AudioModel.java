@@ -20,12 +20,6 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     // Cached album art (SoftReference prevents memory leaks)
     private transient SoftReference<Bitmap> cachedArt = null;
 
-    public AudioModel(String songData) {
-        String[] parts = songData.split(",");
-        this.path = parts[0];
-        this.title = parts[1];
-        this.duration = parts[2];
-    }
     public AudioModel(String path, String title, String duration) {
         this.path = path;
         this.title = title;
@@ -52,8 +46,8 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         return duration;
     }
 
-    public void setCachedArt(Bitmap cachedArt) {
-        this.cachedArt = new SoftReference<>(cachedArt);
+    protected void resetCachedArt() {
+        this.cachedArt = null;
     }
 
     public byte[] getArtByte() {

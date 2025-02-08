@@ -19,12 +19,11 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.datatype.Artwork;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,37 +36,53 @@ public class Coverart {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
 
-    public void updateCoverArt(Activity activity,Bitmap bitmap) {
-        if(musicFile != null)
-            try {
-                String safeTitle = musicFile.getTitle().replaceAll("[^a-zA-Z0-9_.-]", "_");
-                File file = new File(activity.getCacheDir(), "art_" + safeTitle + ".png");
-                try (FileOutputStream outputStream = new FileOutputStream(file)) {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-                }
-                if (!file.exists()) {
-                    Log.e("CoverArtUpdate", "Coverart file does not exist: " + file.getAbsolutePath());
-                    return;
-                }
+    public void updateCoverArt(Activity activity,Uri imageUri) {
+        if (musicFile == null) {
+            Log.e("CoverArtUpdate", "Music file is null, cannot update artwork.");
+            return;
+        }
 
-                String filePath = musicFile.getPath();
-                byte[] imageData = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
-
-                AudioFile audioFile = AudioFileIO.read(new File(filePath));
-                Tag tag = audioFile.getTagOrCreateAndSetDefault();
-                Artwork artwork = new Artwork();
-                artwork.setBinaryData(imageData);
-                artwork.setMimeType(getImageType(imageData));
-                tag.deleteArtworkField();
-                tag.setField(artwork);
-                audioFile.commit();
-                Bitmap newAlbumArt = BitmapFactory.decodeFile(file.getAbsolutePath());
-                if (newAlbumArt != null) {
-                    musicFile.setCachedArt(newAlbumArt);
-                }
-            } catch (Exception e) {
-                Log.e("CoverArtUpdate", "Failed to update artwork", e);
+        try {
+            // Convert Uri to Bitmap
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(activity.getContentResolver(), imageUri);
+            if (bitmap == null) {
+                Log.e("CoverArtUpdate", "Failed to decode image.");
+                return;
             }
+
+            // Resize or compress image if necessary
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            if (width > 1000 || height > 1000) {
+                float scaleFactor = 1000f / Math.max(width, height);
+                width = (int) (width * scaleFactor);
+                height = (int) (height * scaleFactor);
+                bitmap = Bitmap.createScaledBitmap(bitmap, width, height, false);
+            }
+
+            // Compress Bitmap to byte array (JPEG with high quality)
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+            byte[] imageData = byteArrayOutputStream.toByteArray();
+
+            String filePath = musicFile.getPath();
+            AudioFile audioFile = AudioFileIO.read(new File(filePath));
+            Tag tag = audioFile.getTagOrCreateAndSetDefault();
+
+            // Create an Artwork object directly from byte[]
+            Artwork artwork = new Artwork();
+            artwork.setBinaryData(imageData);
+            artwork.setMimeType(getImageType(imageData)); // Auto-detect format (PNG/JPEG)
+            tag.deleteArtworkField();
+            // Replace existing artwork
+            tag.setField(artwork);
+            audioFile.commit();
+            musicFile.resetCachedArt();
+            Log.i("CoverArtUpdate", "Cover art updated successfully!");
+
+        } catch (Exception e) {
+            Log.e("CoverArtUpdate", "Failed to update artwork", e);
+        }
     }
 
     public void saveCoverArt(Context context) {

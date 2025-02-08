@@ -221,7 +221,7 @@ public class NotificationService extends Service {
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
-            mediaPlayer.prepare();
+            mediaPlayer.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -234,7 +234,7 @@ public class NotificationService extends Service {
         mediaPlayer.reset();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
-            mediaPlayer.prepare();
+            mediaPlayer.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -253,7 +253,7 @@ public class NotificationService extends Service {
         try {
             isPlaying = false;
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
-            mediaPlayer.prepare();
+            mediaPlayer.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
             Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init datasource Songlibrary");
