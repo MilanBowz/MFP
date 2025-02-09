@@ -326,9 +326,10 @@ public class NotificationService extends Service {
     @Override
     public void onDestroy() {
         stopMusic();
-        super.onDestroy();
-        SongLibrary.get().currentSong.clearBitmap();
         SongLibrary.get().currentSong = null;
+        SongLibrary.get().songsList.clear();
+        System.gc();
+        super.onDestroy();
     }
 
 
