@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(this::checkAndRequestPermissions).start();
         setContentView(R.layout.activity_main);
         viewPager = findViewById(R.id.fragmentContainerView);
+        viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
         viewPagerAdapter.initFragments(new PlayingFragment(),new FolderFragment());
@@ -192,5 +193,13 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE && ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED) {
             handleAudioFile(SongLibrary.get().loadCurrentSong(this));
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        viewPager.removeAllViews();
+        viewPager = null;
+        viewPagerAdapter = null;
     }
 }

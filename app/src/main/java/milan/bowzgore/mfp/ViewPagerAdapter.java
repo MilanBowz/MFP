@@ -33,14 +33,15 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     public void updateFragment(Fragment fragment) {
         Fragment oldFragment = fragments[1];
         fragments[1] = fragment;
-
         if (oldFragment != null && oldFragment.isAdded()) {
             oldFragment.getParentFragmentManager()
                     .beginTransaction()
+                    .detach(oldFragment)
                     .remove(oldFragment)
                     .commitNowAllowingStateLoss();
         }
         notifyItemChanged(1);
+        System.gc();
     }
 
     public void updatePlayingFragment() { // Update to new song in PlayingFragment
@@ -69,7 +70,22 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     }
 
     public void clear() {
+        if (fragments[0] != null && fragments[0].isAdded()) {
+            fragments[0].getParentFragmentManager()
+                    .beginTransaction()
+                    .detach(fragments[0])
+                    .remove(fragments[0])
+                    .commitNowAllowingStateLoss();
+        }
+        if (fragments[1] != null && fragments[1].isAdded()) {
+            fragments[1].getParentFragmentManager()
+                    .beginTransaction()
+                    .detach(fragments[1])
+                    .remove(fragments[1])
+                    .commitNowAllowingStateLoss();
+        }
         fragments[0] = null;
         fragments[1] = null;
+        System.gc();
     }
 }

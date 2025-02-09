@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.fragment.SongsFragment;
 import milan.bowzgore.mfp.library.SongLibrary;
 
 public class NotificationService extends Service {
@@ -212,12 +211,16 @@ public class NotificationService extends Service {
         showNotification();
     }
 
-    public void changePlaying(int index) {
+    private void changePlaying(int index) {
         mediaPlayer.setOnCompletionListener(null);
         SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
         songLibrary.songNumber = index;
         songLibrary.currentSong = songLibrary.songsList.get(songLibrary.songNumber);
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+        }
         mediaPlayer.reset();
+        System.gc();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
             mediaPlayer.prepare();
@@ -230,7 +233,9 @@ public class NotificationService extends Service {
                     }
                     Log.d("MediaPlayer", "Playback completed");
                 });
-                viewPagerAdapter.updatePlayingFragment();
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
             });
         } catch (IOException e) {
             e.printStackTrace();
@@ -240,7 +245,11 @@ public class NotificationService extends Service {
 
     private void changePlaying() {
         mediaPlayer.setOnCompletionListener(null);
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+        }
         mediaPlayer.reset();
+        System.gc();
         try {
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
@@ -253,7 +262,9 @@ public class NotificationService extends Service {
                         startMusicService("START");
                     }
                 });
-                viewPagerAdapter.updatePlayingFragment();
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
             });
         } catch (IOException e) {
             e.printStackTrace();
@@ -261,11 +272,13 @@ public class NotificationService extends Service {
 
     }
 
-    public void init_device_get() {
+    private void init_device_get() {
         if (mediaPlayer != null) {
             try {
                 mediaPlayer.setOnCompletionListener(null);
-                mediaPlayer.stop();
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
                 mediaPlayer.reset();
             } catch (IllegalStateException e) {
                 Log.e("MiniPlayer", "Error stopping or resetting MediaPlayer: " + e.getMessage());
@@ -283,7 +296,9 @@ public class NotificationService extends Service {
                             startMusicService("START");
                         }
                     });
-                    viewPagerAdapter.updatePlayingFragment();
+                    if(viewPagerAdapter != null){
+                        viewPagerAdapter.updatePlayingFragment();
+                    }
                 });
             } catch (IOException e) {
                 Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
@@ -301,6 +316,7 @@ public class NotificationService extends Service {
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
         stopForeground(true);
         stopSelf();
+        System.gc();
     }
 
     public void onStopFromNotification() {
