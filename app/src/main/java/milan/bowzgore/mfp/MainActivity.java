@@ -146,6 +146,9 @@ public class MainActivity extends AppCompatActivity {
             else{
                 executorService.execute(() -> {
                     SongLibrary.get().getAllAudioFromDevice(this, null,false);
+                    runOnUiThread(()->{
+                        viewPagerAdapter.updateFragment(new FolderFragment());
+                    });
                 });
             }
         }
