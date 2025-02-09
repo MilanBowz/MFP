@@ -40,12 +40,6 @@ public class SongsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
-    
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        super.onDestroyView();
-    }
 
     @Override
     public void onDestroyView() {

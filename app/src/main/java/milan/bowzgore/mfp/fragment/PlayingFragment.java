@@ -302,7 +302,7 @@ public class PlayingFragment extends Fragment {
 
     @Override
     public void onDetach() {
-        super.onDetach();
         viewPagerAdapter.clear();
+        super.onDetach();
     }
 }
