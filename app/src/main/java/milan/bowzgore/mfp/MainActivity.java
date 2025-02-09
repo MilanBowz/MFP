@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
 
         String folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
         SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)),this);
+        NotificationService.isPlaying = true;
 
         executorService.execute(() -> {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);

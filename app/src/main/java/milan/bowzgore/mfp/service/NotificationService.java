@@ -62,7 +62,6 @@ public class NotificationService extends Service {
                     playPauseMusic();
                     break;
                 case "PLAY":
-                case "START":
                     playMusic();
                     break;
                 case "PAUSE":
@@ -185,11 +184,9 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
         if (SongLibrary.get().songNumber == SongLibrary.get().songsList.size() - 1) {
             changePlaying(0);
-            playMusic();
         }
         else {
             changePlaying(SongLibrary.get().songNumber + 1);
-            playMusic();
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
         mediaSession.updateMetadata();
@@ -200,11 +197,9 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         if (SongLibrary.get().songNumber == 0) {
             changePlaying(SongLibrary.get().songsList.size() - 1);
-            playMusic();
         }
         else {
             changePlaying(SongLibrary.get().songNumber - 1);
-            playMusic();
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PREV"));
         mediaSession.updateMetadata();
@@ -220,11 +215,11 @@ public class NotificationService extends Service {
             mediaPlayer.stop();
         }
         mediaPlayer.reset();
-        System.gc();
         try {
             mediaPlayer.setDataSource(songLibrary.currentSong.getPath());
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(mp->{
+                playMusic();
                 mediaPlayer.setOnCompletionListener(mp1 -> {
                     if (isListPlaying) {
                         startMusicService("NEXT");
@@ -236,11 +231,12 @@ public class NotificationService extends Service {
                 if(viewPagerAdapter != null){
                     viewPagerAdapter.updatePlayingFragment();
                 }
+                songLibrary.saveCurrentSong(getApplicationContext());
+                System.gc();
             });
         } catch (IOException e) {
             e.printStackTrace();
         }
-        songLibrary.saveCurrentSong(getApplicationContext());
     }
 
     private void changePlaying() {
@@ -249,7 +245,6 @@ public class NotificationService extends Service {
             mediaPlayer.stop();
         }
         mediaPlayer.reset();
-        System.gc();
         try {
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
@@ -265,6 +260,8 @@ public class NotificationService extends Service {
                 if(viewPagerAdapter != null){
                     viewPagerAdapter.updatePlayingFragment();
                 }
+                SongLibrary.get().saveCurrentSong(getApplicationContext());
+                System.gc();
             });
         } catch (IOException e) {
             e.printStackTrace();
@@ -287,8 +284,10 @@ public class NotificationService extends Service {
             try {
                 mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
                 mediaPlayer.prepareAsync();
-                isPlaying = false;
                 mediaPlayer.setOnPreparedListener(mp->{
+                    if(isPlaying){
+                        playMusic();
+                    }
                     mediaPlayer.setOnCompletionListener(mp1 -> {
                         if (isListPlaying) {
                             startMusicService("NEXT");
@@ -310,7 +309,6 @@ public class NotificationService extends Service {
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         mediaPlayer.reset();
         isPlaying = false;
-        SongLibrary.get().currentSong = null;
         powerHandler.stop();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
@@ -327,8 +325,11 @@ public class NotificationService extends Service {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         stopMusic();
+        SongLibrary.get().currentSong = null;
+        SongLibrary.get().songsList.clear();
+        System.gc();
+        super.onDestroy();
     }
 
 
