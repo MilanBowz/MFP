@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        viewPagerAdapter.initFragments(new PlayingFragment(),new FolderFragment());
+        viewPagerAdapter.initFragment(new PlayingFragment(),new FolderFragment());
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
             if (getIntent().getData() != null) {
                 handleAudioFile(getIntent().getData());
                 if(viewPagerAdapter!=null){
-                    viewPagerAdapter.updateFragment(new SongsFragment());
+                    runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
                 }
             } else {
                 handleAudioFile(SongLibrary.get().loadCurrentSong(this));
@@ -116,10 +116,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleAudioFile(Uri audioUri) {
-        if (audioUri == null) return;
+        if (audioUri == null) {
+            runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
+            return;
+        }
 
         String filePath = getRealPathFromURI(this, audioUri);
-        if (filePath == null) return;
+        if (filePath == null) {
+            runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
+            return;
+        }
 
         String folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
         SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)),this);
@@ -130,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
             SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
         });
         ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
+        runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
     }
 
     private void handleAudioFile(AudioModel audioUri) {
@@ -147,9 +154,7 @@ public class MainActivity extends AppCompatActivity {
             else{
                 executorService.execute(() -> {
                     SongLibrary.get().getAllAudioFromDevice(this, null,false);
-                    runOnUiThread(()->{
-                        viewPagerAdapter.updateFragment(new FolderFragment());
-                    });
+                    runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
                 });
             }
         }
@@ -172,10 +177,8 @@ public class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent.getData() != null) {
             handleAudioFile(intent.getData());
-            ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("PLAY"));
             viewPager.setCurrentItem(0, false);
             viewPagerAdapter.updatePlayingFragment();
-            viewPagerAdapter.updateFragment(new SongsFragment());
         }
     }
 
@@ -184,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void handleOnBackPressed() {
                 if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
-                    viewPagerAdapter.updateFragment(new FolderFragment());
+                    runOnUiThread(() -> viewPagerAdapter.updateFragment(new FolderFragment()));
                     viewPager.setCurrentItem(1, true);
                 }
             }

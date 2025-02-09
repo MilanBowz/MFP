@@ -14,7 +14,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         super(fa);
     }
 
-    public void initFragments(Fragment first, Fragment second) {
+    public void initFragment(Fragment first,Fragment second) {
         fragments[0] = first;
         fragments[1] = second;
     }
@@ -39,8 +39,8 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
                     .detach(oldFragment)
                     .remove(oldFragment)
                     .commitNowAllowingStateLoss();
+            notifyItemChanged(1);
         }
-        notifyItemChanged(1);
         System.gc();
     }
 
