@@ -235,7 +235,7 @@ public class NotificationService extends Service {
                 System.gc();
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("MediaPlayer", "changing song error with index");
         }
     }
 
@@ -264,7 +264,7 @@ public class NotificationService extends Service {
                 System.gc();
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("MediaPlayer", "changing song error with library");
         }
 
     }
@@ -300,7 +300,7 @@ public class NotificationService extends Service {
                     }
                 });
             } catch (IOException e) {
-                Log.println(Log.ERROR, "mediaplayer", "mediaplayer error init Songlibrary");
+                Log.e("Mediaplayer", "Mediaplayer error init");
             }
         }
     }
