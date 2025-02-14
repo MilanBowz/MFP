@@ -55,7 +55,7 @@ class MediaSessionHandler {
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getArt(context,2))
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getArt(2))
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
         mediaSession.setMetadata(metadata);
