@@ -79,20 +79,30 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             getBitmap();
         }
         if(cachedArt != null){
-            switch (type){
-                case 0:
-                    return scaleDownBitmap(cachedArt.get(),500);
-                case 1:
-                    return scaleDownAndCropBitmap(cachedArt.get(),100);
-                case 2:
-                    return scaleDownAndCropBitmap(cachedArt.get(),350);
-                default:
-                    return scaleDownAndCropBitmap(cachedArt.get(),200);
-            }
+            return switch (type) {
+                case 0 -> scaleDownBitmap(cachedArt.get(), 500);
+                case 1 -> scaleDownAndCropBitmap(cachedArt.get(), 100);
+                case 2 -> scaleDownAndCropBitmap(cachedArt.get(), 350);
+                default -> scaleDownAndCropBitmap(cachedArt.get(), 200);
+            };
         }
         else {
             return BitmapFactory.decodeResource(context.getResources(), R.drawable.music_icon_big);
         }
+    }
+    public Bitmap getArt(int type){
+        if (cachedArt == null || cachedArt.get() == null) {
+            getBitmap();
+        }
+        if(cachedArt != null){
+            return switch (type) {
+                case 0 -> scaleDownBitmap(cachedArt.get(), 500);
+                case 1 -> scaleDownAndCropBitmap(cachedArt.get(), 100);
+                case 2 -> scaleDownAndCropBitmap(cachedArt.get(), 350);
+                default -> scaleDownAndCropBitmap(cachedArt.get(), 200);
+            };
+        }
+        return null;
     }
 
     private Bitmap scaleDownAndCropBitmap(Bitmap bitmap, int size) {

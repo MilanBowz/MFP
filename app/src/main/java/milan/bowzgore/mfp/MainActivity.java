@@ -207,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         viewPager.removeAllViews();
         viewPager = null;
+        viewPagerAdapter.clear();
         viewPagerAdapter = null;
     }
 }
