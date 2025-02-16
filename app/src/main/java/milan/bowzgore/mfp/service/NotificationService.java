@@ -224,7 +224,7 @@ public class NotificationService extends Service {
                     if (isListPlaying) {
                         startMusicService("NEXT");
                     } else {
-                        startMusicService("START");
+                        startMusicService("PLAY");
                     }
                     Log.d("MediaPlayer", "Playback completed");
                 });
@@ -254,7 +254,7 @@ public class NotificationService extends Service {
                     if (isListPlaying) {
                         startMusicService("NEXT");
                     } else {
-                        startMusicService("START");
+                        startMusicService("PLAY");
                     }
                 });
                 if(viewPagerAdapter != null){
@@ -292,7 +292,7 @@ public class NotificationService extends Service {
                         if (isListPlaying) {
                             startMusicService("NEXT");
                         } else {
-                            startMusicService("START");
+                            startMusicService("PLAY");
                         }
                     });
                     if(viewPagerAdapter != null){
@@ -328,6 +328,7 @@ public class NotificationService extends Service {
         stopMusic();
         SongLibrary.get().currentSong = null;
         SongLibrary.get().songsList.clear();
+        mediaPlayer.release();
         System.gc();
         super.onDestroy();
     }
