@@ -1,6 +1,5 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
 import android.app.PendingIntent;
@@ -43,10 +42,8 @@ class MediaSessionHandler {
                                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
                 )
                 .setState(state, mediaPlayer.getCurrentPosition(), 1.0f);
-
         mediaSession.setPlaybackState(playbackStateBuilder.build());
     }
-
 
     public MediaSessionCompat.Token getSessionToken() {
         return mediaSession.getSessionToken();
@@ -107,7 +104,7 @@ class MediaSessionHandler {
                 super.onSeekTo(pos);
                 mediaPlayer.seekTo((int) pos);
                 mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-                        .setState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, 1.0f)
+                        .setState(NotificationService.isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, 1.0f)
                         .setActions(PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
                         .build());
             }

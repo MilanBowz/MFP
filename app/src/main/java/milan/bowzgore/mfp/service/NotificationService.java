@@ -29,11 +29,13 @@ public class NotificationService extends Service {
     public static boolean isPlaying = false;
 
     private PowerHandler powerHandler;
-
-    public static final MediaPlayer mediaPlayer = new MediaPlayer();
+    public static volatile MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionHandler mediaSession;
 
     public NotificationService() {
+        if(mediaPlayer == null){
+            mediaPlayer = new MediaPlayer();
+        }
     }
 
     @Override
@@ -224,9 +226,9 @@ public class NotificationService extends Service {
                     if (isListPlaying) {
                         startMusicService("NEXT");
                     } else {
-                        startMusicService("START");
+                        startMusicService("PLAY");
                     }
-                    Log.d("MediaPlayer", "Playback completed");
+                    Log.d("NotificationService.MediaPlayer", "Playback completed");
                 });
                 if(viewPagerAdapter != null){
                     viewPagerAdapter.updatePlayingFragment();
@@ -235,7 +237,7 @@ public class NotificationService extends Service {
                 System.gc();
             });
         } catch (IOException e) {
-            Log.e("MediaPlayer", "changing song error with index");
+            Log.e("NotificationService.MediaPlayer", "changing song error with index");
         }
     }
 
@@ -254,7 +256,7 @@ public class NotificationService extends Service {
                     if (isListPlaying) {
                         startMusicService("NEXT");
                     } else {
-                        startMusicService("START");
+                        startMusicService("PLAY");
                     }
                 });
                 if(viewPagerAdapter != null){
@@ -264,24 +266,17 @@ public class NotificationService extends Service {
                 System.gc();
             });
         } catch (IOException e) {
-            Log.e("MediaPlayer", "changing song error with library");
+            Log.e("NotificationService.MediaPlayer", "changing song error with library");
         }
 
     }
 
     private void init_device_get() {
-        if (mediaPlayer != null) {
+        if(mediaPlayer == null){
+            mediaPlayer = new MediaPlayer();
+        }
             try {
-                mediaPlayer.setOnCompletionListener(null);
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.stop();
-                }
                 mediaPlayer.reset();
-            } catch (IllegalStateException e) {
-                Log.e("MiniPlayer", "Error stopping or resetting MediaPlayer: " + e.getMessage());
-                return;
-            }
-            try {
                 mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
                 mediaPlayer.prepareAsync();
                 mediaPlayer.setOnPreparedListener(mp->{
@@ -292,7 +287,7 @@ public class NotificationService extends Service {
                         if (isListPlaying) {
                             startMusicService("NEXT");
                         } else {
-                            startMusicService("START");
+                            startMusicService("PLAY");
                         }
                     });
                     if(viewPagerAdapter != null){
@@ -300,37 +295,46 @@ public class NotificationService extends Service {
                     }
                 });
             } catch (IOException e) {
-                Log.e("Mediaplayer", "Mediaplayer error init");
+                Log.e("Notification.MediaPlayer", "Mediaplayer error init");
             }
-        }
     }
 
-    private void stopMusic() {
-        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-        mediaPlayer.reset();
+    private void stopMusic(){
         isPlaying = false;
-        powerHandler.stop();
+        if(powerHandler != null){
+            powerHandler.stop();
+        }
+        /*if(mediaPlayer != null){
+            mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+            mediaPlayer.reset();
+            mediaPlayer.release();
+        }*/
+        SongLibrary lib = SongLibrary.get();
+        if(lib != null){
+            lib.currentSong.clearBitmap();
+            lib.currentSong = null;
+            lib.songsList.clear();
+        }
+    }
+    public void onStopFromNotification() {
+        if (!isPlaying) {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
+            stopMusic();
+            System.gc();
+        }
+    }
+    @Override
+    public void onDestroy() {
+        stopMusic();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
         stopForeground(true);
         stopSelf();
-        System.gc();
-    }
-
-    public void onStopFromNotification() {
-        if (!isPlaying) {
-            stopMusic();
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        stopMusic();
-        SongLibrary.get().currentSong = null;
-        SongLibrary.get().songsList.clear();
-        System.gc();
         super.onDestroy();
     }
+
+
 
 
 }

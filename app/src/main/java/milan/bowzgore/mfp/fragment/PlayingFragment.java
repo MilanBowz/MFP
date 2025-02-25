@@ -25,6 +25,7 @@ import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
@@ -182,11 +183,13 @@ public class PlayingFragment extends Fragment {
         AudioModel song = SongLibrary.get().currentSong;
         if (song != null) {
                 titleTv.setText(song.getTitle());
-                totalTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getDuration())));
-                seekBar.setMax(mediaPlayer.getDuration());
-                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
+                if(mediaPlayer != null){
+                    totalTimeTv.setText(convertToMMSS(song.getDuration()));
+                    seekBar.setMax(mediaPlayer.getDuration());
+                    currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                    requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
+                }
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);
