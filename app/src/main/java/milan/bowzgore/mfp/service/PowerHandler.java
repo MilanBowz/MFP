@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.PowerManager;
 import android.util.Log;
@@ -25,6 +27,7 @@ public class PowerHandler {
     private boolean isInitialized = false;
 
     private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
 
     BroadcastReceiver headsetReceiver;
@@ -47,17 +50,34 @@ public class PowerHandler {
             }
         }
     }
-    protected void requestAudioFocus() {
-        int result = audioManager.requestAudioFocus(afChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN);
+
+    public boolean requestAudioFocus() {
+        if (audioManager == null) return false;
+
+        int result;
+        result = audioManager.requestAudioFocus(audioFocusRequest);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             acquireWakeLock();
         }
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
     protected void setup(){
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build();
+
+        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttributes)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(focusChange -> {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                        startMusicService("PAUSE");                        }
+                })
+                .build();
         requestAudioFocus();
         afChangeListener = focusChange -> {
             switch (focusChange) {

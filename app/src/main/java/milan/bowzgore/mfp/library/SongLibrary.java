@@ -133,10 +133,10 @@ public class SongLibrary {
         getAllAudioFromDevice(context, folderPath);
         if (song && currentSong != null) {
             tempFolder = folderPath;
-            currentSong = songsList.stream()
+            /*currentSong = songsList.stream()
                     .filter(audio -> audio.getPath().equals(currentSong.getPath()))
                     .findFirst()
-                    .orElse(null);
+                    .orElse(null);*/
             songNumber = songsList.indexOf(currentSong);
         }
         return songsList;
