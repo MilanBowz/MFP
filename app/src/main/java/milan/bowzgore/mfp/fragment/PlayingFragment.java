@@ -182,8 +182,8 @@ public class PlayingFragment extends Fragment {
     public void setMusicResources() { // every time current playing song is changed to other song
         AudioModel song = SongLibrary.get().currentSong;
         if (song != null) {
-                titleTv.setText(song.getTitle());
                 if(mediaPlayer != null){
+                    titleTv.setText(song.getTitle());
                     totalTimeTv.setText(convertToMMSS(song.getDuration()));
                     seekBar.setMax(mediaPlayer.getDuration());
                     currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));

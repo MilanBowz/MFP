@@ -163,6 +163,7 @@ public class NotificationService extends Service {
         showNotification();
         powerHandler.requestAudioFocus();
         mediaSession.updateMetadata();
+        System.out.println(SongLibrary.get().currentSong.getPath());
     }
 
     private void pauseMusic() {
@@ -209,6 +210,7 @@ public class NotificationService extends Service {
     }
 
     private void changePlaying(int index) {
+        mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
         SongLibrary songLibrary = SongLibrary.get(); // Access the Singleton instance
         songLibrary.songNumber = index;
@@ -222,6 +224,9 @@ public class NotificationService extends Service {
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(mp->{
                 playMusic();
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
                 mediaPlayer.setOnCompletionListener(mp1 -> {
                     if (isListPlaying) {
                         startMusicService("NEXT");
@@ -230,9 +235,6 @@ public class NotificationService extends Service {
                     }
                     Log.d("NotificationService.MediaPlayer", "Playback completed");
                 });
-                if(viewPagerAdapter != null){
-                    viewPagerAdapter.updatePlayingFragment();
-                }
                 songLibrary.saveCurrentSong(getApplicationContext());
                 System.gc();
             });
@@ -242,6 +244,7 @@ public class NotificationService extends Service {
     }
 
     private void changePlaying() {
+        mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
         if (mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
@@ -252,6 +255,9 @@ public class NotificationService extends Service {
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(mp->{
                 playMusic();
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
                 mediaPlayer.setOnCompletionListener(mp1 -> {
                     if (isListPlaying) {
                         startMusicService("NEXT");
@@ -275,24 +281,28 @@ public class NotificationService extends Service {
         if(mediaPlayer == null){
             mediaPlayer = new MediaPlayer();
         }
+        mediaPlayer.setOnCompletionListener(null);
+        mediaPlayer.reset(); // Reset before setting a new data source
             try {
-                mediaPlayer.reset();
                 mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
-                mediaPlayer.prepareAsync();
-                mediaPlayer.setOnPreparedListener(mp->{
-                    if(isPlaying){
-                        playMusic();
+                mediaPlayer.prepare();
+                if(isPlaying){
+                    startMusicService("PLAY");
+                }
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
+                mediaPlayer.setOnCompletionListener(mp1 -> {
+                    if (isListPlaying) {
+                        startMusicService("NEXT");
+                    } else {
+                        startMusicService("PLAY");
                     }
-                    mediaPlayer.setOnCompletionListener(mp1 -> {
-                        if (isListPlaying) {
-                            startMusicService("NEXT");
-                        } else {
-                            startMusicService("PLAY");
-                        }
-                    });
-                    if(viewPagerAdapter != null){
-                        viewPagerAdapter.updatePlayingFragment();
-                    }
+                });
+                mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                    Log.e("MediaPlayer", "Error occurred: " + what + ", " + extra);
+                    mediaPlayer.reset();
+                    return true;
                 });
             } catch (IOException e) {
                 Log.e("Notification.MediaPlayer", "Mediaplayer error init");
@@ -304,37 +314,30 @@ public class NotificationService extends Service {
         if(powerHandler != null){
             powerHandler.stop();
         }
-        /*if(mediaPlayer != null){
-            mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-            mediaPlayer.reset();
-            mediaPlayer.release();
-        }*/
         SongLibrary lib = SongLibrary.get();
         if(lib != null){
-            lib.currentSong.clearBitmap();
-            lib.currentSong = null;
-            lib.songsList.clear();
+            if(lib.currentSong != null){
+                lib.currentSong.clearBitmap();
+            }
         }
     }
     public void onStopFromNotification() {
         if (!isPlaying) {
-            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
-            stopMusic();
-            System.gc();
+            onDestroy();
         }
     }
     @Override
     public void onDestroy() {
-        stopMusic();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
+
+        // Notify MainActivity to finish
+        Intent intent = new Intent("FINISH_ACTIVITY");
+        sendBroadcast(intent);
+        stopMusic();
         stopForeground(true);
         stopSelf();
         super.onDestroy();
     }
-
-
-
 
 }
