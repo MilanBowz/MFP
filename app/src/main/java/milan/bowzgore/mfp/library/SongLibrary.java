@@ -31,9 +31,7 @@ public class SongLibrary {
     private final String SHARED_PREFS_NAME = "SongLibraryPrefs";
     private final String KEY_CURRENT_SONG = "currentSong";
 
-    private SongLibrary() {
-
-    }
+    private SongLibrary() {    }
 
     // Inner static class responsible for holding the Singleton instance
     private static class Holder {
@@ -131,12 +129,12 @@ public class SongLibrary {
 
     public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
         getAllAudioFromDevice(context, folderPath);
-        if (song && currentSong != null) {
+        if (song) {
             tempFolder = folderPath;
-            /*currentSong = songsList.stream()
+            currentSong = songsList.stream()
                     .filter(audio -> audio.getPath().equals(currentSong.getPath()))
                     .findFirst()
-                    .orElse(null);*/
+                    .orElse(null);
             songNumber = songsList.indexOf(currentSong);
         }
         return songsList;
@@ -185,7 +183,6 @@ public class SongLibrary {
                 return new AudioModel(path,title,duration);
             } catch (JSONException e) {
                 e.printStackTrace();
-
             }
         }
         return null;

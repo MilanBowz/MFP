@@ -6,8 +6,10 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 
@@ -43,6 +45,15 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final int REQUEST_CODE = 123;
+    private final BroadcastReceiver finishReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            finishAffinity();
+            // Release system resources
+            System.runFinalization();
+            System.gc();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
         });
         setupBackNavigation();
         createNotificationChannel();
+        // Register receiver to listen for finish signal
+        IntentFilter filter = new IntentFilter("FINISH_ACTIVITY");
+        registerReceiver(finishReceiver, filter);
     }
 
     private void checkAndRequestPermissions() {
@@ -120,13 +134,11 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
             return;
         }
-
         String filePath = getRealPathFromURI(this, audioUri);
         if (filePath == null) {
             runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
             return;
         }
-
         String folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
         SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)),this);
         NotificationService.isPlaying = true;
@@ -135,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);
             SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
         });
-        ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
         runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
+        ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
     }
 
     private void handleAudioFile(AudioModel audioUri) {
@@ -204,8 +216,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        unregisterReceiver(finishReceiver);
         super.onDestroy();
-        viewPager.removeAllViews();
         viewPager = null;
         viewPagerAdapter.clear();
         viewPagerAdapter = null;

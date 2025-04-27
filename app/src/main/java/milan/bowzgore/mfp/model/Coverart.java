@@ -1,6 +1,5 @@
 package milan.bowzgore.mfp.model;
 
-
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
@@ -10,20 +9,23 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.datatype.Artwork;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,7 +38,7 @@ public class Coverart {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
 
-    public void updateCoverArt(Activity activity,Uri imageUri) {
+    public void updateCoverArt(Activity activity, Uri imageUri) {
         if (musicFile == null) {
             Log.e("CoverArtUpdate", "Music file is null, cannot update artwork.");
             return;
@@ -60,7 +62,7 @@ public class Coverart {
                 bitmap = Bitmap.createScaledBitmap(bitmap, width, height, false);
             }
 
-            // Compress Bitmap to byte array (JPEG with high quality)
+            // Compress Bitmap to byte array (PNG preferred)
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
             byte[] imageData = byteArrayOutputStream.toByteArray();
@@ -69,13 +71,18 @@ public class Coverart {
             AudioFile audioFile = AudioFileIO.read(new File(filePath));
             Tag tag = audioFile.getTagOrCreateAndSetDefault();
 
-            // Create an Artwork object directly from byte[]
-            Artwork artwork = new Artwork();
-            artwork.setBinaryData(imageData);
-            artwork.setMimeType(getImageType(imageData)); // Auto-detect format (PNG/JPEG)
-            tag.deleteArtworkField();
-            // Replace existing artwork
-            tag.setField(artwork);
+            if (filePath.toLowerCase().endsWith(".ogg") || filePath.toLowerCase().endsWith(".opus")) {
+                // Special OGG/Opus handling
+                updateOggCoverArt(tag, imageData);
+            } else {
+                // Normal MP3, FLAC etc
+                Artwork artwork = new Artwork();
+                artwork.setBinaryData(imageData);
+                artwork.setMimeType(getImageType(imageData));
+                tag.deleteArtworkField();
+                tag.setField(artwork);
+            }
+
             audioFile.commit();
             musicFile.resetCachedArt();
             Log.i("CoverArtUpdate", "Cover art updated successfully!");
@@ -85,8 +92,46 @@ public class Coverart {
         }
     }
 
+    private void updateOggCoverArt(Tag tag, byte[] imageData) throws Exception {
+        // Remove old artwork
+        tag.deleteField(FieldKey.COVER_ART);
+        tag.deleteField("METADATA_BLOCK_PICTURE");
+
+        // Create FLAC style PICTURE block
+        byte[] pictureBlock = createFlacPictureBlock(imageData);
+
+        // Base64 encode it
+        String base64Picture = Base64.encodeToString(pictureBlock, Base64.NO_WRAP);
+
+        // Insert as METADATA_BLOCK_PICTURE
+        tag.setField(FieldKey.valueOf(String.valueOf(FieldKey.COVER_ART)), base64Picture);
+    }
+
+    private byte[] createFlacPictureBlock(byte[] imageData) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            out.write(intToBytes(3)); // Picture type: 3 = Front Cover
+            out.write(intToBytes("image/png".length()));
+            out.write("image/png".getBytes(StandardCharsets.UTF_8)); // MIME type
+            out.write(intToBytes(0)); // Description length
+            out.write(intToBytes(500)); // Width placeholder
+            out.write(intToBytes(500)); // Height placeholder
+            out.write(intToBytes(32)); // Color depth placeholder
+            out.write(intToBytes(0)); // No indexed colors
+            out.write(intToBytes(imageData.length));
+            out.write(imageData);
+        } catch (IOException e) {
+            Log.e("FlacPictureBlock", "Error creating picture block", e);
+        }
+        return out.toByteArray();
+    }
+
+    private byte[] intToBytes(int value) {
+        return ByteBuffer.allocate(4).putInt(value).array();
+    }
+
     public void saveCoverArt(Context context) {
-        if(musicFile!=null){
+        if (musicFile != null) {
             executorService.execute(() -> {
                 byte[] imageData = musicFile.getArtByte();
                 if (imageData == null) return;
@@ -126,19 +171,19 @@ public class Coverart {
     }
 
     private Bitmap.CompressFormat getCompressFormat(String mimeType) {
-        switch (mimeType) {
-            case "image/png": return Bitmap.CompressFormat.PNG;
-            case "image/jpeg": return Bitmap.CompressFormat.JPEG;
-            default: return null;
-        }
+        return switch (mimeType) {
+            case "image/png" -> Bitmap.CompressFormat.PNG;
+            case "image/jpeg" -> Bitmap.CompressFormat.JPEG;
+            default -> null;
+        };
     }
 
     private String getFileExtension(String mimeType) {
-        switch (mimeType) {
-            case "image/png": return ".png";
-            case "image/jpeg": return ".jpg";
-            default: return "";
-        }
+        return switch (mimeType) {
+            case "image/png" -> ".png";
+            case "image/jpeg" -> ".jpg";
+            default -> "";
+        };
     }
 
     public void setSong(AudioModel song) {
