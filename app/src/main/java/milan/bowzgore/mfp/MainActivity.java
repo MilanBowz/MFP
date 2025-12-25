@@ -2,6 +2,7 @@ package milan.bowzgore.mfp;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
@@ -79,7 +80,13 @@ public class MainActivity extends AppCompatActivity {
         createNotificationChannel();
         // Register receiver to listen for finish signal
         IntentFilter filter = new IntentFilter("FINISH_ACTIVITY");
-        registerReceiver(finishReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                    finishReceiver,
+                    filter,
+                    Context.RECEIVER_NOT_EXPORTED
+            );
+        }
     }
 
     private void checkAndRequestPermissions() {
@@ -119,14 +126,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    NotificationService.CHANNEL_ID, "Music Channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Channel for music playback notifications");
-            getSystemService(NotificationManager.class).createNotificationChannel(channel);
-        }
+        NotificationChannel channel = new NotificationChannel(
+                NotificationService.CHANNEL_ID, "Music Channel",
+                NotificationManager.IMPORTANCE_LOW
+        );
+        channel.setDescription("Channel for music playback notifications");
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 
     private void handleAudioFile(Uri audioUri) {
@@ -184,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
+    protected void onNewIntent(@NonNull Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         if (intent.getData() != null) {

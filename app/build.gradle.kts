@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "milan.bowzgore.mfp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "milan.bowzgore.mfp"
@@ -43,6 +43,7 @@ android {
             isUniversalApk = true
         }
     }
+    buildToolsVersion = "35.0.1"
 }
 
 dependencies {

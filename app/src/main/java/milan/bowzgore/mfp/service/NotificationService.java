@@ -53,6 +53,7 @@ public class NotificationService extends Service {
             stopForeground(true);
             return START_NOT_STICKY;
         }
+
         String action = intent.getAction();
         return startMusicService(action);
     }
@@ -145,8 +146,9 @@ public class NotificationService extends Service {
             builder.addAction(stopAction);
             builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
+        //NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        //notificationManager.notify(NOTIFICATION_ID, builder.build());
+        startForeground(NOTIFICATION_ID, builder.build());
     }
 
 

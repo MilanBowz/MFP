@@ -59,54 +59,46 @@ class MediaSessionHandler {
     }
 
     public void setupMediaSession() {
-        mediaSession = new MediaSessionCompat(context, "NotificationService");
-        mediaSession.setMediaButtonReceiver(PendingIntent.getBroadcast(
-                context, 0, new Intent(Intent.ACTION_MEDIA_BUTTON), PendingIntent.FLAG_UPDATE_CURRENT));
+        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                mediaButtonIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        mediaSession = new MediaSessionCompat(context, "NotificationService", null, pendingIntent);
+
 
         mediaSession.setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
                         MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
         );
-        mediaSession.setActive(true);
+
         mediaSession.setCallback(new MediaSessionCompat.Callback() {
             @Override
-            public void onPlay() {
-                super.onPlay();
-                startMusicService("PLAY");
-            }
+            public void onPlay() { startMusicService("PLAY"); }
 
             @Override
-            public void onPause() {
-                super.onPause();
-                startMusicService("PAUSE");
-            }
+            public void onPause() { startMusicService("PAUSE"); }
 
             @Override
             public void onStop() {
                 updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-                super.onStop();
             }
 
             @Override
-            public void onSkipToNext() {
-                super.onSkipToNext();
-                startMusicService("NEXT");
-            }
+            public void onSkipToNext() { startMusicService("NEXT"); }
 
             @Override
-            public void onSkipToPrevious() {
-                super.onSkipToPrevious();
-                startMusicService("PREV");
-            }
+            public void onSkipToPrevious() { startMusicService("PREV"); }
 
             @Override
             public void onSeekTo(long pos) {
-                super.onSeekTo(pos);
                 mediaPlayer.seekTo((int) pos);
-                mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-                        .setState(NotificationService.isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, pos, 1.0f)
-                        .setActions(PlaybackStateCompat.ACTION_SEEK_TO | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE)
-                        .build());
+                updateMediaSessionPlaybackState(
+                        NotificationService.isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED
+                );
             }
 
             @Override
@@ -117,19 +109,18 @@ class MediaSessionHandler {
                         case KeyEvent.KEYCODE_MEDIA_PLAY:
                         case KeyEvent.KEYCODE_MEDIA_PAUSE:
                         case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                            startMusicService("PLAYPAUSE");
-                            return true;
+                            startMusicService("PLAYPAUSE"); return true;
                         case KeyEvent.KEYCODE_MEDIA_NEXT:
-                            startMusicService("NEXT");
-                            return true;
+                            startMusicService("NEXT"); return true;
                         case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                            startMusicService("PREV");
-                            return true;
+                            startMusicService("PREV"); return true;
                     }
                 }
                 return super.onMediaButtonEvent(mediaButtonIntent);
             }
         });
-        mediaSession.setActive(true);
+
+        mediaSession.setActive(true); // Only once
     }
+
 }
