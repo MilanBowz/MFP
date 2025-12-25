@@ -180,6 +180,9 @@ public class PlayingFragment extends Fragment {
     }
 
     public void setMusicResources() { // every time current playing song is changed to other song
+        if (!isAdded()) {
+            return; // Fragment UI not ready → DO NOTHING
+        }
         AudioModel song = SongLibrary.get().currentSong;
         if (song != null) {
                 if(mediaPlayer != null){

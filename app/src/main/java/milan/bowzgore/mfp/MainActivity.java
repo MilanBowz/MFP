@@ -193,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         if (intent.getData() != null) {
+            viewPagerAdapter.updateFolderFragment();
             handleAudioFile(intent.getData());
             viewPager.setCurrentItem(0, false);
             viewPagerAdapter.updatePlayingFragment();

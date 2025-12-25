@@ -10,19 +10,28 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import milan.bowzgore.mfp.R;
+import milan.bowzgore.mfp.library.SongLibrary;
+
 /**
  * A fragment representing a list of Items.
  */
 public class FolderFragment extends Fragment {
     private RecyclerView recyclerView;
     private FolderAdapter folderAdapter;
+    private Button scanBtn;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_folder_list, container, false);
+        View view = inflater.inflate(R.layout.fragment_folder_list, container, false);
+        scanBtn = view.findViewById(R.id.scanFolders_button);
+        scanBtn.setOnClickListener(v -> {
+                updateFolderfragment();
+        });
+        return view;
     }
 
     @Override
@@ -55,5 +64,13 @@ public class FolderFragment extends Fragment {
         if(view!= null){
             view.setBackground(null);
         }
+    }
+    public void updateFolderfragment(){
+        SongLibrary.get().getAllAudioFromDevice(getContext(), null,false);
+        requireActivity().runOnUiThread(() -> {
+            if (folderAdapter != null) {
+                folderAdapter.notifyDataSetChanged();
+            }
+        });
     }
 }

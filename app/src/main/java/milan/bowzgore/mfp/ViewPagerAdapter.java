@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import milan.bowzgore.mfp.fragment.FolderFragment;
 import milan.bowzgore.mfp.fragment.PlayingFragment;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
@@ -47,6 +48,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     public void updatePlayingFragment() { // Update to new song in PlayingFragment
         if (fragments[0] instanceof PlayingFragment) {
             ((PlayingFragment) fragments[0]).setMusicResources();
+        }
+    }
+    public void updateFolderFragment() { // Update to new song in PlayingFragment
+        if (fragments[1] instanceof FolderFragment) {
+            ((FolderFragment) fragments[1]).updateFolderfragment();
         }
     }
 
