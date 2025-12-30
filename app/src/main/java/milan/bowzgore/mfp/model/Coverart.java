@@ -47,9 +47,7 @@ public class Coverart {
     private AudioModel musicFile;
     private Uri pendingImageUri;
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
-
-    public static final int REQ_WRITE_PERMISSION = 1001;
-
+    
     public void openImagePicker() {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
