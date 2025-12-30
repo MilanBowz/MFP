@@ -12,8 +12,10 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
+import android.app.RecoverableSecurityException;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.RequiresApi;
 
 import org.jaudiotagger.audio.AudioFile;
@@ -33,22 +35,17 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import android.app.RecoverableSecurityException;
-import android.content.IntentSender;
-import androidx.activity.result.IntentSenderRequest;
-
 
 
 public class Coverart {
     public ActivityResultLauncher<Intent> pickImageLauncher;
+    public ActivityResultLauncher<IntentSenderRequest> writePermissionLauncher;
+
     private AudioModel musicFile;
+    private Uri pendingImageUri;
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
 
-    private Uri pendingAudioUri;
-    private Uri pendingImageUri;
     public static final int REQ_WRITE_PERMISSION = 1001;
-
-    public ActivityResultLauncher<IntentSenderRequest> writePermissionLauncher;
 
     public void openImagePicker() {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
@@ -62,37 +59,21 @@ public class Coverart {
         }
 
         try {
-            // Convert Uri to Bitmap
-            Bitmap bitmap = MediaStore.Images.Media.getBitmap(
-                    activity.getContentResolver(),
-                    imageUri);
+            Bitmap bitmap = getResizedBitmap(activity, imageUri, 1000);
             if (bitmap == null) return;
 
-            // Resize or compress image if necessary
-            int width = bitmap.getWidth();
-            int height = bitmap.getHeight();
-            if (width > 1000 || height > 1000) {
-                float scaleFactor = 1000f / Math.max(width, height);
-                width = (int) (width * scaleFactor);
-                height = (int) (height * scaleFactor);
-                bitmap = Bitmap.createScaledBitmap(bitmap, width, height, false);
-            }
-
-            // Compress Bitmap to byte array (PNG preferred)
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-            byte[] imageData = byteArrayOutputStream.toByteArray();
-
+            byte[] imageData = compressBitmap(bitmap);
             Uri audioUri = musicFile.getContentUri();
             if (audioUri == null) {
                 Log.e("CoverArtUpdate", "Audio Uri is null");
                 return;
             }
+
             File tempFile = copyToCache(activity, audioUri);
             AudioFile audioFile = AudioFileIO.read(tempFile);
             Tag tag = audioFile.getTagOrCreateAndSetDefault();
-            if (musicFile.getPath().endsWith(".ogg")
-                    || musicFile.getPath().endsWith(".opus")) {
+
+            if (musicFile.getPath().endsWith(".ogg") || musicFile.getPath().endsWith(".opus")) {
                 updateOggCoverArt(tag, imageData);
             } else {
                 Artwork artwork = new Artwork();
@@ -101,103 +82,103 @@ public class Coverart {
                 tag.deleteArtworkField();
                 tag.setField(artwork);
             }
+
             audioFile.commit();
+
             try {
                 writeBack(activity, audioUri, tempFile);
-                Log.i("CoverArtUpdate", "Cover art updated successfully");
-
-                tempFile.delete();
+                Log.i("CoverArtUpdate", "Cover art updated successfully.");
                 musicFile.resetCachedArt();
-
+                tempFile.delete();
             } catch (RecoverableSecurityException rse) {
-
                 pendingImageUri = imageUri;
-
-                IntentSender intentSender = rse.getUserAction()
-                        .getActionIntent()
-                        .getIntentSender();
-
-                IntentSenderRequest request =
-                        new IntentSenderRequest.Builder(intentSender).build();
-
+                IntentSenderRequest request = new IntentSenderRequest.Builder(
+                        rse.getUserAction().getActionIntent().getIntentSender()).build();
                 writePermissionLauncher.launch(request);
             }
-
-            Log.i("CoverArtUpdate", "Cover art updated successfully (Android 10+)");
-
-            tempFile.delete();
-            musicFile.resetCachedArt();
         } catch (Exception e) {
             Log.e("CoverArtUpdate", "Failed to update artwork", e);
         }
     }
 
+    public void retryAfterPermission(Activity activity) {
+        if (pendingImageUri == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) updateCoverArt(activity, pendingImageUri);
+        pendingImageUri = null;
+    }
+
+    private Bitmap getResizedBitmap(Context context, Uri uri, int maxDim) throws IOException {
+        Bitmap bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+        if (bitmap == null) return null;
+        int w = bitmap.getWidth(), h = bitmap.getHeight();
+        if (w > maxDim || h > maxDim) {
+            float scale = maxDim / (float) Math.max(w, h);
+            bitmap = Bitmap.createScaledBitmap(bitmap, (int) (w * scale), (int) (h * scale), false);
+        }
+        return bitmap;
+    }
+
+    private byte[] compressBitmap(Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        return baos.toByteArray();
+    }
+
     private File copyToCache(Context context, Uri audioUri) throws IOException {
         String extension = getExtensionFromUri(context, audioUri);
         File temp = new File(context.getCacheDir(), "edit_audio." + extension);
-
         try (InputStream in = context.getContentResolver().openInputStream(audioUri);
              OutputStream out = new FileOutputStream(temp)) {
-
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) != -1) {
-                out.write(buf, 0, len);
-            }
+            copyStream(in, out);
         }
         return temp;
     }
-    private String getExtensionFromUri(Context context, Uri uri) {
-        String type = context.getContentResolver().getType(uri);
-        if (type == null) return "mp3";
-        if (type.equals("audio/mpeg")) return "mp3";
-        if (type.equals("audio/flac")) return "flac";
-        if (type.equals("audio/ogg")) return "ogg";
-        if (type.equals("audio/opus")) return "opus";
-        if (type.equals("audio/mp4")) return "m4a";
-        return "mp3"; // fallback
-    }
 
     private void writeBack(Context context, Uri audioUri, File edited) throws IOException {
-        try (OutputStream out =
-                     context.getContentResolver().openOutputStream(audioUri, "rwt");
+        try (OutputStream out = context.getContentResolver().openOutputStream(audioUri, "rwt");
              InputStream in = new FileInputStream(edited)) {
-
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) != -1) {
-                out.write(buf, 0, len);
-            }
+            copyStream(in, out);
         }
     }
 
+    private void copyStream(InputStream in, OutputStream out) throws IOException {
+        byte[] buf = new byte[8192];
+        int len;
+        while ((len = in.read(buf)) != -1) out.write(buf, 0, len);
+    }
+
+    private String getExtensionFromUri(Context context, Uri uri) {
+        String type = context.getContentResolver().getType(uri);
+        return switch (type) {
+            case "audio/mpeg" -> "mp3";
+            case "audio/flac" -> "flac";
+            case "audio/ogg" -> "ogg";
+            case "audio/opus" -> "opus";
+            case "audio/mp4" -> "m4a";
+            default -> "mp3";
+        };
+    }
+
     private void updateOggCoverArt(Tag tag, byte[] imageData) throws Exception {
-        // Remove old artwork
         tag.deleteField(FieldKey.COVER_ART);
         tag.deleteField("METADATA_BLOCK_PICTURE");
-
-        // Create FLAC style PICTURE block
         byte[] pictureBlock = createFlacPictureBlock(imageData);
-
-        // Base64 encode it
-        String base64Picture = Base64.encodeToString(pictureBlock, Base64.NO_WRAP);
-
-        // Insert as METADATA_BLOCK_PICTURE
-        tag.setField(FieldKey.valueOf(String.valueOf(FieldKey.COVER_ART)), base64Picture);
+        tag.setField(FieldKey.valueOf(String.valueOf(FieldKey.COVER_ART)),
+                Base64.encodeToString(pictureBlock, Base64.NO_WRAP));
     }
 
     private byte[] createFlacPictureBlock(byte[] imageData) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             Bitmap bmp = BitmapFactory.decodeByteArray(imageData, 0, imageData.length);
-            out.write(intToBytes(3)); // Picture type: 3 = Front Cover
+            out.write(intToBytes(3)); // front cover
             out.write(intToBytes("image/png".length()));
-            out.write("image/png".getBytes(StandardCharsets.UTF_8)); // MIME type
-            out.write(intToBytes(0)); // Description length
+            out.write("image/png".getBytes(StandardCharsets.UTF_8));
+            out.write(intToBytes(0)); // desc length
             out.write(intToBytes(bmp.getWidth()));
             out.write(intToBytes(bmp.getHeight()));
-            out.write(intToBytes(32)); // Color depth placeholder
-            out.write(intToBytes(0)); // No indexed colors
+            out.write(intToBytes(32)); // color depth
+            out.write(intToBytes(0)); // indexed colors
             out.write(intToBytes(imageData.length));
             out.write(imageData);
         } catch (IOException e) {
@@ -210,78 +191,59 @@ public class Coverart {
         return ByteBuffer.allocate(4).putInt(value).array();
     }
 
+    //--------------------- Save Cover Art ---------------------
     public void saveCoverArt(Context context) {
-        if (musicFile != null) {
-            executorService.execute(() -> {
-                byte[] imageData = musicFile.getArtByte();
-                if (imageData == null) return;
-                String mimeType = getImageType(imageData);
-                Bitmap.CompressFormat format = getCompressFormat(mimeType);
-                if (format == null) return;
+        if (musicFile == null) return;
 
-                ContentValues values = new ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME, "art_" + musicFile.getTitle() + getFileExtension(mimeType));
-                values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
-                values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MFP/");
+        executorService.execute(() -> {
+            byte[] imageData = musicFile.getArtByte();
+            if (imageData == null) return;
 
-                Uri imageUri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                if (imageUri == null) {
-                    Log.e("CoverArtSaver", "Failed to create MediaStore entry.");
-                    return;
-                }
+            String mime = getImageType(imageData);
+            Bitmap.CompressFormat fmt = getCompressFormat(mime);
+            if (fmt == null) return;
 
-                try (OutputStream outputStream = context.getContentResolver().openOutputStream(imageUri)) {
-                    if (outputStream != null) {
-                        BitmapFactory.decodeByteArray(imageData, 0, imageData.length).compress(format, 100, outputStream);
-                        Log.d("CoverArtSaver", "Cover art saved successfully.");
-                    }
-                } catch (IOException e) {
-                    Log.e("CoverArtSaver", "Error saving cover art", e);
-                }
-            });
-        }
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Images.Media.DISPLAY_NAME,
+                    "art_" + musicFile.getTitle() + getFileExtension(mime));
+            values.put(MediaStore.Images.Media.MIME_TYPE, mime);
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MFP/");
+
+            Uri uri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) return;
+
+            try (OutputStream out = context.getContentResolver().openOutputStream(uri)) {
+                if (out != null) BitmapFactory.decodeByteArray(imageData, 0, imageData.length).compress(fmt, 100, out);
+            } catch (IOException e) {
+                Log.e("CoverArtSaver", "Error saving cover art", e);
+            }
+        });
     }
 
-    private String getImageType(byte[] imageData) {
-        if (imageData != null && imageData.length > 1) {
-            if (imageData[0] == (byte) 0x89 && imageData[1] == (byte) 0x50) return "image/png";
-            if (imageData[0] == (byte) 0xFF && imageData[1] == (byte) 0xD8) return "image/jpeg";
+    private String getImageType(byte[] data) {
+        if (data.length > 1) {
+            if ((data[0] & 0xFF) == 0x89 && (data[1] & 0xFF) == 0x50) return "image/png";
+            if ((data[0] & 0xFF) == 0xFF && (data[1] & 0xFF) == 0xD8) return "image/jpeg";
         }
         return "image/png";
     }
 
-    private Bitmap.CompressFormat getCompressFormat(String mimeType) {
-        return switch (mimeType) {
+    private Bitmap.CompressFormat getCompressFormat(String mime) {
+        return switch (mime) {
             case "image/png" -> Bitmap.CompressFormat.PNG;
             case "image/jpeg" -> Bitmap.CompressFormat.JPEG;
             default -> null;
         };
     }
 
-    private String getFileExtension(String mimeType) {
-        return switch (mimeType) {
+    private String getFileExtension(String mime) {
+        return switch (mime) {
             case "image/png" -> ".png";
             case "image/jpeg" -> ".jpg";
             default -> "";
         };
     }
 
-    public void setSong(AudioModel song) {
-        musicFile = song;
-    }
-
-    public AudioModel getSong() {
-        return musicFile;
-    }
-
-    public void retryAfterPermission(Activity activity) {
-        if (pendingImageUri == null) return;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            updateCoverArt(activity, pendingImageUri);
-        }
-        pendingImageUri = null;
-        pendingAudioUri = null;
-    }
-
-
+    public void setSong(AudioModel song) { musicFile = song; }
+    public AudioModel getSong() { return musicFile; }
 }

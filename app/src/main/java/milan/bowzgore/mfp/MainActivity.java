@@ -145,12 +145,13 @@ public class MainActivity extends AppCompatActivity {
                     viewPagerAdapter.updateFragment(new FolderFragment()));
             return;
         }
+        String folderPath = model.getPath().substring(0, model.getPath().lastIndexOf("/"));
         SongLibrary.get().setPlaying(model,this);
         NotificationService.isPlaying = true;
 
         executorService.execute(() -> {
-            SongLibrary.get().syncTempAndSelectedFolder(model.getPath());
-            SongLibrary.get().getAllAudioFromDevice(this, model.getPath(), true);
+            SongLibrary.get().syncTempAndSelectedFolder(folderPath);
+            SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
         });
         runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
         ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
@@ -179,30 +180,24 @@ public class MainActivity extends AppCompatActivity {
 
     private AudioModel getAudioModelFromUri(Context context, Uri audioUri) {
         if (audioUri == null) return null;
-
         String[] projection = {
                 MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.DATA,
                 MediaStore.Audio.Media.DURATION
         };
-
         try (Cursor cursor = context.getContentResolver()
                 .query(audioUri, projection, null, null, null)) {
             if (cursor == null || !cursor.moveToFirst()) return null;
 
             long id = cursor.getLong(
                     cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-
             String path = cursor.getString(
                     cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-            String folder = path.substring(0, path.lastIndexOf("/"));
-
             String duration = cursor.getString(
                     cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
-
             String title = path.substring(path.lastIndexOf("/") + 1);
 
-            return new AudioModel(id, folder, title, duration);
+            return new AudioModel(id, path, title, duration);
 
         } catch (Exception e) {
             return null;

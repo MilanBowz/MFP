@@ -115,10 +115,9 @@ public class SongLibrary {
                 while (cursor.moveToNext()) {
                     long id = cursor.getLong(idIndex);
                     String filePath = cursor.getString(dataIndex);
-                    String folder = filePath.substring(0,filePath.lastIndexOf("/") );
                     String title = filePath.substring(filePath.lastIndexOf("/") + 1);
                     String duration = cursor.getString(durationIndex);
-                    tempAudioModels.add(new AudioModel(id,folder, title, duration));
+                    tempAudioModels.add(new AudioModel(id,filePath, title, duration));
                 }
 
                 // Optional: Sort the audio files if needed
