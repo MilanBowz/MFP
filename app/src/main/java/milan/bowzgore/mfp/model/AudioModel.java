@@ -5,6 +5,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.provider.MediaStore;
 
 import java.io.Serializable;
 import java.lang.ref.SoftReference;
@@ -15,19 +17,45 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     String path;
     String title;
     String duration;
+    long mediaStoreId;
+    transient Uri contentUri;
 
     // Bitmap image;
     // Cached album art (SoftReference prevents memory leaks)
     private transient SoftReference<Bitmap> cachedArt = null;
 
-    public AudioModel(String path, String title, String duration) {
+    /*public AudioModel(String path, String title, String duration) {
         this.path = path;
         this.title = title;
         this.duration = duration;
-    }
-    public AudioModel(String path, String title) {
+    }*/
+    /*public AudioModel(String path, String title) {
         this.path = path;
         this.title = title;
+    }*/
+    public AudioModel(long id, String path, String title, String duration) {
+        this.mediaStoreId = id;
+        this.path = path;
+        this.title = title;
+        this.duration = duration;
+        this.contentUri = Uri.withAppendedPath(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                String.valueOf(id)
+        );
+    }
+
+    public Uri getContentUri() {
+        if (contentUri == null && mediaStoreId > 0) {
+            contentUri = Uri.withAppendedPath(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    String.valueOf(mediaStoreId)
+            );
+        }
+        return contentUri;
+    }
+
+    public long getMediaStoreId() {
+        return mediaStoreId;
     }
 
     public String getPath() {
@@ -48,6 +76,14 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
 
     protected void resetCachedArt() {
         this.cachedArt = null;
+    }
+
+    public Uri getUri() {
+        return contentUri;
+    }
+
+    public void setUri(Uri uri) {
+        this.contentUri = uri;
     }
 
     public byte[] getArtByte() {

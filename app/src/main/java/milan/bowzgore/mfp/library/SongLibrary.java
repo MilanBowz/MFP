@@ -45,6 +45,7 @@ public class SongLibrary {
     public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath) {
             Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
             String[] projection = {
+                    MediaStore.Audio.Media._ID,
                     MediaStore.Audio.AudioColumns.DATA,
                     MediaStore.Audio.AudioColumns.DURATION
             };
@@ -58,6 +59,7 @@ public class SongLibrary {
 
             try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, null, null)) {
                 if (cursor != null) {
+                    int idIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
                     int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA);
                     int durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION);
 
@@ -67,9 +69,10 @@ public class SongLibrary {
                         musicFolders.add(folder);
 
                         if(folder.equals(folderPath)){
+                            long id = cursor.getLong(idIndex);
                             String title = filePath.substring(filePath.lastIndexOf("/") + 1);
                             String duration = cursor.getString(durationIndex);
-                            audioModels.add(new AudioModel(filePath, title, duration));
+                            audioModels.add(new AudioModel(id, filePath, title, duration));
                         }
                     }
                     // Optional: Sort the audio files if needed
@@ -91,6 +94,7 @@ public class SongLibrary {
     public List<AudioModel> getTempAudioFromDevice(Context context) {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
+                MediaStore.Audio.AudioColumns._ID,
                 MediaStore.Audio.AudioColumns.DATA,
                 MediaStore.Audio.AudioColumns.DURATION
         };
@@ -104,14 +108,17 @@ public class SongLibrary {
 
         try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null)) {
             if (cursor != null) {
+                int idIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
                 int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA);
                 int durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION);
 
                 while (cursor.moveToNext()) {
+                    long id = cursor.getLong(idIndex);
                     String filePath = cursor.getString(dataIndex);
+                    String folder = filePath.substring(0,filePath.lastIndexOf("/") );
                     String title = filePath.substring(filePath.lastIndexOf("/") + 1);
                     String duration = cursor.getString(durationIndex);
-                    tempAudioModels.add(new AudioModel(filePath, title, duration));
+                    tempAudioModels.add(new AudioModel(id,folder, title, duration));
                 }
 
                 // Optional: Sort the audio files if needed
@@ -158,6 +165,7 @@ public class SongLibrary {
 
         try {
             JSONObject songJson = new JSONObject();
+            songJson.put("id", currentSong.getMediaStoreId());
             songJson.put("path", currentSong.getPath());
             songJson.put("title", currentSong.getTitle());
             songJson.put("duration", currentSong.getDuration());
@@ -180,7 +188,8 @@ public class SongLibrary {
                 String path = songJson.getString("path");
                 String title = songJson.getString("title");
                 String duration = songJson.getString("duration");
-                return new AudioModel(path,title,duration);
+                long id = songJson.getLong("id");
+                return new AudioModel(id, path, title, duration);
             } catch (JSONException e) {
                 e.printStackTrace();
             }

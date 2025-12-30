@@ -139,18 +139,18 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
             return;
         }
-        String filePath = getRealPathFromURI(this, audioUri);
-        if (filePath == null) {
-            runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
+        AudioModel model = getAudioModelFromUri(this, audioUri);
+        if (model == null) {
+            runOnUiThread(() ->
+                    viewPagerAdapter.updateFragment(new FolderFragment()));
             return;
         }
-        String folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
-        SongLibrary.get().setPlaying(new AudioModel(filePath, filePath.substring(filePath.lastIndexOf("/") + 1)),this);
+        SongLibrary.get().setPlaying(model,this);
         NotificationService.isPlaying = true;
 
         executorService.execute(() -> {
-            SongLibrary.get().syncTempAndSelectedFolder(folderPath);
-            SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
+            SongLibrary.get().syncTempAndSelectedFolder(model.getPath());
+            SongLibrary.get().getAllAudioFromDevice(this, model.getPath(), true);
         });
         runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
         ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
@@ -177,16 +177,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String getRealPathFromURI(Context context, Uri contentUri) {
-        Cursor cursor = context.getContentResolver().query(contentUri, new String[]{MediaStore.Audio.Media.DATA}, null, null, null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            String filePath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-            cursor.close();
-            return filePath;
+    private AudioModel getAudioModelFromUri(Context context, Uri audioUri) {
+        if (audioUri == null) return null;
+
+        String[] projection = {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DURATION
+        };
+
+        try (Cursor cursor = context.getContentResolver()
+                .query(audioUri, projection, null, null, null)) {
+            if (cursor == null || !cursor.moveToFirst()) return null;
+
+            long id = cursor.getLong(
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
+
+            String path = cursor.getString(
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+            String folder = path.substring(0, path.lastIndexOf("/"));
+
+            String duration = cursor.getString(
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+
+            String title = path.substring(path.lastIndexOf("/") + 1);
+
+            return new AudioModel(id, folder, title, duration);
+
+        } catch (Exception e) {
+            return null;
         }
-        return null;
     }
+
 
     @Override
     protected void onNewIntent(@NonNull Intent intent) {

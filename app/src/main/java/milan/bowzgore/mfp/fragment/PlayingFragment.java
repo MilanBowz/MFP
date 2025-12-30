@@ -84,13 +84,23 @@ public class PlayingFragment extends Fragment {
         togglePlayMode = binding.togglePlayMode;
 
         setupFragment();
-
+        art.writePermissionLauncher =
+                registerForActivityResult(
+                        new ActivityResultContracts.StartIntentSenderForResult(),
+                        result -> {
+                            if (result.getResultCode() == RESULT_OK) {
+                                art.retryAfterPermission(requireActivity());
+                            }
+                        }
+                );
         art.pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
                         try {
                                 if(art.getSong() != null){
-                                    art.updateCoverArt(requireActivity(),result.getData().getData());
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        art.updateCoverArt(requireActivity(),result.getData().getData());
+                                    }
                                     requireActivity().runOnUiThread(()->{
                                         musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
                                         if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
@@ -310,4 +320,5 @@ public class PlayingFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
     }
+
 }
