@@ -17,6 +17,7 @@ import android.app.RecoverableSecurityException;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -35,6 +36,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import milan.bowzgore.mfp.service.NotificationService;
 
 
 public class Coverart {
@@ -82,19 +85,27 @@ public class Coverart {
                 tag.deleteArtworkField();
                 tag.setField(artwork);
             }
-
             audioFile.commit();
 
-            try {
-                writeBack(activity, audioUri, tempFile);
+            try (OutputStream out = activity.getContentResolver().openOutputStream(audioUri, "rwt");InputStream in = new FileInputStream(tempFile);) {
+                Intent intent = new Intent(activity, NotificationService.class);
+                intent.setAction("PAUSE");
+                ContextCompat.startForegroundService(activity, intent);
+                copyStream(in, out);
                 Log.i("CoverArtUpdate", "Cover art updated successfully.");
                 musicFile.resetCachedArt();
+
+                intent.setAction("PLAY");
+                ContextCompat.startForegroundService(activity, intent);
+
                 tempFile.delete();
             } catch (RecoverableSecurityException rse) {
                 pendingImageUri = imageUri;
                 IntentSenderRequest request = new IntentSenderRequest.Builder(
                         rse.getUserAction().getActionIntent().getIntentSender()).build();
-                writePermissionLauncher.launch(request);
+                writePermissionLauncher.launch(request); // not writable, permission required
+            } catch (IOException e) {
+                Log.e("CoverArtUpdate", "Failed to write artwork to music file", e);
             }
         } catch (Exception e) {
             Log.e("CoverArtUpdate", "Failed to update artwork", e);
@@ -132,13 +143,6 @@ public class Coverart {
             copyStream(in, out);
         }
         return temp;
-    }
-
-    private void writeBack(Context context, Uri audioUri, File edited) throws IOException {
-        try (OutputStream out = context.getContentResolver().openOutputStream(audioUri, "rwt");
-             InputStream in = new FileInputStream(edited)) {
-            copyStream(in, out);
-        }
     }
 
     private void copyStream(InputStream in, OutputStream out) throws IOException {
@@ -190,6 +194,7 @@ public class Coverart {
     private byte[] intToBytes(int value) {
         return ByteBuffer.allocate(4).putInt(value).array();
     }
+
 
     //--------------------- Save Cover Art ---------------------
     public void saveCoverArt(Context context) {

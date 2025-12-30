@@ -165,7 +165,7 @@ public class NotificationService extends Service {
         showNotification();
         powerHandler.requestAudioFocus();
         mediaSession.updateMetadata();
-        System.out.println(SongLibrary.get().currentSong.getPath());
+        //System.out.println(SongLibrary.get().currentSong.getPath());
     }
 
     private void pauseMusic() {
