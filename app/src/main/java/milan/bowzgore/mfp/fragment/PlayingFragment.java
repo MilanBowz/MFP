@@ -36,8 +36,6 @@ import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.R;
@@ -55,8 +53,6 @@ public class PlayingFragment extends Fragment {
     private BroadcastReceiver receiver;
     private Handler handler ;
     private final Coverart art = new Coverart();
-
-    private final ExecutorService imageLoaderExecutor = Executors.newSingleThreadExecutor();
 
     public PlayingFragment() {
     }
@@ -86,7 +82,7 @@ public class PlayingFragment extends Fragment {
                         result -> {
                             if (result.getResultCode() == RESULT_OK) {
                                 art.retryAfterPermission(requireActivity());
-                                updateImage();
+                                updateImage(art.getSong());
                             }
                         }
                 );
@@ -97,8 +93,8 @@ public class PlayingFragment extends Fragment {
                                 if(art.getSong() != null){
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         art.updateCoverArt(requireActivity(),result.getData().getData());
+                                        updateImage(art.getSong());
                                     }
-                                    updateImage();
                                 }
                         } catch (Exception e) {
                             Log.e("AudioFile", "Failed to read audio file", e);
@@ -187,7 +183,7 @@ public class PlayingFragment extends Fragment {
                     seekBar.setMax(mediaPlayer.getDuration());
                     currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
                     seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                    requireActivity().runOnUiThread(() -> musicIcon.setImageBitmap(song.getArt(requireActivity(),0)));
+                    song.setGlideImage(this, 350, 350, musicIcon);
                 }
         } else {
                 titleTv.setText(R.string.no_music_loaded);
@@ -269,7 +265,6 @@ public class PlayingFragment extends Fragment {
             handler.removeCallbacks(null);
             handler = null;
         }
-        imageLoaderExecutor.shutdown();
         super.onDestroy();
     }
 
@@ -286,9 +281,7 @@ public class PlayingFragment extends Fragment {
         Button saveCoverButton = dialog.findViewById(R.id.save_cover_button);
         saveCoverButton.setOnClickListener(v -> {
             // Open the file picker to choose a new cover image
-            imageLoaderExecutor.execute(()->{
-                art.saveCoverArt(getContext());
-            });
+            art.saveCoverArt(getContext());
             dialog.dismiss();
         });
         dialog.show();
@@ -301,24 +294,21 @@ public class PlayingFragment extends Fragment {
         editor.putBoolean("isListPlaying", isListPlaying);
         editor.apply();
     }
-    private void updateImage(){
-        requireActivity().runOnUiThread(()->{
-            musicIcon.setImageBitmap(SongLibrary.get().currentSong.getArt(requireContext(),0));
-            if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
-                    SongLibrary.get().isSyncTempSelectedFolder()) {
-                ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
-            }
-            // Notify MediaStore to update the file
-            Intent scanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            scanIntent.setData(Uri.fromFile(new File(art.getSong().getPath())));
-            requireActivity().sendBroadcast(scanIntent);
-
-        });
+    private void updateImage(AudioModel model){
+        model.setGlideImage(this, 350, 350, musicIcon);
+        if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
+                SongLibrary.get().isSyncTempSelectedFolder()) {
+            ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
+        }
+        // Notify MediaStore to update the file
+        Intent scanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        scanIntent.setData(Uri.fromFile(new File(art.getSong().getPath())));
+        requireActivity().sendBroadcast(scanIntent);
+        startMusicService("IM_PLAY");
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
     }
-
 }

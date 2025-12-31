@@ -45,7 +45,6 @@ public class SongsFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         if(adapter!=null){
-            adapter.recycle();
             if(!SongLibrary.get().isSyncTempSelectedFolder())
             {
                 adapter.items.clear();

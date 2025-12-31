@@ -18,7 +18,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
-
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
@@ -47,7 +46,7 @@ public class Coverart {
     private AudioModel musicFile;
     private Uri pendingImageUri;
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
-    
+
     public void openImagePicker() {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
@@ -86,16 +85,13 @@ public class Coverart {
             audioFile.commit();
 
             try (OutputStream out = activity.getContentResolver().openOutputStream(audioUri, "rwt");InputStream in = new FileInputStream(tempFile);) {
-                Intent intent = new Intent(activity, NotificationService.class);
-                intent.setAction("PAUSE");
-                ContextCompat.startForegroundService(activity, intent);
-                copyStream(in, out);
-                Log.i("CoverArtUpdate", "Cover art updated successfully.");
-                musicFile.resetCachedArt();
-
-                intent.setAction("PLAY");
-                ContextCompat.startForegroundService(activity, intent);
-
+                if(out != null){
+                    Intent intent = new Intent(activity, NotificationService.class);
+                    intent.setAction("PAUSE");
+                    ContextCompat.startForegroundService(activity, intent);
+                    copyStream(in, out);
+                    Log.i("CoverArtUpdate", "Cover art updated successfully.");
+                }
                 tempFile.delete();
             } catch (RecoverableSecurityException rse) {
                 pendingImageUri = imageUri;

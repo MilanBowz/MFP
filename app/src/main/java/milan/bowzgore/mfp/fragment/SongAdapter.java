@@ -10,7 +10,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,16 +23,12 @@ import milan.bowzgore.mfp.service.NotificationService;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
     protected final List<AudioModel> items ;
-    private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private int lastPlayedSong = -1;
-
 
     protected SongAdapter(Context context) {
         SongLibrary lib = SongLibrary.get();
@@ -48,7 +43,6 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         }
         this.context = context;
     }
-
 
     @NonNull
     @Override
@@ -70,7 +64,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
             }
         }
-        loadArtAsync(context,holder.iconImageView,songData);
+        songData.setGlideImage(holder.iconImageView,96, 96, holder.iconImageView);
 
         holder.itemView.setOnClickListener(v -> {
             // Navigate to PlayingFragment
@@ -90,19 +84,6 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     }
 
-    private void loadArtAsync(Context context, ImageView imageView,AudioModel songdata) {
-        executor.execute(() -> {
-            Bitmap albumArt = songdata.getArt(context,1);
-            ((AppCompatActivity) context).runOnUiThread(() -> {
-                if (albumArt != null) {
-                    imageView.setImageBitmap(albumArt);
-                } else {
-                    imageView.setImageResource(R.drawable.music_icon_big);
-                }
-            });
-        });
-    }
-
     private void startMusicService() {
         Intent intent = new Intent(context, NotificationService.class);
         intent.setAction("NEW");
@@ -114,13 +95,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         return items.size();
     }
 
-    @Override
-    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
-        super.onDetachedFromRecyclerView(recyclerView);
-        executor.shutdownNow(); // Stop all running tasks
-    }
-
-    private void updateUI(int position) { // execute in adapter
+    private void updateUI(int position) {
         notifyItemChanged(position);
         if (lastPlayedSong != -1) {
             notifyItemChanged(lastPlayedSong);
@@ -134,17 +109,6 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 notifyItemChanged(lastPlayedSong);
             }
             lastPlayedSong = SongLibrary.get().songNumber;
-        }
-    }
-
-    protected void recycle() {
-        // Clear the image view to release memory
-        if(!SongLibrary.get().isSyncTempSelectedFolder()){
-            for (AudioModel song:SongLibrary.get().songsList) {
-                if (song != null) {
-                    song.clearBitmap();  // This recycles and nullifies the bitmap
-                }
-            }
         }
     }
 

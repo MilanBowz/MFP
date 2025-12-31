@@ -52,7 +52,7 @@ class MediaSessionHandler {
     void updateMetadata() {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
-                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getArt(2))
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getNotificationArtWithGlide(context))
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
                 .build();
         mediaSession.setMetadata(metadata);
@@ -68,8 +68,6 @@ class MediaSessionHandler {
         );
 
         mediaSession = new MediaSessionCompat(context, "NotificationService", null, pendingIntent);
-
-
         mediaSession.setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
                         MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS

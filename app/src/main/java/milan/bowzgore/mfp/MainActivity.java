@@ -3,6 +3,7 @@ package milan.bowzgore.mfp;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
@@ -65,7 +66,9 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        viewPagerAdapter.initFragment(new PlayingFragment(),new FolderFragment());
+        PlayingFragment fragment = new PlayingFragment();
+        fragment.setMusicResources();
+        viewPagerAdapter.initFragment(fragment,new FolderFragment());
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
@@ -212,8 +215,8 @@ public class MainActivity extends AppCompatActivity {
         if (intent.getData() != null) {
             viewPagerAdapter.updateFolderFragment();
             handleAudioFile(intent.getData());
-            viewPager.setCurrentItem(0, false);
             viewPagerAdapter.updatePlayingFragment();
+            viewPager.setCurrentItem(0, false);
         }
     }
 

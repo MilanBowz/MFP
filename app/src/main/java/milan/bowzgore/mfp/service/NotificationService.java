@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -32,6 +33,8 @@ public class NotificationService extends Service {
     public static volatile MediaPlayer mediaPlayer = new MediaPlayer();
     private MediaSessionHandler mediaSession;
 
+    int lastPosition;
+
     public NotificationService() {
         if(mediaPlayer == null){
             mediaPlayer = new MediaPlayer();
@@ -53,7 +56,6 @@ public class NotificationService extends Service {
             stopForeground(true);
             return START_NOT_STICKY;
         }
-
         String action = intent.getAction();
         return startMusicService(action);
     }
@@ -69,6 +71,16 @@ public class NotificationService extends Service {
                     break;
                 case "PAUSE":
                     pauseMusic();
+                    lastPosition = mediaPlayer.getCurrentPosition();
+                    break;
+                case "IM_PAUSE":
+                    mediaPlayer.pause();
+                    lastPosition = mediaPlayer.getCurrentPosition();
+                case "IM_PLAY":
+                    changePlaying(true);
+                    isPlaying = true;
+                    mediaSession.updateMetadata();
+                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -77,7 +89,7 @@ public class NotificationService extends Service {
                     playPreviousSong();
                     break;
                 case "NEW":
-                    changePlaying();
+                    changePlaying(false);
                     break;
                 case "LOAD":
                 case "UPDATE":
@@ -130,7 +142,7 @@ public class NotificationService extends Service {
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
                 .setContentIntent(contentIntent)
-                .setLargeIcon(SongLibrary.get().currentSong.getArt(getBaseContext(),2))
+                .setLargeIcon(SongLibrary.get().currentSong.getNotificationArtWithGlide(this))
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)
@@ -146,8 +158,8 @@ public class NotificationService extends Service {
             builder.addAction(stopAction);
             builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
-        //NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        //notificationManager.notify(NOTIFICATION_ID, builder.build());
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
         startForeground(NOTIFICATION_ID, builder.build());
     }
 
@@ -245,7 +257,7 @@ public class NotificationService extends Service {
         }
     }
 
-    private void changePlaying() {
+    private void changePlaying(boolean isEdited) {
         mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
         if (mediaPlayer.isPlaying()) {
@@ -256,6 +268,9 @@ public class NotificationService extends Service {
             mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(mp->{
+                if(isEdited){
+                    mediaPlayer.seekTo(lastPosition);
+                }
                 playMusic();
                 if(viewPagerAdapter != null){
                     viewPagerAdapter.updatePlayingFragment();
@@ -317,11 +332,6 @@ public class NotificationService extends Service {
             powerHandler.stop();
         }
         SongLibrary lib = SongLibrary.get();
-        if(lib != null){
-            if(lib.currentSong != null){
-                lib.currentSong.clearBitmap();
-            }
-        }
     }
     public void onStopFromNotification() {
         if (!isPlaying) {
