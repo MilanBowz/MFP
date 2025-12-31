@@ -82,7 +82,8 @@ public class PlayingFragment extends Fragment {
                         result -> {
                             if (result.getResultCode() == RESULT_OK) {
                                 art.retryAfterPermission(requireActivity());
-                                updateImage(art.getSong());
+                                // updateImage(art.getSong());
+                                startMusicService("UPDATE");
                             }
                         }
                 );
@@ -93,7 +94,8 @@ public class PlayingFragment extends Fragment {
                                 if(art.getSong() != null){
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         art.updateCoverArt(requireActivity(),result.getData().getData());
-                                        updateImage(art.getSong());
+                                        // updateImage(art.getSong());
+                                        startMusicService("UPDATE");
                                     }
                                 }
                         } catch (Exception e) {
@@ -171,20 +173,19 @@ public class PlayingFragment extends Fragment {
         previousBtn.setOnClickListener(v-> startMusicService("PREV"));
     }
 
-    public void setMusicResources() { // every time current playing song is changed to other song
-        if (!isAdded()) {
-            return; // Fragment UI not ready → DO NOTHING
-        }
+    public void setMusicResources() {
+        if (!isAdded()) { return; }
         AudioModel song = SongLibrary.get().currentSong;
         if (song != null) {
-                if(mediaPlayer != null){
-                    titleTv.setText(song.getTitle());
-                    totalTimeTv.setText(convertToMMSS(song.getDuration()));
-                    seekBar.setMax(mediaPlayer.getDuration());
-                    currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                    song.setGlideImage(this, 350, 350, musicIcon);
-                }
+            titleTv.setText(song.getTitle());
+            if(mediaPlayer != null){
+                totalTimeTv.setText(convertToMMSS(song.getDuration()));
+                seekBar.setMax(mediaPlayer.getDuration());
+                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                seekBar.setProgress(mediaPlayer.getCurrentPosition());
+            }
+            song.setGlideImage(this, 350, 350, musicIcon);
+            startMusicService("UPDATE");
         } else {
                 titleTv.setText(R.string.no_music_loaded);
                 seekBar.setMax(1);
@@ -274,13 +275,11 @@ public class PlayingFragment extends Fragment {
         art.setSong(SongLibrary.get().currentSong);
         Button selectCoverButton = dialog.findViewById(R.id.select_cover_button);
         selectCoverButton.setOnClickListener(v -> {
-            // Open the file picker to choose a new cover image
             art.openImagePicker();
             dialog.dismiss();
         });
         Button saveCoverButton = dialog.findViewById(R.id.save_cover_button);
         saveCoverButton.setOnClickListener(v -> {
-            // Open the file picker to choose a new cover image
             art.saveCoverArt(getContext());
             dialog.dismiss();
         });
@@ -293,18 +292,6 @@ public class PlayingFragment extends Fragment {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean("isListPlaying", isListPlaying);
         editor.apply();
-    }
-    private void updateImage(AudioModel model){
-        model.setGlideImage(this, 350, 350, musicIcon);
-        if (viewPagerAdapter.getItem(1) instanceof SongsFragment &&
-                SongLibrary.get().isSyncTempSelectedFolder()) {
-            ((SongsFragment) viewPagerAdapter.getItem(1)).updateCurrentSong(art.getSong());
-        }
-        // Notify MediaStore to update the file
-        Intent scanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        scanIntent.setData(Uri.fromFile(new File(art.getSong().getPath())));
-        requireActivity().sendBroadcast(scanIntent);
-        startMusicService("IM_PLAY");
     }
 
     @Override

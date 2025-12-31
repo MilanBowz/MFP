@@ -87,10 +87,12 @@ public class Coverart {
             try (OutputStream out = activity.getContentResolver().openOutputStream(audioUri, "rwt");InputStream in = new FileInputStream(tempFile);) {
                 if(out != null){
                     Intent intent = new Intent(activity, NotificationService.class);
-                    intent.setAction("PAUSE");
+                    intent.setAction("IM_1");
                     ContextCompat.startForegroundService(activity, intent);
                     copyStream(in, out);
                     Log.i("CoverArtUpdate", "Cover art updated successfully.");
+                    intent.setAction("IM_PLAY");
+                    ContextCompat.startForegroundService(activity, intent);
                 }
                 tempFile.delete();
             } catch (RecoverableSecurityException rse) {

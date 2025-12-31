@@ -73,14 +73,11 @@ public class NotificationService extends Service {
                     pauseMusic();
                     lastPosition = mediaPlayer.getCurrentPosition();
                     break;
-                case "IM_PAUSE":
-                    mediaPlayer.pause();
+                case "IM_1":
                     lastPosition = mediaPlayer.getCurrentPosition();
                 case "IM_PLAY":
                     changePlaying(true);
-                    isPlaying = true;
-                    mediaSession.updateMetadata();
-                    showNotification();
+                    playMusic();
                     break;
                 case "NEXT":
                     playNextSong();
