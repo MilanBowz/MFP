@@ -131,14 +131,14 @@ public class PowerHandler {
                     if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                         if (device != null && isSpeaker(device)) {
-                            startMusicService("PAUSE"); // Pause music when a new Bluetooth audio speaker connects
+                            startMusicService("PAUSE"); // Pause music when Bluetooth audio speaker connects
                         }
                     }
                     // Handle Bluetooth device disconnection
                     if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        if (device != null && (isHeadset(device) || isSpeaker(device))) {
-                            startMusicService("PAUSE");// Pause music when a new Bluetooth audio device connects
+                        if (device != null) {
+                            startMusicService("PAUSE");
                         }
                     }
                     isInitialized = true;

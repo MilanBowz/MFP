@@ -73,11 +73,16 @@ public class NotificationService extends Service {
                     pauseMusic();
                     lastPosition = mediaPlayer.getCurrentPosition();
                     break;
-                case "IM_1":
+                case "IM_SAVE":
                     lastPosition = mediaPlayer.getCurrentPosition();
-                case "IM_PLAY":
+                    break;
+                case "IM_UPDATE":
                     changePlaying(true);
-                    playMusic();
+                    if(isPlaying){
+                        playMusic();
+                    }
+                    mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -149,7 +154,7 @@ public class NotificationService extends Service {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setProgress(mediaPlayer.getDuration(), mediaPlayer.getCurrentPosition(), false)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
-                        .setShowActionsInCompactView(0, 1, 2, 3)// Show actions in compact view
+                        .setShowActionsInCompactView(0, 1, 2)// Show actions in compact view
                         .setMediaSession(mediaSession.getSessionToken()));
         if (!isPlaying) {
             builder.addAction(stopAction);
@@ -254,7 +259,7 @@ public class NotificationService extends Service {
         }
     }
 
-    private void changePlaying(boolean isEdited) {
+    private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
         mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
         if (mediaPlayer.isPlaying()) {
@@ -267,10 +272,12 @@ public class NotificationService extends Service {
             mediaPlayer.setOnPreparedListener(mp->{
                 if(isEdited){
                     mediaPlayer.seekTo(lastPosition);
+                    if(isPlaying){
+                        playMusic();
+                    }
                 }
-                playMusic();
-                if(viewPagerAdapter != null){
-                    viewPagerAdapter.updatePlayingFragment();
+                else {
+                    playMusic();
                 }
                 mediaPlayer.setOnCompletionListener(mp1 -> {
                     if (isListPlaying) {
@@ -280,7 +287,10 @@ public class NotificationService extends Service {
                     }
                 });
                 if(viewPagerAdapter != null){
-                    viewPagerAdapter.updatePlayingFragment();
+                    viewPagerAdapter.updatePlayingFragment(); // update song in Playingfragment
+                    if(isEdited) {
+                        viewPagerAdapter.updateSongsFragment(); // update song in Songsfragment
+                    }
                 }
                 SongLibrary.get().saveCurrentSong(getApplicationContext());
                 System.gc();

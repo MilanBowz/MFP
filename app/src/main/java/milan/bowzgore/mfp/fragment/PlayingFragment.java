@@ -82,8 +82,6 @@ public class PlayingFragment extends Fragment {
                         result -> {
                             if (result.getResultCode() == RESULT_OK) {
                                 art.retryAfterPermission(requireActivity());
-                                // updateImage(art.getSong());
-                                startMusicService("UPDATE");
                             }
                         }
                 );
@@ -94,8 +92,6 @@ public class PlayingFragment extends Fragment {
                                 if(art.getSong() != null){
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         art.updateCoverArt(requireActivity(),result.getData().getData());
-                                        // updateImage(art.getSong());
-                                        startMusicService("UPDATE");
                                     }
                                 }
                         } catch (Exception e) {
@@ -184,7 +180,7 @@ public class PlayingFragment extends Fragment {
                 currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
                 seekBar.setProgress(mediaPlayer.getCurrentPosition());
             }
-            song.setGlideImage(this, 350, 350, musicIcon);
+            song.setGlideImage(this, musicIcon);
             startMusicService("UPDATE");
         } else {
                 titleTv.setText(R.string.no_music_loaded);

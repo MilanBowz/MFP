@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     private final Context context;
     protected final List<AudioModel> items ;
     private int lastPlayedSong = -1;
+    private String lastPlayedSongName;
 
     protected SongAdapter(Context context) {
         SongLibrary lib = SongLibrary.get();
@@ -56,13 +58,11 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         AudioModel songData = items.get(position);
         holder.titleTextView.setText(songData.getTitle());
 
-        if (SongLibrary.get().currentSong != null) {
-            if (SongLibrary.get().songNumber == holder.getBindingAdapterPosition()
-                    && Objects.equals(SongLibrary.get().currentSong.getTitle(), songData.getTitle())) {
-                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
-            } else {
-                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
-            }
+        if (SongLibrary.get().currentSong != null && Objects.equals(SongLibrary.get().currentSong.getTitle(), songData.getTitle())) {
+            holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
+            lastPlayedSongName = (String) holder.titleTextView.getText();
+        } else {
+            holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
         }
         songData.setGlideImage(holder.iconImageView,96, 96, holder.iconImageView);
 
@@ -70,14 +70,14 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
                 SongLibrary library = SongLibrary.get();
-                library.songNumber = holder.getAbsoluteAdapterPosition();
-                library.songsList = items;
-                library.currentSong = library.songsList.get(library.songNumber);
+                // get currentsong by: holder.titleTextView
+                library.currentSong = songData;
+                library.songNumber = library.songsList.indexOf(library.currentSong);
                 startMusicService();
                 library.selectedFolder = library.tempFolder;
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
-                updateUI(holder.getAbsoluteAdapterPosition());
+                updateUI();
                 library.saveCurrentSong(context);
             }
         });
@@ -95,20 +95,36 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         return items.size();
     }
 
-    private void updateUI(int position) {
-        notifyItemChanged(position);
-        if (lastPlayedSong != -1) {
-            notifyItemChanged(lastPlayedSong);
-        }
-        lastPlayedSong = position;
-    }
     protected void updateUI() {
         if (SongLibrary.get().isSyncTempSelectedFolder()) {
-            notifyItemChanged(SongLibrary.get().songNumber);
-            if (lastPlayedSong != -1) {
+            if(lastPlayedSongName == null){
+                lastPlayedSongName = SongLibrary.get().currentSong.getTitle();
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                notifyItemChanged(items.stream()
+                        .map(AudioModel::getTitle)
+                        .toList()
+                        .indexOf(lastPlayedSongName));
+            }
+            else if(lastPlayedSong > -1){
                 notifyItemChanged(lastPlayedSong);
             }
-            lastPlayedSong = SongLibrary.get().songNumber;
+
+            int position = 0;
+            String currentTitle = SongLibrary.get().currentSong.getTitle(); if (currentTitle == null) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                position = items.stream()
+                        .map(AudioModel::getTitle)
+                        .toList()
+                        .indexOf(SongLibrary.get().currentSong.getTitle());
+                notifyItemChanged(position);
+            }
+            else {
+                position = SongLibrary.get().songNumber;
+            }
+            if (position == -1) return;
+            notifyItemChanged(position);
+            lastPlayedSong = position;
         }
     }
 

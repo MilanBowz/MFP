@@ -7,6 +7,8 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import milan.bowzgore.mfp.fragment.FolderFragment;
 import milan.bowzgore.mfp.fragment.PlayingFragment;
+import milan.bowzgore.mfp.fragment.SongsFragment;
+import milan.bowzgore.mfp.model.AudioModel;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
     private final Fragment[] fragments = new Fragment[2]; // Always 2 items
@@ -55,7 +57,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
             ((FolderFragment) fragments[1]).updateFolderfragment();
         }
     }
-
+    public void updateSongsFragment() { // Update to new song in PlayingFragment
+        if (fragments[1] instanceof SongsFragment) {
+            ((SongsFragment) fragments[1]).updateCurrentSong();
+        }
+    }
     @Override
     public long getItemId(int position) {
         return fragments[position].hashCode();

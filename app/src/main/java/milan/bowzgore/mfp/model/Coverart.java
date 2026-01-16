@@ -87,11 +87,11 @@ public class Coverart {
             try (OutputStream out = activity.getContentResolver().openOutputStream(audioUri, "rwt");InputStream in = new FileInputStream(tempFile);) {
                 if(out != null){
                     Intent intent = new Intent(activity, NotificationService.class);
-                    intent.setAction("IM_1");
+                    intent.setAction("IM_SAVE");
                     ContextCompat.startForegroundService(activity, intent);
                     copyStream(in, out);
-                    Log.i("CoverArtUpdate", "Cover art updated successfully.");
-                    intent.setAction("IM_PLAY");
+                    Log.i("CoverArtUpdate", "Coverart updated successful.");
+                    intent.setAction("IM_UPDATE");
                     ContextCompat.startForegroundService(activity, intent);
                 }
                 tempFile.delete();
@@ -99,7 +99,7 @@ public class Coverart {
                 pendingImageUri = imageUri;
                 IntentSenderRequest request = new IntentSenderRequest.Builder(
                         rse.getUserAction().getActionIntent().getIntentSender()).build();
-                writePermissionLauncher.launch(request); // not writable, permission required
+                writePermissionLauncher.launch(request); // permission required
             } catch (IOException e) {
                 Log.e("CoverArtUpdate", "Failed to write artwork to music file", e);
             }

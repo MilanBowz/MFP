@@ -70,17 +70,15 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
                 + mediaStoreId + "/albumart");
     }
 
-    public void setGlideImage(Fragment view, int width, int height, ImageView destination){
+    public void setGlideImage(Fragment view, ImageView destination){ // Playing Fragment
         Glide.with(view)
                 .load(getAlbumArtUri()) // best source
-                .centerCrop()
                 .error(R.drawable.music_icon_big)
-                .override(width, height) // match your old type=0 size
                 .dontAnimate()
                 .signature(new ObjectKey(new File(getPath()).lastModified())) // only reload if file changed
                 .into(destination);
     }
-    public void setGlideImage(View view, int width, int height, ImageView destination){
+    public void setGlideImage(View view, int width, int height, ImageView destination){ // Song list
         Glide.with(view)
                 .load(getAlbumArtUri()) // best source
                 .placeholder(R.drawable.music_icon_big)

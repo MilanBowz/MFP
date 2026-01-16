@@ -20,7 +20,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import androidx.appcompat.widget.SearchView;
 import android.widget.TextView;
+
+import java.util.List;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -32,6 +35,7 @@ public class SongsFragment extends Fragment {
     private RecyclerView recyclerView;
     private TextView textFolder;
     private ImageButton backButton;
+    private SearchView searchSong;
 
     public SongsFragment() {
     }
@@ -66,6 +70,7 @@ public class SongsFragment extends Fragment {
         if(view!= null){
             view.setBackground(null);
         }
+
     }
 
     @Nullable
@@ -78,32 +83,63 @@ public class SongsFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recycler_view);
         textFolder = view.findViewById(R.id.songs_text);
         backButton = view.findViewById(R.id.back_button);
+        searchSong = view.findViewById(R.id.search_songs);
+
         backButton.setOnClickListener(v -> {
             addFolderFragment();
         });
+
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
+
         if (SongLibrary.get().tempFolder != null) {
+            SongLibrary.get().songsList.clear();
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
             textFolder.setText(SongLibrary.get().getFolderDisplay());
+            // add current playlist
+            SongLibrary.get().songsList.addAll(adapter.items);
             // Set up RecyclerView
-            requireActivity().runOnUiThread(adapter::updateUI);
+
             // Update UI based on notification changes
             receiver = new BroadcastReceiver() {
                 @Override public void onReceive(Context context, Intent intent) {
                     adapter.updateUI();  // Update UI based on notification changes
                 }
             };
+
             LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
             LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
+            LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("IM_UPDATE"));
         }
+
         return view;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        searchSong.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                filter(query);
+                return true;
+            }
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return true;
+            }
+        });
+        searchSong.setOnCloseListener(() -> {
+            adapter.items.clear();
+            adapter.items.addAll(SongLibrary.get().songsList);
+            adapter.notifyDataSetChanged();
+            if(searchSong.isIconified()){
+                searchSong.setIconified(true);
+                searchSong.clearFocus();
+            }
+            return true;
+        });
     }
 
     private void addFolderFragment(){
@@ -112,13 +148,24 @@ public class SongsFragment extends Fragment {
             viewPager.setCurrentItem(1, true);
         }
     }
-    protected void updateCurrentSong(AudioModel song) {
-        int songnumber = SongLibrary.get().songsList.indexOf(song);
-        if (songnumber < 0 || songnumber >= adapter.items.size()) {
-            return;  // Prevent IndexOutOfBoundsException
+    public void updateCurrentSong() {
+        adapter.updateUI();
+    }
+    public void filter(String text) {
+        List<AudioModel> songsList  = SongLibrary.get().songsList;
+        adapter.items.clear();
+        if (text == null || text.trim().isEmpty()) {
+            adapter.items.addAll(songsList);
         }
-        // Update image only if it's different
-        adapter.notifyItemChanged(songnumber);
+        else {
+            String query = text.toLowerCase();
+            for (AudioModel song : songsList) {
+                if (song.getTitle().toLowerCase().contains(query)) {
+                    adapter.items.add(song);
+                }
+            }
+        }
+        adapter.notifyDataSetChanged();
     }
 
 }

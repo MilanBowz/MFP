@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#00000000"
     tools:context=".fragment.PlayingFragment">
 
     <ImageView
@@ -16,6 +15,17 @@
         android:layout_width="70dp"
         android:layout_height="70dp"/>
 
+    <ImageView
+        android:id="@+id/music_icon_big"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_above="@id/song_title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginHorizontal="0dp"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
+        android:src="@drawable/music_icon_big" />
+
     <TextView
         android:id="@+id/song_title"
         android:layout_height="wrap_content"
@@ -24,26 +34,15 @@
         android:padding="10dp"
         android:singleLine="true"
         android:text="@string/title_of_the_song"
-        android:layout_above="@id/music_icon_big"
-        android:textSize="20sp" />
-
-    <ImageView
-        android:id="@+id/music_icon_big"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
         android:layout_above="@id/controls"
-        android:layout_alignParentEnd="true"
-        android:layout_marginHorizontal="0dp"
-        android:paddingVertical="20dp"
-        android:adjustViewBounds="true"
-        android:src="@drawable/music_icon_big" />
+        android:textSize="20sp" />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:id="@+id/controls"
-        android:padding="40dp">
+        android:padding="20dp">
 
         <SeekBar
             android:layout_width="match_parent"

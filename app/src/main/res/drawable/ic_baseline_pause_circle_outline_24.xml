@@ -3,16 +3,15 @@
     android:width="64dp"
     android:height="64dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="#FFFFFF">
+    android:viewportHeight="24">
 
     <!-- Left Pause Bar -->
     <path
-        android:fillColor="@android:color/white"
+        android:fillColor="@color/color"
         android:pathData="M6,5h4v14H6z" />
 
     <!-- Right Pause Bar -->
     <path
-        android:fillColor="@android:color/white"
+        android:fillColor="@color/color"
         android:pathData="M14,5h4v14h-4z" />
 </vector>
