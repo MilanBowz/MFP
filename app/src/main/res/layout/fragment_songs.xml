@@ -20,11 +20,12 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="5dp"
         android:textColor="@color/color"
         android:id="@+id/music_title_text"
         android:paddingVertical="15dp"
         android:maxLines="1"
+        android:ellipsize="end"
         tools:text="Music" />
 
 </LinearLayout>
