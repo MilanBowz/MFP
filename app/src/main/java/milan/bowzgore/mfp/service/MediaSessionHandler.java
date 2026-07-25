@@ -1,6 +1,6 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
+import static milan.bowzgore.mfp.service.NotificationService.player;
 
 import android.app.PendingIntent;
 import android.content.Context;
@@ -41,7 +41,7 @@ class MediaSessionHandler {
                                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
                                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
                 )
-                .setState(state, mediaPlayer.getCurrentPosition(), 1.0f);
+                .setState(state, player.getCurrentPosition(), 1.0f);
         mediaSession.setPlaybackState(playbackStateBuilder.build());
     }
 
@@ -53,7 +53,7 @@ class MediaSessionHandler {
         MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, SongLibrary.get().currentSong.getTitle())
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, SongLibrary.get().currentSong.getNotificationArtWithGlide(context))
-                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration())
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, player.getDuration())
                 .build();
         mediaSession.setMetadata(metadata);
     }
@@ -93,9 +93,9 @@ class MediaSessionHandler {
 
             @Override
             public void onSeekTo(long pos) {
-                mediaPlayer.seekTo((int) pos);
+                player.seekTo(pos);
                 updateMediaSessionPlaybackState(
-                        NotificationService.isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED
+                        NotificationService.player.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED
                 );
             }
 

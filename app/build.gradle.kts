@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "milan.bowzgore.mfp"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "milan.bowzgore.mfp"
@@ -56,5 +56,9 @@ dependencies {
     implementation(libs.navigation.fragment)
     implementation(libs.jaudiotagger)
     implementation (libs.glide)
+
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+    implementation(libs.media3.session)
     // debugImplementation(libs.leakcanary.android)
 }

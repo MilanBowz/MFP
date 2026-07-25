@@ -93,13 +93,9 @@ public class SongsFragment extends Fragment {
 
 
         if (SongLibrary.get().tempFolder != null) {
-            SongLibrary.get().songsList.clear();
             adapter = new SongAdapter(getContext());
             recyclerView.setAdapter(adapter);
             textFolder.setText(SongLibrary.get().getFolderDisplay());
-            // add current playlist
-            SongLibrary.get().songsList.addAll(adapter.items);
-            // Set up RecyclerView
 
             // Update UI based on notification changes
             receiver = new BroadcastReceiver() {
@@ -108,9 +104,12 @@ public class SongsFragment extends Fragment {
                 }
             };
 
-            LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
-            LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
-            LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("IM_UPDATE"));
+            IntentFilter filter = new IntentFilter();
+            filter.addAction("NEXT");
+            filter.addAction("PREV");
+            filter.addAction("IM_UPDATE");
+            filter.addAction("PLAYER_READY");
+            LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
         }
 
         return view;

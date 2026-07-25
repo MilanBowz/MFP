@@ -70,6 +70,11 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
                 SongLibrary library = SongLibrary.get();
+                if(!Objects.equals(library.selectedFolder, library.tempFolder)){
+                    library.songsList.clear();
+                    library.songsList.addAll(items);
+                    library.selectedFolder = library.tempFolder;
+                }
                 // get currentsong by: holder.titleTextView
                 library.currentSong = songData;
                 library.songNumber = library.songsList.indexOf(library.currentSong);

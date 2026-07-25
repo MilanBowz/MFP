@@ -4,8 +4,7 @@ import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
-import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
-import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
+import static milan.bowzgore.mfp.service.NotificationService.player;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 
@@ -35,7 +34,6 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.R;
@@ -106,30 +104,31 @@ public class PlayingFragment extends Fragment {
 
     private void setupFragment(){
         setGeneralResources();
+        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         if (isListPlaying) {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
         } else {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
         }
         setMusicResources();
-        // Make sure the MediaPlayer and SeekBar are synchronized
-        if (mediaPlayer != null) {
-            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-            setupSeekBarListener();
-            seekBar.setMax(mediaPlayer.getDuration()); // Set SeekBar max to media duration
-            seekBar.setProgress(mediaPlayer.getCurrentPosition());
-            titleTv.setSelected(true);
-            setupRunnable();
-        }
+
+        // Always setup seekbar listener and runnable
+        setupSeekBarListener();
+        titleTv.setSelected(true);
+        setupRunnable(); // Always call this, even if player is null
 
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 setMusicResources();  // Update UI based on notification changes
+                // Restart the runnable if needed
+                if (handler == null) {
+                    setupRunnable();
+                }
             }
         };
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PLAYER_READY"));
+
         togglePlayMode.setOnClickListener(v -> {
             setListPlaying();
             if (isListPlaying) {
@@ -149,7 +148,7 @@ public class PlayingFragment extends Fragment {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    mediaPlayer.seekTo(progress);
+                    player.seekTo(progress);
                     currentTimeTv.setText(convertToMMSS(String.valueOf(progress)));
                 }
             }
@@ -158,7 +157,7 @@ public class PlayingFragment extends Fragment {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mediaPlayer.seekTo(seekBar.getProgress());
+                player.seekTo(seekBar.getProgress());
             }
         });
     }
@@ -174,11 +173,11 @@ public class PlayingFragment extends Fragment {
         AudioModel song = SongLibrary.get().currentSong;
         if (song != null) {
             titleTv.setText(song.getTitle());
-            if(mediaPlayer != null){
+            if(player != null){
                 totalTimeTv.setText(convertToMMSS(song.getDuration()));
-                seekBar.setMax(mediaPlayer.getDuration());
-                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                seekBar.setMax((int) player.getDuration());
+                currentTimeTv.setText(convertToMMSS(String.valueOf(player.getCurrentPosition())));
+                seekBar.setProgress((int) player.getCurrentPosition());
             }
             song.setGlideImage(this, musicIcon);
             startMusicService("UPDATE");
@@ -193,7 +192,7 @@ public class PlayingFragment extends Fragment {
     }
 
     private void pausePlay(){
-        if (isPlaying) {
+        if (player != null && player.isPlaying()) {
             startMusicService("PAUSE");
             pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         } else {
@@ -216,32 +215,60 @@ public class PlayingFragment extends Fragment {
     }
 
     private void setupRunnable(){
-        this.handler = new Handler();
-        Handler handler = this.handler;
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        handler = new Handler();
         Runnable runner = new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (SongLibrary.get().currentSong == null) {
-                        titleTv.setText(R.string.no_music_loaded);
-                        musicIcon.setImageResource(R.drawable.music_icon_big);
-                        seekBar.setMax(0);
-                        seekBar.setProgress(0);
-                        totalTimeTv.setText("00:00");
-                        currentTimeTv.setText("00:00");
+                if (!isAdded()) {return;}
+                if (SongLibrary.get().currentSong == null || player == null) {
+                    titleTv.setText(R.string.no_music_loaded);
+                    musicIcon.setImageResource(R.drawable.music_icon_big);
+                    seekBar.setMax(0);
+                    seekBar.setProgress(0);
+                    totalTimeTv.setText("00:00");
+                    currentTimeTv.setText("00:00");
+                    pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                }
+                else {
+                    // Update regardless of playing state to show current position
+                    long duration = player.getDuration();
+                    long currentPosition = player.getCurrentPosition();
+
+                    if (duration > 0) {
+                        seekBar.setMax((int) duration);
+                        seekBar.setProgress((int) currentPosition);
+                        currentTimeTv.setText(
+                                convertToMMSS(
+                                        String.valueOf(currentPosition)
+                                )
+                        );
+                        totalTimeTv.setText(
+                                convertToMMSS(
+                                        String.valueOf(duration)
+                                )
+                        );
                     }
-                    else if (isPlaying) {
-                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                        currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+
+                    // Update play/pause button state
+                    if (player.isPlaying()) {
                         pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
                     } else {
                         pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
                     }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    handler.postDelayed(this, 1000); // Continue updating every 1000ms
+
+                    // Update title if changed
+                    AudioModel currentSong = SongLibrary.get().currentSong;
+                    if (currentSong != null && !titleTv.getText().equals(currentSong.getTitle())) {
+                        titleTv.setText(currentSong.getTitle());
+                        currentSong.setGlideImage(PlayingFragment.this, musicIcon);
+                    }
                 }
+
+                // Post the same runnable again after 300ms to keep updating
+                handler.postDelayed(this, 300);
             }
         };
         handler.post(runner);
@@ -257,7 +284,11 @@ public class PlayingFragment extends Fragment {
     @Override
     public void onDestroy() {
         // Unregister the receiver to avoid memory leaks
-        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
+        try {
+            LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
+        } catch (IllegalArgumentException e) {
+            // Receiver was already unregistered
+        }
         if (handler != null) {
             handler.removeCallbacks(null);
             handler = null;

@@ -1,6 +1,6 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
+import static milan.bowzgore.mfp.service.NotificationService.player;
 
 import android.Manifest;
 import android.bluetooth.BluetoothClass;
@@ -89,7 +89,7 @@ public class PowerHandler {
                     releaseWakeLockAndAudioFocus();
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
-                    if (!isPlaying) {
+                    if (!player.isPlaying()) {
                         startMusicService("PLAY");
                     }
                     break;
