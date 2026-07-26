@@ -70,7 +70,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
                 SongLibrary library = SongLibrary.get();
-                if(!Objects.equals(library.selectedFolder, library.tempFolder)){
+                if(!Objects.equals(library.selectedFolder, library.tempFolder) || items != library.songsList){
                     library.songsList.clear();
                     library.songsList.addAll(items);
                     library.selectedFolder = library.tempFolder;
@@ -79,7 +79,6 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 library.currentSong = songData;
                 library.songNumber = library.songsList.indexOf(library.currentSong);
                 startMusicService();
-                library.selectedFolder = library.tempFolder;
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);
                 updateUI();

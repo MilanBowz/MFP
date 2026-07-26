@@ -246,4 +246,9 @@ public class MainActivity extends AppCompatActivity {
         viewPagerAdapter.clear();
         viewPagerAdapter = null;
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
 }

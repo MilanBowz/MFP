@@ -8,8 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Handler;
+
 import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -34,8 +33,6 @@ public class NotificationService extends Service {
     public static ExoPlayer player;
     private MediaSessionHandler mediaSession;
     long lastPosition;
-
-
 
     private final Player.Listener playerListener = new Player.Listener() {
         @Override
@@ -66,6 +63,28 @@ public class NotificationService extends Service {
                 }
             }
         }
+        @Override
+        public void onPlayerError(androidx.media3.common.PlaybackException error) {
+            // Handle playback errors
+            error.printStackTrace();
+            // Try to recover
+            if (SongLibrary.get().currentSong != null) {
+                if (player != null) {
+                    player.removeListener(playerListener);
+                    player.release();
+                    player = null;
+                }
+                initializePlayer();
+                // Reload current song
+                MediaItem item = MediaItem.fromUri(
+                        Uri.fromFile(new File(SongLibrary.get().currentSong.getPath()))
+                );
+                player.setMediaItem(item);
+                player.prepare();
+                player.setPlayWhenReady(true);
+                showNotification();
+            }
+        }
     };
 
     public NotificationService() {
@@ -75,8 +94,7 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        player = new ExoPlayer.Builder(this).build();
-        player.addListener(playerListener);
+        //initializePlayer();
         powerHandler = new PowerHandler(this);
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
@@ -111,10 +129,6 @@ public class NotificationService extends Service {
                     break;
                 case "IM_UPDATE":
                     changePlaying(true);
-                    if (player != null){
-                        mediaSession.updateMediaSessionPlaybackState(player.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
-                    }
-                    showNotification();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -180,7 +194,7 @@ public class NotificationService extends Service {
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)
-                .setOnlyAlertOnce(true)
+                .setOnlyAlertOnce(false)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -207,16 +221,13 @@ public class NotificationService extends Service {
     private void playMusic() {
         player.play();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-        //showNotification();
         powerHandler.requestAudioFocus();
         mediaSession.updateMetadata();
-        //System.out.println(SongLibrary.get().currentSong.getPath());
     }
 
     private void pauseMusic() {
         player.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-        //showNotification();
         powerHandler.releaseWakeLockAndAudioFocus();
         mediaSession.updateMetadata();
     }
@@ -266,12 +277,11 @@ public class NotificationService extends Service {
 
         songLibrary.saveCurrentSong(getApplicationContext());
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
+        showNotification();
     }
 
     private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
-        if (player.isPlaying()) {
-            player.stop();
-        }
+        player.stop();
         player.clearMediaItems();
 
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
@@ -285,9 +295,11 @@ public class NotificationService extends Service {
         SongLibrary.get().saveCurrentSong(getApplicationContext());
         System.gc();
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
+        showNotification();
     }
 
     private void init_device_get() {
+        initializePlayer();
         player.stop();
         player.clearMediaItems(); // Reset before setting a new data source
 
@@ -323,6 +335,12 @@ public class NotificationService extends Service {
         stopForeground(true);
         stopSelf();
         super.onDestroy();
+    }
+    private void initializePlayer() {
+        if (player == null) {
+            player = new ExoPlayer.Builder(this).build();
+            player.addListener(playerListener);
+        }
     }
 
 }
