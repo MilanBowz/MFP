@@ -52,39 +52,6 @@ public class NotificationService extends Service {
                 }
             }
         }
-        @Override
-        public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
-            // When the player transitions to a new media item, update notification
-            if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION ||
-                    reason == Player.DISCONTINUITY_REASON_SEEK) {
-                // Check if we have a valid current song
-                if (SongLibrary.get().currentSong != null && player.getDuration() > 0) {
-                    showNotification();
-                }
-            }
-        }
-        @Override
-        public void onPlayerError(androidx.media3.common.PlaybackException error) {
-            // Handle playback errors
-            error.printStackTrace();
-            // Try to recover
-            if (SongLibrary.get().currentSong != null) {
-                if (player != null) {
-                    player.removeListener(playerListener);
-                    player.release();
-                    player = null;
-                }
-                initializePlayer();
-                // Reload current song
-                MediaItem item = MediaItem.fromUri(
-                        Uri.fromFile(new File(SongLibrary.get().currentSong.getPath()))
-                );
-                player.setMediaItem(item);
-                player.prepare();
-                player.setPlayWhenReady(true);
-                showNotification();
-            }
-        }
     };
 
     public NotificationService() {
@@ -94,7 +61,7 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        //initializePlayer();
+        initializePlayer();
         powerHandler = new PowerHandler(this);
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
@@ -194,7 +161,7 @@ public class NotificationService extends Service {
                 .addAction(prevAction)
                 .addAction(actionToShow)
                 .addAction(nextAction)
-                .setOnlyAlertOnce(false)
+                .setOnlyAlertOnce(true)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -273,11 +240,11 @@ public class NotificationService extends Service {
         player.prepare();
         player.setPlayWhenReady(true);
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-        //mediaSession.updateMetadata();
 
         songLibrary.saveCurrentSong(getApplicationContext());
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
-        showNotification();
+        //showNotification();
+        mediaSession.updateMetadata();
     }
 
     private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
@@ -290,18 +257,16 @@ public class NotificationService extends Service {
             // + mediaPlayer.seekTo(lastPosition); ?
         player.setPlayWhenReady(true);
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-        //mediaSession.updateMetadata();
 
         SongLibrary.get().saveCurrentSong(getApplicationContext());
         System.gc();
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
-        showNotification();
+        //showNotification();
+        mediaSession.updateMetadata();
     }
 
     private void init_device_get() {
         initializePlayer();
-        player.stop();
-        player.clearMediaItems(); // Reset before setting a new data source
 
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
         player.setMediaItem(item);
@@ -309,6 +274,7 @@ public class NotificationService extends Service {
         player.setPlayWhenReady(false);
         if(viewPagerAdapter != null){
             viewPagerAdapter.updatePlayingFragment();
+            showNotification();
         }
     }
 
@@ -340,6 +306,10 @@ public class NotificationService extends Service {
         if (player == null) {
             player = new ExoPlayer.Builder(this).build();
             player.addListener(playerListener);
+        }
+        else{
+            player.stop();
+            player.clearMediaItems(); // Reset before setting a new data source
         }
     }
 

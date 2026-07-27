@@ -246,9 +246,15 @@ public class MainActivity extends AppCompatActivity {
         viewPagerAdapter.clear();
         viewPagerAdapter = null;
     }
+
     @Override
     protected void onResume() {
         super.onResume();
-
+        // Check if service is running and reinitialize if needed
+        if (NotificationService.player == null && SongLibrary.get().currentSong != null) {
+            Intent intent = new Intent(this, NotificationService.class);
+            intent.setAction("INIT");
+            ContextCompat.startForegroundService(this, intent);
+        }
     }
 }
