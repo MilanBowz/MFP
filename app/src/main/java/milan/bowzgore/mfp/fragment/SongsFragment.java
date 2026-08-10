@@ -23,11 +23,13 @@ import android.widget.ImageButton;
 import androidx.appcompat.widget.SearchView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
+import milan.bowzgore.mfp.service.PowerHandler;
 
 public class SongsFragment extends Fragment {
     private SongAdapter adapter;
@@ -36,6 +38,8 @@ public class SongsFragment extends Fragment {
     private TextView textFolder;
     private ImageButton backButton;
     private SearchView searchSong;
+    private boolean isFiltered = false;
+    private List<AudioModel> originalData;  // ADD THIS LINE
 
     public SongsFragment() {
     }
@@ -97,10 +101,12 @@ public class SongsFragment extends Fragment {
             recyclerView.setAdapter(adapter);
             textFolder.setText(SongLibrary.get().getFolderDisplay());
 
-            // Update UI based on notification changes
+            // STORE THE SOURCE LIST REFERENCE
+            originalData = new ArrayList<>(adapter.items);  // ADD THIS LINE
+
             receiver = new BroadcastReceiver() {
                 @Override public void onReceive(Context context, Intent intent) {
-                    adapter.updateUI();  // Update UI based on notification changes
+                    adapter.updateUI();
                 }
             };
 
@@ -110,6 +116,9 @@ public class SongsFragment extends Fragment {
             filter.addAction("IM_UPDATE");
             filter.addAction("PLAYER_READY");
             LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
+            if(PowerHandler.currentMode == 2){
+                SongLibrary.get().makeRandomList();
+            }
         }
 
         return view;
@@ -122,22 +131,18 @@ public class SongsFragment extends Fragment {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 filter(query);
+                searchSong.clearFocus(); // Hide keyboard after submit
                 return true;
             }
             @Override
             public boolean onQueryTextChange(String newText) {
+                filter(newText); // THIS WAS MISSING - now filters as you type
                 return true;
             }
         });
         searchSong.setOnCloseListener(() -> {
-            adapter.items.clear();
-            adapter.items.addAll(SongLibrary.get().songsList);
-            adapter.notifyDataSetChanged();
-            if(searchSong.isIconified()){
-                searchSong.setIconified(true);
-                searchSong.clearFocus();
-            }
-            return true;
+            restoreOriginalList(); // Use helper method instead of direct manipulation
+            return false; // Let SearchView handle its own collapse
         });
     }
 
@@ -151,20 +156,32 @@ public class SongsFragment extends Fragment {
         adapter.updateUI();
     }
     public void filter(String text) {
-        List<AudioModel> songsList  = SongLibrary.get().songsList;
+        if (adapter == null || originalData == null) return;
+
         adapter.items.clear();
+
         if (text == null || text.trim().isEmpty()) {
-            adapter.items.addAll(songsList);
-        }
-        else {
-            String query = text.toLowerCase();
-            for (AudioModel song : songsList) {
+            adapter.items.addAll(originalData); // USE CACHED LIST
+            isFiltered = false;
+        } else {
+            String query = text.toLowerCase().trim();
+            for (AudioModel song : originalData) { // USE CACHED LIST
                 if (song.getTitle().toLowerCase().contains(query)) {
                     adapter.items.add(song);
                 }
             }
+            isFiltered = true;
         }
         adapter.notifyDataSetChanged();
+    }
+
+    private void restoreOriginalList() {
+        if (adapter != null && originalData != null) {
+            adapter.items.clear();
+            adapter.items.addAll(originalData); // USE CACHED LIST
+            adapter.notifyDataSetChanged();
+            isFiltered = false;
+        }
     }
 
 }

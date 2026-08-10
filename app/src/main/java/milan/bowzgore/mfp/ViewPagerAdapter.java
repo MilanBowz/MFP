@@ -8,7 +8,9 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import milan.bowzgore.mfp.fragment.FolderFragment;
 import milan.bowzgore.mfp.fragment.PlayingFragment;
 import milan.bowzgore.mfp.fragment.SongsFragment;
+import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
+import milan.bowzgore.mfp.service.PowerHandler;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
     private final Fragment[] fragments = new Fragment[2]; // Always 2 items
@@ -44,6 +46,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
                     .commitNowAllowingStateLoss();
             notifyItemChanged(1);
         }
+
         System.gc();
     }
 

@@ -18,6 +18,8 @@ import milan.bowzgore.mfp.model.AudioModel;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
+
 public class SongLibrary {
 
     public List<AudioModel> songsList = new ArrayList<>();
@@ -30,6 +32,9 @@ public class SongLibrary {
 
     private final String SHARED_PREFS_NAME = "SongLibraryPrefs";
     private final String KEY_CURRENT_SONG = "currentSong";
+
+    // Random playback fields
+    public List<AudioModel> shuffledList = new ArrayList<>();
 
     private SongLibrary() {    }
 
@@ -209,5 +214,28 @@ public class SongLibrary {
     public boolean isSyncTempSelectedFolder(){
         return tempFolder.equals(selectedFolder);
     }
+
+    public void makeRandomList() {
+        if (songsList == null || songsList.isEmpty()) return;
+
+        shuffledList = new ArrayList<>(songsList);
+        Collections.shuffle(shuffledList);
+
+        // Start from current song if playing
+        if (currentSong != null) {
+            songNumber = shuffledList.indexOf(currentSong);
+            if (songNumber == -1) songNumber = 0;
+        } else {
+            songNumber = 0;
+        }
+        songNumber = shuffledList.indexOf(currentSong);
+    }
+    public void getSongRandomNumber(){
+        songNumber = shuffledList.indexOf(currentSong);
+    }
+    public void returnToNormalList(){
+        songNumber = songsList.indexOf(currentSong);
+    }
+
 
 }

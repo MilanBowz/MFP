@@ -51,8 +51,11 @@ public class Coverart {
         pickImageLauncher.launch(new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.Q)
     public void updateCoverArt(Activity activity, Uri imageUri) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Log.w("CoverArtUpdate", "Cover art update not supported on this Android version");
+            return;
+        }
         if (musicFile == null) {
             Log.e("CoverArtUpdate", "Music file is null, cannot update artwork.");
             return;
@@ -115,14 +118,18 @@ public class Coverart {
     }
 
     private Bitmap getResizedBitmap(Context context, Uri uri, int maxDim) throws IOException {
-        Bitmap bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
-        if (bitmap == null) return null;
-        int w = bitmap.getWidth(), h = bitmap.getHeight();
-        if (w > maxDim || h > maxDim) {
-            float scale = maxDim / (float) Math.max(w, h);
-            bitmap = Bitmap.createScaledBitmap(bitmap, (int) (w * scale), (int) (h * scale), false);
+        Bitmap original = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+        if (original == null) return null;
+
+        int w = original.getWidth(), h = original.getHeight();
+        if (w <= maxDim && h <= maxDim) {
+            return original; // No resize needed
         }
-        return bitmap;
+
+        float scale = maxDim / (float) Math.max(w, h);
+        Bitmap resized = Bitmap.createScaledBitmap(original, (int)(w*scale), (int)(h*scale), false);
+        original.recycle(); // Free memory
+        return resized;
     }
 
     private byte[] compressBitmap(Bitmap bitmap) {
@@ -154,7 +161,7 @@ public class Coverart {
             case "audio/flac" -> "flac";
             case "audio/ogg" -> "ogg";
             case "audio/opus" -> "opus";
-            case "audio/mp4" -> "m4a";
+            case "audio/mp4", "audio/x-m4a" -> "m4a";
             default -> "mp3";
         };
     }
@@ -214,7 +221,13 @@ public class Coverart {
             if (uri == null) return;
 
             try (OutputStream out = context.getContentResolver().openOutputStream(uri)) {
-                if (out != null) BitmapFactory.decodeByteArray(imageData, 0, imageData.length).compress(fmt, 100, out);
+                if (out != null) {
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.length);
+                    if (bitmap != null) {
+                        bitmap.compress(fmt, 100, out);
+                        bitmap.recycle();
+                    }
+                }
             } catch (IOException e) {
                 Log.e("CoverArtSaver", "Error saving cover art", e);
             }
@@ -247,4 +260,9 @@ public class Coverart {
 
     public void setSong(AudioModel song) { musicFile = song; }
     public AudioModel getSong() { return musicFile; }
+    public void cleanup() {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
+    }
 }

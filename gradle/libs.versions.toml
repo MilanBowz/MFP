@@ -1,8 +1,10 @@
 [versions]
 agp = "8.13.2"
 appcompat = "1.7.1"
+ffmpegKitFull = "5.1"
 glide = "5.0.5"
 jaudiotagger = "2.0.3"
+kotlinxCoroutinesAndroid = "1.11.0"
 material = "1.13.0"
 activity = "1.12.2"
 constraintlayout = "2.2.1"
@@ -15,6 +17,7 @@ media3 = "1.8.0"
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 jaudiotagger = { module = "org:jaudiotagger", version.ref = "jaudiotagger" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }

@@ -1,7 +1,5 @@
 package milan.bowzgore.mfp.service;
 
-import static milan.bowzgore.mfp.service.NotificationService.player;
-
 import android.Manifest;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
@@ -17,13 +15,16 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
-
 public class PowerHandler {
+    private static final String PREFS_NAME = "media_prefs";
+    private static final String KEY_PLAY_MODE = "play_mode";
+    public static final int MODE_LOOP_ALL = 0;
+    public static final int MODE_LOOP_OFF = 1;
+    public static final int MODE_RANDOM = 2;
+    public static int currentMode = MODE_LOOP_ALL;
 
     private final Context context;
     private PowerManager.WakeLock wakeLock;
-
-    public static boolean isListPlaying = false;
     private boolean isInitialized = false;
 
     private AudioManager audioManager;
@@ -45,9 +46,9 @@ public class PowerHandler {
     protected void releaseWakeLockAndAudioFocus() {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
-            if(!wakeLock.isHeld()){
-                audioManager.abandonAudioFocus(afChangeListener);
-            }
+        }
+        if (audioManager != null) {
+            audioManager.abandonAudioFocus(afChangeListener);
         }
     }
 
@@ -87,11 +88,6 @@ public class PowerHandler {
                 case AudioManager.AUDIOFOCUS_LOSS:
                     startMusicService("PAUSE");
                     releaseWakeLockAndAudioFocus();
-                    break;
-                case AudioManager.AUDIOFOCUS_GAIN:
-                    if (!player.isPlaying()) {
-                        startMusicService("PLAY");
-                    }
                     break;
             }
         };
@@ -153,18 +149,6 @@ public class PowerHandler {
             Log.println(Log.ERROR, "PowerHandler", "PowerHandler register error"); // Handle case where receiver is not registered
         }
 
-    }
-
-    private boolean isHeadset(BluetoothDevice device) {
-        // Check if the device is a headset
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            if (device.getBluetoothClass() != null) {
-                int deviceClass = device.getBluetoothClass().getDeviceClass();
-                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES;
-            }
-        }
-        return false;
     }
 
     private boolean isSpeaker(BluetoothDevice device) {

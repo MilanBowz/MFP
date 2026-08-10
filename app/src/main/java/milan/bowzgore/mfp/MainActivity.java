@@ -2,8 +2,6 @@ package milan.bowzgore.mfp;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
@@ -33,7 +31,6 @@ import milan.bowzgore.mfp.fragment.SongsFragment;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.concurrent.ExecutorService;
@@ -51,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             finishAffinity();
-            // Release system resources
             System.runFinalization();
             System.gc();
         }
@@ -65,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.fragmentContainerView);
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+
         viewPagerAdapter = new ViewPagerAdapter(this);
         PlayingFragment fragment = new PlayingFragment();
         fragment.setMusicResources();
@@ -73,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
+
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -89,6 +87,9 @@ public class MainActivity extends AppCompatActivity {
                     filter,
                     Context.RECEIVER_NOT_EXPORTED
             );
+        }
+        else {
+            registerReceiver(finishReceiver, filter);
         }
     }
 
@@ -230,6 +231,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // Add this method to MainActivity
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -241,6 +244,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         unregisterReceiver(finishReceiver);
+        executorService.shutdown();
         super.onDestroy();
         viewPager = null;
         viewPagerAdapter.clear();
@@ -251,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         // Check if service is running and reinitialize if needed
-        if (NotificationService.player == null && SongLibrary.get().currentSong != null) {
+        if (SongLibrary.get().currentSong != null) {
             Intent intent = new Intent(this, NotificationService.class);
             intent.setAction("INIT");
             ContextCompat.startForegroundService(this, intent);

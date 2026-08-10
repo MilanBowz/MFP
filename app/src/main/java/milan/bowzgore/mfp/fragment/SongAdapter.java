@@ -21,6 +21,7 @@ import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
+import milan.bowzgore.mfp.service.PowerHandler;
 
 import java.util.List;
 import java.util.Objects;

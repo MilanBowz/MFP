@@ -1,7 +1,7 @@
 package milan.bowzgore.mfp.service;
 
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
+import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -16,6 +16,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 
@@ -47,10 +48,16 @@ public class NotificationService extends Service {
                 }
             }
             if(state == Player.STATE_ENDED){
-                if(isListPlaying){
+                if(currentMode == 0 || currentMode == 2){
                     startMusicService("NEXT");
+                } else{
+                    startMusicService("REPLAY");
                 }
             }
+        }
+        @Override
+        public void onPlayerError(PlaybackException error) {
+            startMusicService("NEXT");
         }
     };
 
@@ -75,6 +82,7 @@ public class NotificationService extends Service {
             return START_NOT_STICKY;
         }
         String action = intent.getAction();
+        if (action == null) return START_NOT_STICKY;
         return startMusicService(action);
     }
 
@@ -86,6 +94,9 @@ public class NotificationService extends Service {
                     break;
                 case "PLAY":
                     playMusic();
+                    break;
+                case "REPLAY":
+                    changePlaying(false);
                     break;
                 case "PAUSE":
                     pauseMusic();
@@ -105,6 +116,9 @@ public class NotificationService extends Service {
                     break;
                 case "NEW":
                     changePlaying(false);
+                    if(PowerHandler.currentMode == 2){
+                        SongLibrary.get().makeRandomList();
+                    }
                     break;
                 case "LOAD":
                 case "UPDATE":
@@ -113,6 +127,9 @@ public class NotificationService extends Service {
                     break;
                 case "INIT":
                     init_device_get();
+                    if(PowerHandler.currentMode == 2){
+                        SongLibrary.get().makeRandomList();
+                    }
                     break;
                 case "STOP":
                     LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(action));
@@ -225,20 +242,32 @@ public class NotificationService extends Service {
     private void changePlaying(int index) {
         SongLibrary songLibrary = SongLibrary.get();
         songLibrary.songNumber = index;
-        songLibrary.currentSong =
-                songLibrary.songsList.get(index);
-        MediaItem item = MediaItem.fromUri(
-                Uri.fromFile(
-                        new File(songLibrary.currentSong.getPath())
-                )
-        );
+        MediaItem item;
+        if(currentMode == 2){
+            songLibrary.currentSong =
+                    songLibrary.shuffledList.get(index);
+            item = MediaItem.fromUri(
+                    Uri.fromFile(
+                            new File(songLibrary.currentSong.getPath())
+                    )
+            );
+        }
+        else{
+            songLibrary.currentSong =
+                    songLibrary.songsList.get(index);
+            item = MediaItem.fromUri(
+                    Uri.fromFile(
+                            new File(songLibrary.currentSong.getPath())
+                    )
+            );
+        }
+
 
         player.stop();
         player.clearMediaItems();
         player.setMediaItem(item);
 
         player.prepare();
-        player.setPlayWhenReady(true);
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
         songLibrary.saveCurrentSong(getApplicationContext());
@@ -255,7 +284,6 @@ public class NotificationService extends Service {
         player.setMediaItem(item);
         player.prepare();
             // + mediaPlayer.seekTo(lastPosition); ?
-        player.setPlayWhenReady(true);
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
         SongLibrary.get().saveCurrentSong(getApplicationContext());
@@ -266,6 +294,14 @@ public class NotificationService extends Service {
     }
 
     private void init_device_get() {
+        if (player.isPlaying()) {
+            // Just update UI, don't reset playback
+            if(viewPagerAdapter != null){
+                viewPagerAdapter.updatePlayingFragment();
+                showNotification();
+            }
+            return; // IMPORTANT: Don't restart playback
+        }
         initializePlayer();
 
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
@@ -285,7 +321,7 @@ public class NotificationService extends Service {
         //SongLibrary lib = SongLibrary.get();
     }
     public void onStopFromNotification() {
-        if (!player.isPlaying()) {
+        if (!player.isPlaying() || player == null) {
             onDestroy();
         }
     }
@@ -307,9 +343,17 @@ public class NotificationService extends Service {
             player = new ExoPlayer.Builder(this).build();
             player.addListener(playerListener);
         }
-        else{
+        /*else{
             player.stop();
             player.clearMediaItems(); // Reset before setting a new data source
+        }*/
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // Keep service running when app is swiped away
+        if (player.isPlaying()) {
+            showNotification();
         }
     }
 

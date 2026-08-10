@@ -3,7 +3,6 @@ package milan.bowzgore.mfp.fragment;
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.service.PowerHandler.isListPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.player;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -24,6 +23,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,6 +43,8 @@ import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.model.Coverart;
 import milan.bowzgore.mfp.service.NotificationService;
 
+import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
+
 public class PlayingFragment extends Fragment {
 
     private TextView titleTv, currentTimeTv, totalTimeTv ;
@@ -61,7 +63,7 @@ public class PlayingFragment extends Fragment {
         FragmentPlayingBinding binding = FragmentPlayingBinding.inflate(inflater, container, false);
 
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
-        isListPlaying = sharedPreferences.getBoolean("isListPlaying", false); // Default is false
+        currentMode = sharedPreferences.getInt("play_mode", 0); // Default is false
 
         titleTv = binding.songTitle;
         currentTimeTv = binding.currentTime;
@@ -105,10 +107,13 @@ public class PlayingFragment extends Fragment {
     private void setupFragment(){
         setGeneralResources();
         pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-        if (isListPlaying) {
+        if (currentMode == 0) {
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
-        } else {
+        } else if(currentMode == 1){
             togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
+        }
+        else {
+            togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
         }
         setMusicResources();
 
@@ -130,11 +135,16 @@ public class PlayingFragment extends Fragment {
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PLAYER_READY"));
 
         togglePlayMode.setOnClickListener(v -> {
-            setListPlaying();
-            if (isListPlaying) {
+            setPlayMode();
+            if (currentMode == 0) {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
-            } else {
+                SongLibrary.get().returnToNormalList();
+            } else if(currentMode == 1){
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
+            }else {
+                togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
+                SongLibrary.get().makeRandomList();
+                // Update shuffled index if in random mode
             }
         });
         musicIcon.setOnLongClickListener(v -> {
@@ -215,10 +225,10 @@ public class PlayingFragment extends Fragment {
     }
 
     private void setupRunnable(){
-        if (handler != null) {
-            handler.removeCallbacksAndMessages(null);
+        if (handler == null) {
+            handler = new Handler(Looper.getMainLooper());
         }
-        handler = new Handler();
+        handler.removeCallbacksAndMessages(null);
         Runnable runner = new Runnable() {
             @Override
             public void run() {
@@ -313,12 +323,23 @@ public class PlayingFragment extends Fragment {
         dialog.show();
     }
 
-    private void setListPlaying() {
-        isListPlaying = ! isListPlaying;
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean("isListPlaying", isListPlaying);
+    public void setPlayMode() {
+        if(currentMode <2 ){
+            currentMode +=1;
+        }
+        else {
+            currentMode = 0;
+        }
+        // Save to preferences
+        SharedPreferences prefs = requireContext().getSharedPreferences("media_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("play_mode", currentMode);
         editor.apply();
+
+        // Update UI if needed
+        if (viewPagerAdapter != null) {
+            viewPagerAdapter.updatePlayingFragment();
+        }
     }
 
     @Override
