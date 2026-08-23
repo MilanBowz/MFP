@@ -155,9 +155,14 @@ public class MainActivity extends AppCompatActivity {
         executorService.execute(() -> {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);
             SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
+            ContextCompat.startForegroundService(
+                    this,
+                    new Intent(this, NotificationService.class)
+                            .setAction("LIST_PLAY")
+            );
+            runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
         });
-        runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
-        ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
+
     }
 
     private void handleAudioFile(AudioModel audioUri) {
@@ -251,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
         viewPagerAdapter = null;
     }
 
-    @Override
+    /*@Override
     protected void onResume() {
         super.onResume();
         // Check if service is running and reinitialize if needed
@@ -260,5 +265,5 @@ public class MainActivity extends AppCompatActivity {
             intent.setAction("INIT");
             ContextCompat.startForegroundService(this, intent);
         }
-    }
+    }*/
 }

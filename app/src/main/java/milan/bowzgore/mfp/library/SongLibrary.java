@@ -216,7 +216,10 @@ public class SongLibrary {
     }
 
     public void makeRandomList() {
-        if (songsList == null || songsList.isEmpty()) return;
+        if (songsList == null || songsList.isEmpty()) {
+            Log.w("Songlibrary", "makeRandomList() ignored: songsList is empty");
+            return ;
+        }
 
         shuffledList = new ArrayList<>(songsList);
         Collections.shuffle(shuffledList);

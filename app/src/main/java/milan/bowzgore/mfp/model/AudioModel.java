@@ -70,8 +70,8 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             }
         } catch (Exception e) {
             Log.e("AudioModel","image update as bitmap failed", e);
-            return null;
         }
+        return getEmbeddedArtwork();
     }
 
     private Uri getAlbumArtUri(Context context) {

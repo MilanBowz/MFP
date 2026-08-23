@@ -3,6 +3,7 @@ package milan.bowzgore.mfp.service;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -95,8 +96,8 @@ public class NotificationService extends Service {
                 case "PLAY":
                     playMusic();
                     break;
-                case "REPLAY":
-                    changePlaying(false);
+                case "REPLAY", "IM_UPDATE":
+                    loadCurrentSong();
                     break;
                 case "PAUSE":
                     pauseMusic();
@@ -105,20 +106,18 @@ public class NotificationService extends Service {
                 case "IM_SAVE":
                     lastPosition = player.getCurrentPosition();
                     break;
-                case "IM_UPDATE":
-                    changePlaying(true);
-                    break;
                 case "NEXT":
                     playNextSong();
                     break;
                 case "PREV":
                     playPreviousSong();
                     break;
-                case "NEW":
-                    changePlaying(false);
+                case "LIST_PLAY":
                     if(PowerHandler.currentMode == 2){
                         SongLibrary.get().makeRandomList();
                     }
+                    loadCurrentSong();
+                    playMusic();
                     break;
                 case "LOAD":
                 case "UPDATE":
@@ -127,8 +126,14 @@ public class NotificationService extends Service {
                     break;
                 case "INIT":
                     init_device_get();
+                    SongLibrary library = SongLibrary.get();
                     if(PowerHandler.currentMode == 2){
-                        SongLibrary.get().makeRandomList();
+                        if(library.shuffledList.isEmpty()){
+                            SongLibrary.get().makeRandomList();
+                        }
+                        else if(library.currentSong != null){
+                            library.songNumber = library.shuffledList.indexOf(library.currentSong);
+                        }
                     }
                     break;
                 case "STOP":
@@ -191,8 +196,10 @@ public class NotificationService extends Service {
             builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
-        startForeground(NOTIFICATION_ID, builder.build());
+        Notification notification = builder.build();
+
+        notificationManager.notify(NOTIFICATION_ID, notification);
+        startForeground(NOTIFICATION_ID, notification);
     }
 
 
@@ -240,54 +247,34 @@ public class NotificationService extends Service {
     }
 
     private void changePlaying(int index) {
-        SongLibrary songLibrary = SongLibrary.get();
-        songLibrary.songNumber = index;
-        MediaItem item;
-        if(currentMode == 2){
-            songLibrary.currentSong =
-                    songLibrary.shuffledList.get(index);
-            item = MediaItem.fromUri(
-                    Uri.fromFile(
-                            new File(songLibrary.currentSong.getPath())
-                    )
-            );
+        SongLibrary library = SongLibrary.get();
+        library.songNumber = index;
+        if (currentMode == 2) {
+            library.currentSong = library.shuffledList.get(index);
+        } else {
+            library.currentSong = library.songsList.get(index);
         }
-        else{
-            songLibrary.currentSong =
-                    songLibrary.songsList.get(index);
-            item = MediaItem.fromUri(
-                    Uri.fromFile(
-                            new File(songLibrary.currentSong.getPath())
-                    )
-            );
-        }
-
-
-        player.stop();
-        player.clearMediaItems();
-        player.setMediaItem(item);
-
-        player.prepare();
-        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-
-        songLibrary.saveCurrentSong(getApplicationContext());
-        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
-        //showNotification();
-        mediaSession.updateMetadata();
+        loadCurrentSong();
+        playMusic();
     }
 
-    private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
+    private void loadCurrentSong() { // used in song list: SongsFragment  coverart update
+        SongLibrary library = SongLibrary.get();
+
+        if (library.currentSong == null) {
+            return;
+        }
+
         player.stop();
         player.clearMediaItems();
 
-        MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
+        MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(library.currentSong.getPath())));
         player.setMediaItem(item);
         player.prepare();
             // + mediaPlayer.seekTo(lastPosition); ?
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
-        SongLibrary.get().saveCurrentSong(getApplicationContext());
-        System.gc();
+        library.saveCurrentSong(getApplicationContext());
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
         //showNotification();
         mediaSession.updateMetadata();
@@ -300,7 +287,7 @@ public class NotificationService extends Service {
                 viewPagerAdapter.updatePlayingFragment();
                 showNotification();
             }
-            return; // IMPORTANT: Don't restart playback
+            return;
         }
         initializePlayer();
 

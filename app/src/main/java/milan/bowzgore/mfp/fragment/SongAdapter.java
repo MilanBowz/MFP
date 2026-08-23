@@ -91,7 +91,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private void startMusicService() {
         Intent intent = new Intent(context, NotificationService.class);
-        intent.setAction("NEW");
+        intent.setAction("LIST_PLAY");
         ContextCompat.startForegroundService(context,intent);
     }
 
