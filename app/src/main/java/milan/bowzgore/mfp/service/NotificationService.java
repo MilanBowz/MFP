@@ -265,9 +265,6 @@ public class NotificationService extends Service {
             return;
         }
 
-        player.stop();
-        player.clearMediaItems();
-
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(library.currentSong.getPath())));
         player.setMediaItem(item);
         player.prepare();
