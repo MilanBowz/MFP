@@ -19,11 +19,17 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,7 +53,7 @@ import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
 public class PlayingFragment extends Fragment {
 
-    private TextView titleTv, currentTimeTv, totalTimeTv ;
+    private TextView titleTv, currentTimeTv, totalTimeTv,indexNumberTv ;
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
     private BroadcastReceiver receiver;
@@ -68,6 +74,7 @@ public class PlayingFragment extends Fragment {
         titleTv = binding.songTitle;
         currentTimeTv = binding.currentTime;
         totalTimeTv = binding.totalTime;
+        indexNumberTv = binding.indexNumber;
         seekBar = binding.seekBar;
         pausePlay = binding.pausePlay;
         nextBtn =  binding.next;
@@ -146,6 +153,7 @@ public class PlayingFragment extends Fragment {
                 SongLibrary.get().makeRandomList();
                 // Update shuffled index if in random mode
             }
+            updateIndexNumber();// Update index when mode changes
         });
         musicIcon.setOnLongClickListener(v -> {
             showChangeCoverArtDialog();
@@ -181,8 +189,10 @@ public class PlayingFragment extends Fragment {
     public void setMusicResources() {
         if (!isAdded()) { return; }
         AudioModel song = SongLibrary.get().currentSong;
+        int index = SongLibrary.get().songNumber;
         if (song != null) {
             titleTv.setText(song.getTitle());
+            updateIndexNumber();
             if(player != null){
                 totalTimeTv.setText(convertToMMSS(song.getDuration()));
                 seekBar.setMax((int) player.getDuration());
@@ -345,5 +355,41 @@ public class PlayingFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
+    }
+
+    private void updateIndexNumber() {
+        if (!isAdded()) return;
+
+        AudioModel currentSong = SongLibrary.get().currentSong;
+        int totalSongs = SongLibrary.get().songsList.size();
+        int currentIndex = SongLibrary.get().songNumber;
+
+        if (currentSong != null && totalSongs > 0) {
+            // Check if we're in random mode
+            if (currentMode == 2) {
+                // For random mode, show current position in shuffled list
+                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.green));
+            } else {
+                // Normal or loop mode
+                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.blue));
+            }
+            String indexText = (currentIndex >= 0 && currentIndex < totalSongs)
+                    ? (currentIndex + 1) + "/" + totalSongs
+                    : "1/" + totalSongs;
+
+            SpannableString spannable = new SpannableString(indexText);
+            int slashIndex = indexText.indexOf('/');
+            if (slashIndex > 0) {
+                // new font
+                //indexNumberTv.setTypeface(null, Typeface.ITALIC);
+                spannable.setSpan(new RelativeSizeSpan(2f), 0, slashIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannable.setSpan(new RelativeSizeSpan(1.5f), slashIndex, slashIndex+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+
+            indexNumberTv.setText(spannable);
+        } else {
+            indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.color));
+            indexNumberTv.setText("0/0");
+        }
     }
 }
