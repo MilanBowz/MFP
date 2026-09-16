@@ -4,9 +4,11 @@
     <item
         android:id="@+id/playing_button"
         android:title="@string/playing"
+        android:iconTint="@color/white"
         android:icon="@drawable/ic_baseline_play_circle_outline_24" />
     <item
         android:id="@+id/playlist_button"
         android:title="@string/playlist"
+        android:iconTint="@color/white"
         android:icon="@drawable/ic_baseline_skip_next_24" />
 </menu>

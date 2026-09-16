@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,7 +19,10 @@ import milan.bowzgore.mfp.model.AudioModel;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static milan.bowzgore.mfp.service.NotificationService.player;
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
+
+import androidx.media3.common.MediaItem;
 
 public class SongLibrary {
 
@@ -231,13 +235,29 @@ public class SongLibrary {
         } else {
             songNumber = 0;
         }
-        songNumber = shuffledList.indexOf(currentSong);
     }
     public void getSongRandomNumber(){
         songNumber = shuffledList.indexOf(currentSong);
     }
     public void returnToNormalList(){
         songNumber = songsList.indexOf(currentSong);
+    }
+    public List<MediaItem> createMediaItems(List<AudioModel> songs) {
+        List<MediaItem> mediaItems = new ArrayList<>();
+
+        if (songs == null) {
+            return mediaItems;
+        }
+
+        for (AudioModel song : songs) {
+            MediaItem item = MediaItem.fromUri(
+                    Uri.fromFile(new File(song.getPath()))
+            );
+
+            mediaItems.add(item);
+        }
+
+        return mediaItems;
     }
 
 

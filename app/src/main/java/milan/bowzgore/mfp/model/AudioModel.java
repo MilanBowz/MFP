@@ -107,7 +107,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.Q) {
             Glide.with(view)
                     .load(getAlbumArtUri(view.getContext())) // best source
-                    .error(R.drawable.music_icon_big)
+                    .error(R.drawable.music_icon_small)
                     .dontAnimate()
                     .signature(new ObjectKey(new File(getPath()).lastModified())) // only reload if file changed
                     .into(destination);
@@ -117,7 +117,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             if (embeddedArt != null) {
                 destination.setImageBitmap(embeddedArt);
             } else {
-                destination.setImageResource(R.drawable.music_icon_big);
+                destination.setImageResource(R.drawable.music_icon_small);
             }
         }
     }
@@ -125,8 +125,8 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.Q) {
             Glide.with(view)
                     .load(getAlbumArtUri(view.getContext())) // best source
-                    .placeholder(R.drawable.music_icon_big)
-                    .error(R.drawable.music_icon_big)
+                    .placeholder(R.drawable.music_icon_small)
+                    .error(R.drawable.music_icon_small)
                     .centerCrop()
                     .override(width, height) // match your old type=0 size
                     .dontAnimate()
@@ -138,7 +138,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             if (embeddedArt != null) {
                 destination.setImageBitmap(embeddedArt);
             } else {
-                destination.setImageResource(R.drawable.music_icon_big);
+                destination.setImageResource(R.drawable.music_icon_small);
             }
         }
     }

@@ -38,8 +38,6 @@ public class SongsFragment extends Fragment {
     private TextView textFolder;
     private ImageButton backButton;
     private SearchView searchSong;
-    private boolean isFiltered = false;
-    private List<AudioModel> originalData;  // ADD THIS LINE
 
     public SongsFragment() {
     }
@@ -102,7 +100,7 @@ public class SongsFragment extends Fragment {
             textFolder.setText(SongLibrary.get().getFolderDisplay());
 
             // STORE THE SOURCE LIST REFERENCE
-            originalData = new ArrayList<>(adapter.items);  // ADD THIS LINE
+            //originalData = new ArrayList<>(adapter.items);  // ADD THIS LINE
 
             receiver = new BroadcastReceiver() {
                 @Override public void onReceive(Context context, Intent intent) {
@@ -156,32 +154,28 @@ public class SongsFragment extends Fragment {
         adapter.updateUI();
     }
     public void filter(String text) {
-        if (adapter == null || originalData == null) return;
+        if (adapter == null) return;
 
         adapter.items.clear();
 
         if (text == null || text.trim().isEmpty()) {
-            adapter.items.addAll(originalData); // USE CACHED LIST
-            isFiltered = false;
+            // Use the adapter's method to restore from original
+            adapter.refreshFromOriginal();
         } else {
             String query = text.toLowerCase().trim();
-            for (AudioModel song : originalData) { // USE CACHED LIST
+            // Get original items from adapter
+            for (AudioModel song : adapter.getOriginalItems()) {
                 if (song.getTitle().toLowerCase().contains(query)) {
                     adapter.items.add(song);
                 }
             }
-            isFiltered = true;
         }
-        adapter.notifyDataSetChanged();
+        adapter.updateUI();
     }
 
     private void restoreOriginalList() {
-        if (adapter != null && originalData != null) {
-            adapter.items.clear();
-            adapter.items.addAll(originalData); // USE CACHED LIST
-            adapter.notifyDataSetChanged();
-            isFiltered = false;
+        if (adapter != null) {
+            adapter.refreshFromOriginal();
         }
     }
-
 }

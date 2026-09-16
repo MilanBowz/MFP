@@ -11,10 +11,14 @@ import android.content.Context;
 import android.content.Intent;
 
 import android.net.Uri;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
@@ -30,37 +34,11 @@ import milan.bowzgore.mfp.library.SongLibrary;
 public class NotificationService extends Service {
     private final int NOTIFICATION_ID = 1;
     public static final String CHANNEL_ID = "media_playback_channel";
-
     private PowerHandler powerHandler;
     public static ExoPlayer player;
     private MediaSessionHandler mediaSession;
     long lastPosition;
-
-    private final Player.Listener playerListener = new Player.Listener() {
-        @Override
-        public void onPlaybackStateChanged(int state){
-            if(state == Player.STATE_READY){
-                showNotification();
-                mediaSession.updateMetadata();
-                LocalBroadcastManager.getInstance(NotificationService.this)
-                        .sendBroadcast(new Intent("PLAYER_READY"));
-                if(viewPagerAdapter != null){
-                    viewPagerAdapter.updatePlayingFragment();
-                }
-            }
-            if(state == Player.STATE_ENDED){
-                if(currentMode == 0 || currentMode == 2){
-                    startMusicService("NEXT");
-                } else{
-                    startMusicService("REPLAY");
-                }
-            }
-        }
-        @Override
-        public void onPlayerError(PlaybackException error) {
-            startMusicService("NEXT");
-        }
-    };
+    private Player.Listener playerListener ;
 
     public NotificationService() {
 
@@ -69,6 +47,34 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        playerListener = new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int state){
+                if(state == Player.STATE_READY){
+                    if (SongLibrary.get().currentSong != null) {
+                        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+                        mediaSession.updateMetadata();
+                        showNotification();
+                        LocalBroadcastManager.getInstance(NotificationService.this)
+                                .sendBroadcast(new Intent("PLAYER_READY"));
+                        if(viewPagerAdapter != null){
+                            viewPagerAdapter.updatePlayingFragment();
+                        }
+                    }
+                }
+                if(state == Player.STATE_ENDED){
+                    if(currentMode == 0 || currentMode == 2){
+                        startMusicService("NEXT");
+                    } else{
+                        startMusicService("REPLAY");
+                    }
+                }
+            }
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                startMusicService("NEXT");
+            }
+        };
         initializePlayer();
         powerHandler = new PowerHandler(this);
         powerHandler.setup();
@@ -147,6 +153,14 @@ public class NotificationService extends Service {
 
 
     private void showNotification() {
+        if (SongLibrary.get().currentSong == null) {
+            Log.d("NotificationService", "Current song is null, skipping notification");
+            return;
+        }
+        SongLibrary library = SongLibrary.get();
+        int currentIndex = library.songNumber + 1;
+        String indexText = currentIndex + "/" + library.songsList.size();
+
         Intent playIntent = new Intent(this, NotificationService.class).setAction("PLAY");
         Intent pauseIntent = new Intent(this, NotificationService.class).setAction("PAUSE");
         Intent nextIntent = new Intent(this, NotificationService.class).setAction("NEXT");
@@ -178,6 +192,7 @@ public class NotificationService extends Service {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(SongLibrary.get().currentSong.getTitle())
+                .setContentText(indexText)
                 .setContentIntent(contentIntent)
                 .setLargeIcon(SongLibrary.get().currentSong.getNotificationArtWithGlide(this))
                 .addAction(prevAction)
@@ -185,7 +200,7 @@ public class NotificationService extends Service {
                 .addAction(nextAction)
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setPriority(NotificationCompat.DEFAULT_ALL)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setProgress((int) player.getDuration(), (int) player.getCurrentPosition(), false)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
@@ -195,11 +210,13 @@ public class NotificationService extends Service {
             builder.addAction(stopAction);
             builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
+
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         Notification notification = builder.build();
 
         notificationManager.notify(NOTIFICATION_ID, notification);
         startForeground(NOTIFICATION_ID, notification);
+        Log.d("NotificationService", "Notification shown successfully");
     }
 
 
@@ -250,12 +267,21 @@ public class NotificationService extends Service {
         SongLibrary library = SongLibrary.get();
         library.songNumber = index;
         if (currentMode == 2) {
+            if (library.shuffledList == null || library.shuffledList.isEmpty()) {
+                library.makeRandomList();
+            }
             library.currentSong = library.shuffledList.get(index);
         } else {
             library.currentSong = library.songsList.get(index);
         }
         loadCurrentSong();
-        playMusic();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // Update after 200ms to ensure we have the latest data
+            if (SongLibrary.get().currentSong != null) {
+                mediaSession.updateMetadata();
+                showNotification();
+            }
+        }, 200);
     }
 
     private void loadCurrentSong() { // used in song list: SongsFragment  coverart update
@@ -268,14 +294,14 @@ public class NotificationService extends Service {
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(library.currentSong.getPath())));
         player.setMediaItem(item);
         player.prepare();
-            // + mediaPlayer.seekTo(lastPosition); ?
+        player.play();
+
+        //player.seekTo(lastPosition);
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
         library.saveCurrentSong(getApplicationContext());
-        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("PLAYER_READY"));
-        //showNotification();
-        mediaSession.updateMetadata();
     }
+
 
     private void init_device_get() {
         if (player.isPlaying()) {
@@ -291,7 +317,6 @@ public class NotificationService extends Service {
         MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
         player.setMediaItem(item);
         player.prepare();
-        player.setPlayWhenReady(false);
         if(viewPagerAdapter != null){
             viewPagerAdapter.updatePlayingFragment();
             showNotification();
@@ -313,7 +338,7 @@ public class NotificationService extends Service {
     public void onDestroy() {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
-
+        player.removeListener(playerListener);
         // Notify MainActivity to finish
         Intent intent = new Intent("FINISH_ACTIVITY");
         sendBroadcast(intent);

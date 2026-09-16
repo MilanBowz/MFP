@@ -151,6 +151,7 @@ public class PlayingFragment extends Fragment {
             }else {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
                 SongLibrary.get().makeRandomList();
+
                 // Update shuffled index if in random mode
             }
             updateIndexNumber();// Update index when mode changes
@@ -189,9 +190,9 @@ public class PlayingFragment extends Fragment {
     public void setMusicResources() {
         if (!isAdded()) { return; }
         AudioModel song = SongLibrary.get().currentSong;
-        int index = SongLibrary.get().songNumber;
         if (song != null) {
             titleTv.setText(song.getTitle());
+            titleTv.setSelected(true);
             updateIndexNumber();
             if(player != null){
                 totalTimeTv.setText(convertToMMSS(song.getDuration()));
@@ -203,6 +204,7 @@ public class PlayingFragment extends Fragment {
             startMusicService("UPDATE");
         } else {
                 titleTv.setText(R.string.no_music_loaded);
+                titleTv.setSelected(false);
                 seekBar.setMax(1);
                 totalTimeTv.setText("00:00");
                 currentTimeTv.setText("00:00");
@@ -245,6 +247,7 @@ public class PlayingFragment extends Fragment {
                 if (!isAdded()) {return;}
                 if (SongLibrary.get().currentSong == null || player == null) {
                     titleTv.setText(R.string.no_music_loaded);
+                    titleTv.setSelected(false);
                     musicIcon.setImageResource(R.drawable.music_icon_big);
                     seekBar.setMax(0);
                     seekBar.setProgress(0);
@@ -281,8 +284,9 @@ public class PlayingFragment extends Fragment {
 
                     // Update title if changed
                     AudioModel currentSong = SongLibrary.get().currentSong;
-                    if (currentSong != null && !titleTv.getText().equals(currentSong.getTitle())) {
+                    if (currentSong != null && !currentSong.getTitle().equals(titleTv.getText().toString())) {
                         titleTv.setText(currentSong.getTitle());
+                        titleTv.setSelected(true);
                         currentSong.setGlideImage(PlayingFragment.this, musicIcon);
                     }
                 }

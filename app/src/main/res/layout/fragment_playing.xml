@@ -32,19 +32,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/music_icon_big"
+    <FrameLayout
+        android:id="@+id/music_icon_frame"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
-        android:src="@drawable/music_icon_big"
+        android:padding="12dp"
+        android:background="@drawable/music_icon_retro_border"
         app:layout_constraintBottom_toTopOf="@id/song_title"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.45"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toggle_play_mode"
-        app:layout_constraintWidth_percent="0.95" />
+        app:layout_constraintTop_toBottomOf="@id/toggle_play_mode"
+        app:layout_constraintWidth_percent="0.95">
+
+        <ImageView
+            android:id="@+id/music_icon_big"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:src="@drawable/music_icon_small" />
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/song_title"
@@ -52,14 +61,18 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:singleLine="true"
+        android:scrollHorizontally="true"
+        android:fontFamily="@font/eightbitoperator_jve"
+        android:background="?attr/selectableItemBackgroundBorderless"
+
         android:text="@string/title_of_the_song"
-        android:textSize="20sp"
+        android:textSize="27sp"
         app:layout_constraintBottom_toTopOf="@+id/controls"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.3"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/music_icon_big"
-        app:layout_constraintWidth_percent="0.9" />
+        app:layout_constraintWidth_percent="0.95" />
+    <!--The Undertale font used for narration, overworld dialogue, and as the primary interface typeface is called “8-Bit Operator JVE.” Created by Jayvee Enaguas, 8-bit Operator JVE exudes a nostalgic 8-bit aesthetic that perfectly complements Undertale’s retro-inspired graphics.The best part? It’s free for commercial use, allowing fans and game developers to incorporate it into their projects seamlessly.-->
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/controls"
@@ -72,12 +85,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+
+
         <SeekBar
             android:id="@+id/seek_bar"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/blue"
+            android:layout_height="34dp"
+            android:thumb="@drawable/pixel_seekbar_thumb"
+            android:progressDrawable="@drawable/retro_seekbar"
             app:layout_constraintWidth_percent="1"
+            android:thumbOffset="0dp"
+            android:splitTrack="false"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -87,6 +105,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0:00"
+            android:textSize="25sp"
+            android:fontFamily="@font/jersey10_regular"
             app:layout_constraintTop_toBottomOf="@id/seek_bar"
             app:layout_constraintStart_toStartOf="@id/seek_bar"
             android:layout_marginTop="8dp" />
@@ -96,6 +116,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0:00"
+            android:textSize="25sp"
+            android:fontFamily="@font/jersey10_regular"
             app:layout_constraintTop_toBottomOf="@id/seek_bar"
             app:layout_constraintEnd_toEndOf="@id/seek_bar"
             android:layout_marginTop="8dp" />
@@ -106,7 +128,7 @@
             android:layout_height="0dp"
             android:src="@drawable/ic_baseline_skip_previous_24"
             app:tint="@color/color"
-            app:layout_constraintWidth_percent="0.2"
+            app:layout_constraintWidth_percent="0.15"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintTop_toBottomOf="@id/total_time"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -119,7 +141,7 @@
             android:layout_height="0dp"
             android:src="@drawable/ic_baseline_skip_next_24"
             app:tint="@color/color"
-            app:layout_constraintWidth_percent="0.2"
+            app:layout_constraintWidth_percent="0.15"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintTop_toBottomOf="@id/total_time"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -132,7 +154,7 @@
             android:layout_height="0dp"
             android:src="@drawable/ic_baseline_pause_circle_outline_24"
             app:tint="@color/color"
-            app:layout_constraintWidth_percent="0.2"
+            app:layout_constraintWidth_percent="0.15"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintTop_toBottomOf="@id/total_time"
             app:layout_constraintBottom_toBottomOf="parent"

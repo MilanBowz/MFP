@@ -93,7 +93,7 @@ class MediaSessionHandler {
 
             @Override
             public void onSeekTo(long pos) {
-                player.seekTo(pos);
+                player.seekTo((int) pos);
                 updateMediaSessionPlaybackState(
                         NotificationService.player.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED
                 );

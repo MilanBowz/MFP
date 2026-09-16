@@ -29,8 +29,9 @@ xmlns:tools="http://schemas.android.com/tools"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:maxLines="1"
+            android:fontFamily="@font/eightbitoperator_jve"
             android:text="@string/songs"
-            android:textSize="20sp"
+            android:textSize="25sp"
             android:padding="10dp" />
         <androidx.appcompat.widget.SearchView
             android:id="@+id/search_songs"

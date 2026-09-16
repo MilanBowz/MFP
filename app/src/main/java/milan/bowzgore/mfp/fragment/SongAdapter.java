@@ -23,26 +23,29 @@ import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
 import milan.bowzgore.mfp.service.PowerHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     private final Context context;
-    protected final List<AudioModel> items ;
-    private int lastPlayedSong = -1;
+    protected final List<AudioModel> items; // Display list
+    private final List<AudioModel> originalItems; // Reference to original data
     private String lastPlayedSongName;
 
     protected SongAdapter(Context context) {
         SongLibrary lib = SongLibrary.get();
         if(!lib.songsList.isEmpty() && lib.isSyncTempSelectedFolder()){
-            this.items = lib.songsList;
+            this.originalItems = lib.songsList;
+            this.items = new ArrayList<>(lib.songsList); // Create a copy
             if (lib.songNumber == - 1) {
                 lib.songNumber = SongLibrary.get().songsList.indexOf(lib.currentSong);
             }
         }
         else {
-            this.items = SongLibrary.get().getTempAudioFromDevice(context);
+            this.originalItems = SongLibrary.get().getTempAudioFromDevice(context);
+            this.items = new ArrayList<>(originalItems); // Create a copy
         }
         this.context = context;
     }
@@ -71,9 +74,9 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
             // Navigate to PlayingFragment
             if (context instanceof AppCompatActivity && holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION) {
                 SongLibrary library = SongLibrary.get();
-                if(!Objects.equals(library.selectedFolder, library.tempFolder) || items != library.songsList){
+                if(!Objects.equals(library.selectedFolder, library.tempFolder) || originalItems != library.songsList){
                     library.songsList.clear();
-                    library.songsList.addAll(items);
+                    library.songsList.addAll(originalItems);
                     library.selectedFolder = library.tempFolder;
                 }
                 // get currentsong by: holder.titleTextView
@@ -110,27 +113,26 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                         .map(AudioModel::getTitle)
                         .toList()
                         .indexOf(lastPlayedSongName));
-            }
-            else if(lastPlayedSong > -1){
-                notifyItemChanged(lastPlayedSong);
-            }
-
-            int position = 0;
-            String currentTitle = SongLibrary.get().currentSong.getTitle(); if (currentTitle == null) return;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                position = items.stream()
+                notifyItemChanged(items.stream()
                         .map(AudioModel::getTitle)
                         .toList()
-                        .indexOf(SongLibrary.get().currentSong.getTitle());
-                notifyItemChanged(position);
+                        .indexOf(SongLibrary.get().currentSong.getTitle()));
             }
             else {
-                position = SongLibrary.get().songNumber;
+                notifyDataSetChanged();
             }
-            if (position == -1) return;
-            notifyItemChanged(position);
-            lastPlayedSong = position;
         }
+    }
+    // Add method to refresh from original data
+    public void refreshFromOriginal() {
+        items.clear();
+        items.addAll(originalItems);
+        notifyDataSetChanged();
+    }
+
+    // Add method to get original list
+    public List<AudioModel> getOriginalItems() {
+        return originalItems;
     }
 
     protected class ViewHolder extends RecyclerView.ViewHolder{

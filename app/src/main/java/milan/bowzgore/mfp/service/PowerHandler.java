@@ -29,8 +29,6 @@ public class PowerHandler {
 
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
-    private AudioManager.OnAudioFocusChangeListener afChangeListener;
-
     BroadcastReceiver headsetReceiver;
 
     public PowerHandler(Context context) {
@@ -47,20 +45,25 @@ public class PowerHandler {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
-        if (audioManager != null) {
-            audioManager.abandonAudioFocus(afChangeListener);
+
+        if (audioManager != null && audioFocusRequest != null) {
+            int result = audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            Log.d(
+                    "AUDIO_FOCUS",
+                    "abandonAudioFocus result = " + result
+            );
         }
     }
 
     public boolean requestAudioFocus() {
         if (audioManager == null) return false;
 
-        int result;
-        result = audioManager.requestAudioFocus(audioFocusRequest);
+        int result = audioManager.requestAudioFocus(audioFocusRequest);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             acquireWakeLock();
+            return true;
         }
-        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        return false;
     }
 
     protected void setup(){
@@ -70,17 +73,12 @@ public class PowerHandler {
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build();
 
-        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(audioAttributes)
-                .setWillPauseWhenDucked(true)
-                .setAcceptsDelayedFocusGain(true)
-                .setOnAudioFocusChangeListener(focusChange -> {
-                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                        startMusicService("PAUSE");                        }
-                })
-                .build();
-        requestAudioFocus();
-        afChangeListener = focusChange -> {
+
+        AudioManager.OnAudioFocusChangeListener afChangeListener = focusChange -> {
+            Log.d(
+                    "AUDIO_FOCUS",
+                    "Focus changed: " + focusChange
+            );
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                     startMusicService("PAUSE");
@@ -91,6 +89,12 @@ public class PowerHandler {
                     break;
             }
         };
+        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttributes)
+                .setWillPauseWhenDucked(false)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(afChangeListener)
+                .build();
         setupBroadcast();
     }
     protected void stop(){
@@ -153,7 +157,7 @@ public class PowerHandler {
 
     private boolean isSpeaker(BluetoothDevice device) {
         // Check if the device is a speaker
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
             if (device.getBluetoothClass() != null) {
                 int deviceClass = device.getBluetoothClass().getDeviceClass();
                 return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
