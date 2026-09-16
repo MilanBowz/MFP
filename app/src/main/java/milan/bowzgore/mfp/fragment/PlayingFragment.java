@@ -3,7 +3,8 @@ package milan.bowzgore.mfp.fragment;
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
-import static milan.bowzgore.mfp.service.NotificationService.player;
+import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
+import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 
@@ -124,10 +125,14 @@ public class PlayingFragment extends Fragment {
         }
         setMusicResources();
 
-        // Always setup seekbar listener and runnable
-        setupSeekBarListener();
-        titleTv.setSelected(true);
-        setupRunnable(); // Always call this, even if player is null
+        if (mediaPlayer != null) {
+            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+            setupSeekBarListener();
+            seekBar.setMax(mediaPlayer.getDuration()); // Set SeekBar max to media duration
+            seekBar.setProgress(mediaPlayer.getCurrentPosition());
+            titleTv.setSelected(true);
+            setupRunnable();
+        }
 
         receiver = new BroadcastReceiver() {
             @Override
@@ -140,6 +145,8 @@ public class PlayingFragment extends Fragment {
             }
         };
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PLAYER_READY"));
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
 
         togglePlayMode.setOnClickListener(v -> {
             setPlayMode();
@@ -151,7 +158,6 @@ public class PlayingFragment extends Fragment {
             }else {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
                 SongLibrary.get().makeRandomList();
-
                 // Update shuffled index if in random mode
             }
             updateIndexNumber();// Update index when mode changes
@@ -167,7 +173,7 @@ public class PlayingFragment extends Fragment {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    player.seekTo(progress);
+                    mediaPlayer.seekTo(progress);
                     currentTimeTv.setText(convertToMMSS(String.valueOf(progress)));
                 }
             }
@@ -176,7 +182,7 @@ public class PlayingFragment extends Fragment {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                player.seekTo(seekBar.getProgress());
+                mediaPlayer.seekTo(seekBar.getProgress());
             }
         });
     }
@@ -194,11 +200,11 @@ public class PlayingFragment extends Fragment {
             titleTv.setText(song.getTitle());
             titleTv.setSelected(true);
             updateIndexNumber();
-            if(player != null){
+            if(mediaPlayer != null){
                 totalTimeTv.setText(convertToMMSS(song.getDuration()));
-                seekBar.setMax((int) player.getDuration());
-                currentTimeTv.setText(convertToMMSS(String.valueOf(player.getCurrentPosition())));
-                seekBar.setProgress((int) player.getCurrentPosition());
+                seekBar.setMax((int) mediaPlayer.getDuration());
+                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
+                seekBar.setProgress((int) mediaPlayer.getCurrentPosition());
             }
             song.setGlideImage(this, musicIcon);
             startMusicService("UPDATE");
@@ -214,7 +220,7 @@ public class PlayingFragment extends Fragment {
     }
 
     private void pausePlay(){
-        if (player != null && player.isPlaying()) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             startMusicService("PAUSE");
             pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         } else {
@@ -245,7 +251,7 @@ public class PlayingFragment extends Fragment {
             @Override
             public void run() {
                 if (!isAdded()) {return;}
-                if (SongLibrary.get().currentSong == null || player == null) {
+                if (SongLibrary.get().currentSong == null || mediaPlayer == null) {
                     titleTv.setText(R.string.no_music_loaded);
                     titleTv.setSelected(false);
                     musicIcon.setImageResource(R.drawable.music_icon_big);
@@ -257,8 +263,8 @@ public class PlayingFragment extends Fragment {
                 }
                 else {
                     // Update regardless of playing state to show current position
-                    long duration = player.getDuration();
-                    long currentPosition = player.getCurrentPosition();
+                    long duration = mediaPlayer.getDuration();
+                    long currentPosition = mediaPlayer.getCurrentPosition();
 
                     if (duration > 0) {
                         seekBar.setMax((int) duration);
@@ -276,7 +282,7 @@ public class PlayingFragment extends Fragment {
                     }
 
                     // Update play/pause button state
-                    if (player.isPlaying()) {
+                    if (isPlaying) {
                         pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
                     } else {
                         pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);

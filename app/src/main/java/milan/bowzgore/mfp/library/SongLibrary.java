@@ -19,7 +19,7 @@ import milan.bowzgore.mfp.model.AudioModel;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static milan.bowzgore.mfp.service.NotificationService.player;
+import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
 import androidx.media3.common.MediaItem;
@@ -260,5 +260,16 @@ public class SongLibrary {
         return mediaItems;
     }
 
-
+    public void setSongNumber(int index) {
+        this.songNumber = index;
+        if (currentMode == 2 && shuffledList != null && !shuffledList.isEmpty()) {
+            if (index >= 0 && index < shuffledList.size()) {
+                this.currentSong = shuffledList.get(index);
+            }
+        } else {
+            if (index >= 0 && index < songsList.size()) {
+                this.currentSong = songsList.get(index);
+            }
+        }
+    }
 }

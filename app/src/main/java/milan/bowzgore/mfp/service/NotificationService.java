@@ -10,6 +10,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -26,6 +27,7 @@ import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 
 import java.io.File;
+import java.io.IOException;
 
 import milan.bowzgore.mfp.MainActivity;
 import milan.bowzgore.mfp.R;
@@ -35,47 +37,20 @@ public class NotificationService extends Service {
     private final int NOTIFICATION_ID = 1;
     public static final String CHANNEL_ID = "media_playback_channel";
     private PowerHandler powerHandler;
-    public static ExoPlayer player;
+    public static volatile MediaPlayer mediaPlayer;
     private MediaSessionHandler mediaSession;
     long lastPosition;
-    private Player.Listener playerListener ;
+    public static Boolean isPlaying = false;
 
     public NotificationService() {
-
+        if(mediaPlayer == null){
+            mediaPlayer = new MediaPlayer();
+        }
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        playerListener = new Player.Listener() {
-            @Override
-            public void onPlaybackStateChanged(int state){
-                if(state == Player.STATE_READY){
-                    if (SongLibrary.get().currentSong != null) {
-                        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-                        mediaSession.updateMetadata();
-                        showNotification();
-                        LocalBroadcastManager.getInstance(NotificationService.this)
-                                .sendBroadcast(new Intent("PLAYER_READY"));
-                        if(viewPagerAdapter != null){
-                            viewPagerAdapter.updatePlayingFragment();
-                        }
-                    }
-                }
-                if(state == Player.STATE_ENDED){
-                    if(currentMode == 0 || currentMode == 2){
-                        startMusicService("NEXT");
-                    } else{
-                        startMusicService("REPLAY");
-                    }
-                }
-            }
-            @Override
-            public void onPlayerError(PlaybackException error) {
-                startMusicService("NEXT");
-            }
-        };
-        initializePlayer();
         powerHandler = new PowerHandler(this);
         powerHandler.setup();
         mediaSession = new MediaSessionHandler(this);
@@ -103,14 +78,19 @@ public class NotificationService extends Service {
                     playMusic();
                     break;
                 case "REPLAY", "IM_UPDATE":
-                    loadCurrentSong();
+                    changePlaying(true);
+                    if(isPlaying){
+                        playMusic();
+                    }
+                    mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    showNotification();
                     break;
                 case "PAUSE":
                     pauseMusic();
-                    lastPosition = player.getCurrentPosition();
+                    lastPosition = mediaPlayer.getCurrentPosition();
                     break;
                 case "IM_SAVE":
-                    lastPosition = player.getCurrentPosition();
+                    lastPosition = mediaPlayer.getCurrentPosition();
                     break;
                 case "NEXT":
                     playNextSong();
@@ -127,7 +107,7 @@ public class NotificationService extends Service {
                     break;
                 case "LOAD":
                 case "UPDATE":
-                    mediaSession.updateMediaSessionPlaybackState(player.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    mediaSession.updateMediaSessionPlaybackState(mediaPlayer.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
                     showNotification();
                     break;
                 case "INIT":
@@ -182,7 +162,7 @@ public class NotificationService extends Service {
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        NotificationCompat.Action actionToShow = player.isPlaying() ?
+        NotificationCompat.Action actionToShow = mediaPlayer.isPlaying() ?
                 new NotificationCompat.Action(R.drawable.ic_baseline_pause_circle_outline_24, "Pause", pausePendingIntent) :
                 new NotificationCompat.Action(R.drawable.ic_baseline_play_circle_outline_24, "Play", playPendingIntent);
         NotificationCompat.Action nextAction = new NotificationCompat.Action(R.drawable.ic_baseline_skip_next_24, "Next", nextPendingIntent);
@@ -202,11 +182,11 @@ public class NotificationService extends Service {
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.DEFAULT_ALL)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setProgress((int) player.getDuration(), (int) player.getCurrentPosition(), false)
+                .setProgress((int) mediaPlayer.getDuration(), (int) mediaPlayer.getCurrentPosition(), false)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2)// Show actions in compact view
                         .setMediaSession(mediaSession.getSessionToken()));
-        if (!player.isPlaying()) {
+        if (!mediaPlayer.isPlaying()) {
             builder.addAction(stopAction);
             builder.setProgress(0, 0, false); // This hides the progress bar when the song isn't playing
         }
@@ -227,21 +207,25 @@ public class NotificationService extends Service {
 
 
     private void playMusic() {
-        player.play();
+        isPlaying = true;
+        mediaPlayer.start();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        showNotification();
         powerHandler.requestAudioFocus();
         mediaSession.updateMetadata();
     }
 
     private void pauseMusic() {
-        player.pause();
+        isPlaying = false;
+        mediaPlayer.pause();
         mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        showNotification();
         powerHandler.releaseWakeLockAndAudioFocus();
         mediaSession.updateMetadata();
     }
 
     private void playPauseMusic() {
-        if (player.isPlaying()) {
+        if (mediaPlayer.isPlaying()) {
             pauseMusic();
         } else {
             playMusic();
@@ -249,88 +233,177 @@ public class NotificationService extends Service {
     }
 
     private void playNextSong() {
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT);
+
         int next = SongLibrary.get().songNumber + 1;
         if(next >= SongLibrary.get().songsList.size()){
             next = 0;
         }
         changePlaying(next);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
+        mediaSession.updateMetadata();
+        showNotification();
     }
     private void playPreviousSong() {
+        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS);
         int previous = SongLibrary.get().songNumber - 1;
         if(previous < 0){
             previous = SongLibrary.get().songsList.size() - 1;
         }
         changePlaying(previous);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("NEXT"));
+        mediaSession.updateMetadata();
+        showNotification();
     }
 
+    private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
+        mediaPlayer.setOnPreparedListener(null);
+        mediaPlayer.setOnCompletionListener(null);
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+        }
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
+            mediaPlayer.prepare();
+            mediaPlayer.setOnPreparedListener(mp->{
+                if(isEdited){
+                    mediaPlayer.seekTo((int) lastPosition);
+                    if(isPlaying){
+                        playMusic();
+                    }
+                }
+                else {
+                    playMusic();
+                }
+                mediaPlayer.setOnCompletionListener(mp1 -> {
+                    if(currentMode == 0 || currentMode == 2){
+                        startMusicService("NEXT");
+                    } else{
+                        startMusicService("REPLAY");
+                    }
+                });
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment(); // update song in Playingfragment
+                    if(isEdited) {
+                        viewPagerAdapter.updateSongsFragment(); // update song in Songsfragment
+                    }
+                }
+                SongLibrary.get().saveCurrentSong(getApplicationContext());
+                System.gc();
+            });
+        } catch (IOException e) {
+            Log.e("NotificationService.MediaPlayer", "changing song error with library");
+        }
+    }
     private void changePlaying(int index) {
         SongLibrary library = SongLibrary.get();
-        library.songNumber = index;
-        if (currentMode == 2) {
-            if (library.shuffledList == null || library.shuffledList.isEmpty()) {
-                library.makeRandomList();
-            }
-            library.currentSong = library.shuffledList.get(index);
-        } else {
-            library.currentSong = library.songsList.get(index);
+        mediaPlayer.setOnPreparedListener(null);
+        mediaPlayer.setOnCompletionListener(null);
+        library.setSongNumber(index);
+
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
         }
-        loadCurrentSong();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            // Update after 200ms to ensure we have the latest data
-            if (SongLibrary.get().currentSong != null) {
-                mediaSession.updateMetadata();
-                showNotification();
-            }
-        }, 200);
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(library.currentSong.getPath());
+            mediaPlayer.prepare();
+            mediaPlayer.setOnPreparedListener(mp->{
+                playMusic();
+                if(viewPagerAdapter != null){
+                    viewPagerAdapter.updatePlayingFragment();
+                }
+                mediaPlayer.setOnCompletionListener(mp1 -> {
+                    if(currentMode == 0 || currentMode == 2){
+                        startMusicService("NEXT");
+                    } else{
+                        startMusicService("REPLAY");
+                    }
+                    Log.d("NotificationService.MediaPlayer", "Playback completed");
+                });
+                library.saveCurrentSong(getApplicationContext());
+                System.gc();
+            });
+        } catch (IOException e) {
+            Log.e("NotificationService.MediaPlayer", "changing song error with index");
+        }
     }
 
     private void loadCurrentSong() { // used in song list: SongsFragment  coverart update
-        SongLibrary library = SongLibrary.get();
-
-        if (library.currentSong == null) {
-            return;
+        if(mediaPlayer == null){
+            mediaPlayer = new MediaPlayer();
         }
-
-        MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(library.currentSong.getPath())));
-        player.setMediaItem(item);
-        player.prepare();
-        player.play();
-
-        //player.seekTo(lastPosition);
-        mediaSession.updateMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-
-        library.saveCurrentSong(getApplicationContext());
+        mediaPlayer.setOnCompletionListener(null);
+        mediaPlayer.reset(); // Reset before setting a new data source
+        try {
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
+            mediaPlayer.prepare();
+            if(isPlaying){
+                startMusicService("PLAY");
+            }
+            if(viewPagerAdapter != null){
+                viewPagerAdapter.updatePlayingFragment();
+            }
+            mediaPlayer.setOnCompletionListener(mp1 -> {
+                if(currentMode == 0 || currentMode == 2){
+                    startMusicService("NEXT");
+                } else{
+                    startMusicService("REPLAY");
+                }
+            });
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e("MediaPlayer", "Error occurred: " + what + ", " + extra);
+                mediaPlayer.reset();
+                return true;
+            });
+        } catch (IOException e) {
+            Log.e("Notification.MediaPlayer", "Mediaplayer error init");
+        }
     }
 
 
     private void init_device_get() {
-        if (player.isPlaying()) {
-            // Just update UI, don't reset playback
+        if(mediaPlayer == null) {
+            mediaPlayer = new MediaPlayer();
+        }
+        mediaPlayer.setOnCompletionListener(null);
+        mediaPlayer.reset(); // Reset before setting a new data source
+        try {
+            mediaPlayer.setDataSource(SongLibrary.get().currentSong.getPath());
+            mediaPlayer.prepare();
+            if(isPlaying){
+                startMusicService("PLAY");
+            }
             if(viewPagerAdapter != null){
                 viewPagerAdapter.updatePlayingFragment();
-                showNotification();
             }
-            return;
-        }
-        initializePlayer();
-
-        MediaItem item = MediaItem.fromUri(Uri.fromFile(new File(SongLibrary.get().currentSong.getPath())));
-        player.setMediaItem(item);
-        player.prepare();
-        if(viewPagerAdapter != null){
-            viewPagerAdapter.updatePlayingFragment();
-            showNotification();
+            mediaPlayer.setOnCompletionListener(mp1 -> {
+                if(currentMode == 0 || currentMode == 2){
+                    startMusicService("NEXT");
+                } else{
+                    startMusicService("REPLAY");
+                }
+            });
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e("MediaPlayer", "Error occurred: " + what + ", " + extra);
+                mediaPlayer.reset();
+                return true;
+            });
+        } catch (IOException e) {
+            Log.e("Notification.MediaPlayer", "Mediaplayer error init");
         }
     }
 
     private void stopMusic(){
+        isPlaying = false;
         if(powerHandler != null){
             powerHandler.stop();
         }
         //SongLibrary lib = SongLibrary.get();
     }
     public void onStopFromNotification() {
-        if (!player.isPlaying() || player == null) {
+        if (!isPlaying) {
             onDestroy();
         }
     }
@@ -338,7 +411,7 @@ public class NotificationService extends Service {
     public void onDestroy() {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID); // Removes the notification
-        player.removeListener(playerListener);
+        //player.removeListener(playerListener);
         // Notify MainActivity to finish
         Intent intent = new Intent("FINISH_ACTIVITY");
         sendBroadcast(intent);
@@ -347,23 +420,14 @@ public class NotificationService extends Service {
         stopSelf();
         super.onDestroy();
     }
-    private void initializePlayer() {
-        if (player == null) {
-            player = new ExoPlayer.Builder(this).build();
-            player.addListener(playerListener);
-        }
-        /*else{
-            player.stop();
-            player.clearMediaItems(); // Reset before setting a new data source
-        }*/
-    }
 
-    @Override
+
+    /*@Override
     public void onTaskRemoved(Intent rootIntent) {
         // Keep service running when app is swiped away
         if (player.isPlaying()) {
             showNotification();
         }
-    }
+    }*/
 
 }

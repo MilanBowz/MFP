@@ -151,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
         }
         String folderPath = model.getPath().substring(0, model.getPath().lastIndexOf("/"));
         SongLibrary.get().setPlaying(model,this);
+        NotificationService.isPlaying = true;
 
         executorService.execute(() -> {
             SongLibrary.get().syncTempAndSelectedFolder(folderPath);
@@ -167,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleAudioFile(AudioModel audioUri) {
         if(SongLibrary.get().currentSong == null){
+            NotificationService.isPlaying = false;
             SongLibrary.get().setPlaying(audioUri,this);
             if (audioUri != null) {
                 int folderSplit = audioUri.getPath().lastIndexOf("/");
