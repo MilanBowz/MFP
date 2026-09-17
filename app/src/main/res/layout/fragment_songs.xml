@@ -15,7 +15,7 @@
         android:layout_height="55dp"
         android:id="@+id/icon_view"
         android:layout_marginStart="5dp"
-        android:src="@drawable/music_icon_big"/>
+        android:src="@drawable/music_icon_small"/>
 
     <TextView
         android:layout_width="wrap_content"

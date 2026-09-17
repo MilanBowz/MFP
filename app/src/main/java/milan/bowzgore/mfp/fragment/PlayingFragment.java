@@ -127,12 +127,12 @@ public class PlayingFragment extends Fragment {
 
         if (mediaPlayer != null) {
             currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-            setupSeekBarListener();
             seekBar.setMax(mediaPlayer.getDuration()); // Set SeekBar max to media duration
             seekBar.setProgress(mediaPlayer.getCurrentPosition());
             titleTv.setSelected(true);
-            setupRunnable();
         }
+        setupSeekBarListener();
+        setupRunnable();
 
         receiver = new BroadcastReceiver() {
             @Override
@@ -171,18 +171,17 @@ public class PlayingFragment extends Fragment {
     private void setupSeekBarListener() {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
                 if (fromUser) {
-                    mediaPlayer.seekTo(progress);
                     currentTimeTv.setText(convertToMMSS(String.valueOf(progress)));
                 }
             }
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
+            public void onStartTrackingTouch(SeekBar sb) {
+            }
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                mediaPlayer.seekTo(seekBar.getProgress());
+            public void onStopTrackingTouch(SeekBar sb) {
+                mediaPlayer.seekTo(sb.getProgress());
             }
         });
     }
@@ -202,9 +201,9 @@ public class PlayingFragment extends Fragment {
             updateIndexNumber();
             if(mediaPlayer != null){
                 totalTimeTv.setText(convertToMMSS(song.getDuration()));
-                seekBar.setMax((int) mediaPlayer.getDuration());
+                seekBar.setMax(mediaPlayer.getDuration());
                 currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                seekBar.setProgress((int) mediaPlayer.getCurrentPosition());
+                seekBar.setProgress(mediaPlayer.getCurrentPosition());
             }
             song.setGlideImage(this, musicIcon);
             startMusicService("UPDATE");
@@ -215,7 +214,7 @@ public class PlayingFragment extends Fragment {
                 totalTimeTv.setText("00:00");
                 currentTimeTv.setText("00:00");
                 seekBar.setProgress(0);
-                musicIcon.setImageResource(R.drawable.music_icon_big);
+                musicIcon.setImageResource(R.drawable.music_icon_small);
         }
     }
 
@@ -254,7 +253,7 @@ public class PlayingFragment extends Fragment {
                 if (SongLibrary.get().currentSong == null || mediaPlayer == null) {
                     titleTv.setText(R.string.no_music_loaded);
                     titleTv.setSelected(false);
-                    musicIcon.setImageResource(R.drawable.music_icon_big);
+                    musicIcon.setImageResource(R.drawable.music_icon_small);
                     seekBar.setMax(0);
                     seekBar.setProgress(0);
                     totalTimeTv.setText("00:00");

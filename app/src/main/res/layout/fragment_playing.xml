@@ -85,12 +85,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-
-
         <SeekBar
             android:id="@+id/seek_bar"
             android:layout_width="0dp"
-            android:layout_height="34dp"
+            android:layout_height="25dp"
+            android:minHeight="25dp"
+            android:maxHeight="25dp"
             android:thumb="@drawable/pixel_seekbar_thumb"
             android:progressDrawable="@drawable/retro_seekbar"
             app:layout_constraintWidth_percent="1"

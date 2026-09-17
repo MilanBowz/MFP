@@ -169,8 +169,8 @@ public class SongsFragment extends Fragment {
                     adapter.items.add(song);
                 }
             }
+            adapter.notifyDataSetChanged();
         }
-        adapter.updateUI();
     }
 
     private void restoreOriginalList() {

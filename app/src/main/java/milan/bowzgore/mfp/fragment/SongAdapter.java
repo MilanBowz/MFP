@@ -104,23 +104,25 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     }
 
     protected void updateUI() {
-        if (SongLibrary.get().isSyncTempSelectedFolder()) {
-            if(lastPlayedSongName == null){
-                lastPlayedSongName = SongLibrary.get().currentSong.getTitle();
+        if (items.isEmpty()) return;
+        AudioModel current = SongLibrary.get().currentSong;
+        if (current == null) return;
+        if (lastPlayedSongName == null) {
+            lastPlayedSongName = current.getTitle();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Find indices safely
+            int lastIdx = -1;
+            int curIdx  = -1;
+            for (int i = 0; i < items.size(); i++) {
+                String title = items.get(i).getTitle();
+                if (Objects.equals(title, lastPlayedSongName)) lastIdx = i;
+                if (Objects.equals(title, current.getTitle()))  curIdx  = i;
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                notifyItemChanged(items.stream()
-                        .map(AudioModel::getTitle)
-                        .toList()
-                        .indexOf(lastPlayedSongName));
-                notifyItemChanged(items.stream()
-                        .map(AudioModel::getTitle)
-                        .toList()
-                        .indexOf(SongLibrary.get().currentSong.getTitle()));
-            }
-            else {
-                notifyDataSetChanged();
-            }
+            if (lastIdx >= 0) notifyItemChanged(lastIdx);
+            if (curIdx  >= 0) notifyItemChanged(curIdx);
+        } else {
+            notifyDataSetChanged();
         }
     }
     // Add method to refresh from original data
