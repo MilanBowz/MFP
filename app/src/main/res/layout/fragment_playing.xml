@@ -10,6 +10,7 @@
     <ImageView
         android:id="@+id/toggle_play_mode"
         android:src="@drawable/ic_baseline_loop_24"
+        android:background="@drawable/dashed_border"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
@@ -66,11 +67,11 @@
         android:background="?attr/selectableItemBackgroundBorderless"
 
         android:text="@string/title_of_the_song"
-        android:textSize="27sp"
+        android:textSize="@dimen/title_text_size"
         app:layout_constraintBottom_toTopOf="@+id/controls"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/music_icon_big"
+        app:layout_constraintTop_toBottomOf="@id/music_icon_frame"
         app:layout_constraintWidth_percent="0.95" />
     <!--The Undertale font used for narration, overworld dialogue, and as the primary interface typeface is called “8-Bit Operator JVE.” Created by Jayvee Enaguas, 8-bit Operator JVE exudes a nostalgic 8-bit aesthetic that perfectly complements Undertale’s retro-inspired graphics.The best part? It’s free for commercial use, allowing fans and game developers to incorporate it into their projects seamlessly.-->
 
@@ -105,7 +106,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0:00"
-            android:textSize="25sp"
+            android:textSize="@dimen/time_text_size"
             android:fontFamily="@font/jersey10_regular"
             app:layout_constraintTop_toBottomOf="@id/seek_bar"
             app:layout_constraintStart_toStartOf="@id/seek_bar"
@@ -116,7 +117,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0:00"
-            android:textSize="25sp"
+            android:textSize="@dimen/time_text_size"
             android:fontFamily="@font/jersey10_regular"
             app:layout_constraintTop_toBottomOf="@id/seek_bar"
             app:layout_constraintEnd_toEndOf="@id/seek_bar"
@@ -133,7 +134,7 @@
             app:layout_constraintTop_toBottomOf="@id/total_time"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="16dp" />
+            android:layout_marginStart="16sp" />
 
         <ImageView
             android:id="@+id/next"
@@ -146,7 +147,7 @@
             app:layout_constraintTop_toBottomOf="@id/total_time"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="16dp" />
+            android:layout_marginEnd="16sp" />
 
         <ImageView
             android:id="@+id/pause_play"

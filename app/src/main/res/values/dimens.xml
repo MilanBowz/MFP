@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="text_margin">16dp</dimen>
+    <dimen name="screen_margin">16dp</dimen>
+    <dimen name="icon_margin">16dp</dimen>
+    <dimen name="frame_padding">12dp</dimen>
+    <dimen name="title_text_size">27sp</dimen>
+    <dimen name="time_text_size">25sp</dimen>
+    <dimen name="index_text_size">30sp</dimen>
+    <dimen name="seekbar_height">25dp</dimen>
+    <dimen name="seekbar_thumb_offset">0dp</dimen>
+    <dimen name="control_icon_size_percent">0.15</dimen>
 </resources>

@@ -77,7 +77,15 @@ public class NotificationService extends Service {
                 case "PLAY":
                     playMusic();
                     break;
-                case "REPLAY", "IM_UPDATE":
+                case "REPLAY":
+                    changePlaying(false);
+                    if(isPlaying){
+                        playMusic();
+                    }
+                    mediaSession.updateMediaSessionPlaybackState(isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+                    showNotification();
+                    break;
+                case "IM_UPDATE":
                     changePlaying(true);
                     if(isPlaying){
                         playMusic();
@@ -259,6 +267,7 @@ public class NotificationService extends Service {
     private void changePlaying(boolean isEdited) { // used in song list: SongsFragment  coverart update
         mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
+        lastPosition = 0;
         if (mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
         }
@@ -300,6 +309,7 @@ public class NotificationService extends Service {
         SongLibrary library = SongLibrary.get();
         mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
+        lastPosition = 0;
         library.setSongNumber(index);
 
         if (mediaPlayer.isPlaying()) {
@@ -334,6 +344,7 @@ public class NotificationService extends Service {
         if(mediaPlayer == null){
             mediaPlayer = new MediaPlayer();
         }
+        lastPosition = 0;
         mediaPlayer.setOnCompletionListener(null);
         mediaPlayer.reset(); // Reset before setting a new data source
         try {

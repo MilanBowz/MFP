@@ -41,7 +41,7 @@ xmlns:tools="http://schemas.android.com/tools"
             app:searchIcon="@drawable/ic_search"
             android:imeOptions="actionSearch"
             android:inputType="text"
-            android:background="@null"/>
+            android:background="@drawable/dashed_border"/>
     </LinearLayout>
 
 

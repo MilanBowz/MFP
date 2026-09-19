@@ -7,7 +7,7 @@
     android:layout_marginTop="5dp"
     android:layout_marginLeft="5dp"
     android:layout_marginRight="5dp"
-    android:paddingVertical="5dp"
+    android:paddingVertical="0dp"
     xmlns:tools="http://schemas.android.com/tools">
 
     <ImageView
@@ -15,6 +15,7 @@
         android:layout_height="55dp"
         android:id="@+id/icon_view"
         android:layout_marginStart="5dp"
+        android:layout_marginVertical="5dp"
         android:src="@drawable/music_icon_small"/>
 
     <TextView
@@ -22,10 +23,14 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="5dp"
         android:fontFamily="@font/eightbitoperator_jve"
+        android:background="@drawable/dashed_left_border"
         android:textColor="@color/color"
         android:id="@+id/music_title_text"
-        android:paddingVertical="15dp"
+        android:paddingVertical="20dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="0dp"
         android:maxLines="1"
+        android:layout_marginVertical="0dp"
         android:textSize="16sp"
         android:ellipsize="end"
         tools:text="Music" />
