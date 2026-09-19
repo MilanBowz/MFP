@@ -61,12 +61,23 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
     public void onBindViewHolder(final ViewHolder holder, int position) {
         AudioModel songData = items.get(position);
         holder.titleTextView.setText(songData.getTitle());
+        holder.songNumberTextView.setText(
+                String.format(java.util.Locale.getDefault(), "%03d", position + 1)
+        );
 
         if (SongLibrary.get().currentSong != null && Objects.equals(SongLibrary.get().currentSong.getTitle(), songData.getTitle())) {
-            holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
+            if(PowerHandler.currentMode == 2){
+                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.green));
+            }
+            else {
+                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
+            }
+            holder.songNumberTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
             lastPlayedSongName = (String) holder.titleTextView.getText();
         } else {
             holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
+            holder.songNumberTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
+
         }
         songData.setGlideImage(holder.iconImageView,96, 96, holder.iconImageView);
 
@@ -139,10 +150,12 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
 
     protected class ViewHolder extends RecyclerView.ViewHolder{
         TextView titleTextView;
+        TextView songNumberTextView;
         ImageView iconImageView;
         public ViewHolder(View itemView) {
             super(itemView);
             titleTextView = itemView.findViewById(R.id.music_title_text);
+            songNumberTextView = itemView.findViewById(R.id.song_number_text);
             iconImageView = itemView.findViewById(R.id.icon_view);
         }
     }
