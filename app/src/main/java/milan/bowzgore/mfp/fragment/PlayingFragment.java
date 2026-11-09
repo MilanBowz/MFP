@@ -182,7 +182,6 @@ public class PlayingFragment extends Fragment {
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction("UPDATE");
-        filter.addAction("TOGGLE_PLAY_MODE");
         filter.addAction("PLAYER_READY");
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
 
@@ -386,6 +385,7 @@ public class PlayingFragment extends Fragment {
         if (viewPagerAdapter != null) {
             viewPagerAdapter.updatePlayingFragment();
         }
+        LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(new Intent("TOGGLE_PLAY_MODE"));
     }
 
     @Override
