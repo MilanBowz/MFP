@@ -10,5 +10,5 @@
         android:id="@+id/playlist_button"
         android:title="@string/playlist"
         android:iconTint="@color/white"
-        android:icon="@drawable/ic_baseline_skip_next_24" />
+        android:icon="@drawable/ic_baseline_list_24" />
 </menu>

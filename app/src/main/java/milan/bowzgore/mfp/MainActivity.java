@@ -68,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         viewPagerAdapter = new ViewPagerAdapter(this);
-        //viewPagerAdapter.createFragment(0);
-        //viewPagerAdapter.createFragment(1);
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
