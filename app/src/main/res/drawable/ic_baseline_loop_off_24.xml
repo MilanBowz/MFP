@@ -1,7 +1,18 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp" android:tint="@color/color"
-    android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
 
-    <path android:fillColor="@color/color" android:pathData="M12,4L12,1L7,5l5,4L12,6L18,6L18,12L20,12L20,4L12,4zM12,18L6,18L6,12L4,12L4,20L12,20L12,23L17,19L12,15L12,18z"/>
+    <!-- Repeat arrows -->
+    <path
+        android:fillColor="@color/color"
+        android:pathData="M12,4L12,1L7,5L12,9V6H18V12H20V4H12Z
+        M12,18H6V12H4V20H12V23L17,19L12,15V18Z" />
+
+    <!-- Bold repeat-one indicator -->
+    <path
+        android:fillColor="@color/accent"
+        android:pathData="M10,8H14V9.5H12.75V14.5H14V16H10V14.5H11.25V9.5H10Z" />
 
 </vector>

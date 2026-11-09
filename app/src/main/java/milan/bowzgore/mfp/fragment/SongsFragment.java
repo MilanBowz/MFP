@@ -16,6 +16,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -109,14 +110,9 @@ public class SongsFragment extends Fragment {
             };
 
             IntentFilter filter = new IntentFilter();
-            filter.addAction("NEXT");
-            filter.addAction("PREV");
-            filter.addAction("IM_UPDATE");
+            filter.addAction("UPDATE");
             filter.addAction("PLAYER_READY");
             LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
-            if(PowerHandler.currentMode == 2){
-                SongLibrary.get().makeRandomList();
-            }
         }
 
         return view;
@@ -146,12 +142,16 @@ public class SongsFragment extends Fragment {
 
     private void addFolderFragment(){
         if(viewPagerAdapter != null){
-            viewPagerAdapter.updateFragment(new FolderFragment());
+            viewPagerAdapter.showFolder();
             viewPager.setCurrentItem(1, true);
         }
     }
     public void updateCurrentSong() {
-        adapter.updateUI();
+        if (adapter != null) {
+            adapter.updateUI();
+        } else {
+            Log.d("SongsFragment", "Adapter not initialized yet");
+        }
     }
     public void filter(String text) {
         if (adapter == null) return;
@@ -177,5 +177,44 @@ public class SongsFragment extends Fragment {
         if (adapter != null) {
             adapter.refreshFromOriginal();
         }
+    }
+
+    public void scrollToCurrentSong() {
+        if (adapter == null || recyclerView == null) return;
+
+        AudioModel current = SongLibrary.get().currentSong;
+        if (current == null) return;
+
+        List<AudioModel> displayedSongs = adapter.items;
+
+        for (int i = 0; i < displayedSongs.size(); i++) {
+            if (displayedSongs.get(i).getPath().equals(current.getPath())) {
+
+                RecyclerView.LayoutManager layoutManager =
+                        recyclerView.getLayoutManager();
+
+                if (layoutManager instanceof LinearLayoutManager) {
+                    // Place the current song about 1/3 down the screen.
+                    int offset = recyclerView.getHeight() / 3;
+
+                    ((LinearLayoutManager) layoutManager)
+                            .scrollToPositionWithOffset(i, offset);
+                } else {
+                    recyclerView.scrollToPosition(i);
+                }
+
+                adapter.notifyItemChanged(i);
+                return;
+            }
+        }
+    }
+
+    public void reloadFolder() {
+        if (recyclerView == null || !isAdded()) return;
+
+        textFolder.setText(SongLibrary.get().getFolderDisplay());
+        adapter = new SongAdapter(requireContext());
+        recyclerView.setAdapter(adapter);
+
     }
 }

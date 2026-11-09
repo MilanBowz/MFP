@@ -7,7 +7,7 @@
         <item name="colorPrimaryDark">@color/color</item>
         <item name="android:textColor">@color/color</item>
         <item name="android:editTextBackground">@color/invisible</item>
-        <item name="colorAccent">@color/blue</item>
+        <item name="colorAccent">@color/accent</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="backgroundColor">@color/background</item>

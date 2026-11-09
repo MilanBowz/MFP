@@ -31,6 +31,7 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     long mediaStoreId;
     transient Uri contentUri;
     private transient Bitmap cachedArtwork;
+    private transient boolean artworkChecked = false;
 
     public AudioModel(long id, String path, String title, String duration) {
         this.mediaStoreId = id;
@@ -54,25 +55,30 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
     }
 
     public Bitmap getNotificationArtWithGlide(Context context) {
+        if (cachedArtwork != null && !cachedArtwork.isRecycled()) {
+            return cachedArtwork;
+        }
         try {
             if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
-                // Android 10 - broken MediaStore album art, use embedded
                 return getEmbeddedArtwork();
-            } else {
-                // All other versions - use Glide with album art URI
-                return Glide.with(context)
-                        .asBitmap()
-                        .load(getAlbumArtUri(context))
-                        .override(256, 256)
-                        .signature(new ObjectKey(new File(getPath()).lastModified()))
-                        .submit()
-                        .get();
             }
+            cachedArtwork = Glide.with(context)
+                    .asBitmap()
+                    .load(getAlbumArtUri(context))
+                    .override(256, 256)
+                    .error(R.drawable.music_icon_small)
+                    .fallback(R.drawable.music_icon_small)
+                    .signature(new ObjectKey(new File(getPath()).lastModified()))
+                    .submit()
+                    .get();
+            return cachedArtwork;
+
         } catch (Exception e) {
-            Log.e("AudioModel","image update as bitmap failed", e);
+            Log.e("AudioModel", "Image update as bitmap failed", e);
+            return getEmbeddedArtwork();
         }
-        return getEmbeddedArtwork();
     }
+
 
     private Uri getAlbumArtUri(Context context) {
         if (mediaStoreId <= 0) return null;
@@ -107,9 +113,14 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.Q) {
             Glide.with(view)
                     .load(getAlbumArtUri(view.getContext())) // best source
+                    //.placeholder(R.drawable.music_icon_small)
                     .error(R.drawable.music_icon_small)
+                    .fallback(R.drawable.music_icon_small)
                     .dontAnimate()
+                    .dontTransform()
                     .signature(new ObjectKey(new File(getPath()).lastModified())) // only reload if file changed
+                    .override(600, 600)
+                    .centerInside()
                     .into(destination);
         }
         else {
@@ -127,7 +138,9 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
                     .load(getAlbumArtUri(view.getContext())) // best source
                     .placeholder(R.drawable.music_icon_small)
                     .error(R.drawable.music_icon_small)
+                    .fallback(R.drawable.music_icon_small)
                     .centerCrop()
+                    .priority(com.bumptech.glide.Priority.IMMEDIATE)
                     .override(width, height) // match your old type=0 size
                     .dontAnimate()
                     .signature(new ObjectKey(new File(getPath()).lastModified())) // only reload if file changed
@@ -181,5 +194,18 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
         } finally {
             try { mmr.release(); } catch (Exception ignored) {}
         }
+    }
+    // In AudioModel
+    public void clearArtworkCache() {
+        cachedArtwork = null;
+    }
+
+    public void preloadArtwork(Context context) {
+        Glide.with(context)
+                .load(getAlbumArtUri(context))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .skipMemoryCache(false)
+                .override(600, 600)
+                .preload();
     }
 }

@@ -2,6 +2,8 @@ package milan.bowzgore.mfp;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.app.NotificationChannel;
@@ -20,6 +22,7 @@ import android.os.Bundle;
 
 import android.Manifest;
 import android.provider.MediaStore;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -31,6 +34,8 @@ import milan.bowzgore.mfp.fragment.SongsFragment;
 import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.service.NotificationService;
+import milan.bowzgore.mfp.service.PowerHandler;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.concurrent.ExecutorService;
@@ -44,33 +49,31 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final int REQUEST_CODE = 123;
+
     private final BroadcastReceiver finishReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             finishAffinity();
+            // Release system resources
             System.runFinalization();
-            System.gc();
         }
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        new Thread(this::checkAndRequestPermissions).start();
         setContentView(R.layout.activity_main);
         viewPager = findViewById(R.id.fragmentContainerView);
+        viewPager.setVisibility(View.GONE);
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
-
         viewPagerAdapter = new ViewPagerAdapter(this);
-        PlayingFragment fragment = new PlayingFragment();
-        fragment.setMusicResources();
-        viewPagerAdapter.initFragment(fragment,new FolderFragment());
+        //viewPagerAdapter.createFragment(0);
+        //viewPagerAdapter.createFragment(1);
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);
         this.findViewById(R.id.playing_button).setOnClickListener(v -> viewPager.setCurrentItem(0));
         this.findViewById(R.id.playlist_button).setOnClickListener(v -> viewPager.setCurrentItem(1));
-
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -88,45 +91,7 @@ public class MainActivity extends AppCompatActivity {
                     Context.RECEIVER_NOT_EXPORTED
             );
         }
-        else {
-            registerReceiver(finishReceiver, filter);
-        }
-    }
-
-    private void checkAndRequestPermissions() {
-        String[] permissions;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions = new String[]{
-                    Manifest.permission.READ_MEDIA_AUDIO,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                    Manifest.permission.BLUETOOTH_CONNECT
-            };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions = new String[]{
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.BLUETOOTH_CONNECT
-            };
-        } else {
-            permissions = new String[]{
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-            };
-        }
-        // Check the first permission only
-        if (ContextCompat.checkSelfPermission(this, permissions[0]) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
-        } else {
-            if (getIntent().getData() != null) {
-                handleAudioFile(getIntent().getData());
-                if(viewPagerAdapter!=null){
-                    runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
-                }
-            } else {
-                handleAudioFile(SongLibrary.get().loadCurrentSong(this));
-            }
-        }
+        checkAndRequestPermissions();
     }
 
     private void createNotificationChannel() {
@@ -140,51 +105,70 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleAudioFile(Uri audioUri) {
         if (audioUri == null) {
-            runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
+            initializeSong(SongLibrary.get().loadCurrentSong(this),false);
             return;
         }
+
         AudioModel model = getAudioModelFromUri(this, audioUri);
         if (model == null) {
-            runOnUiThread(() ->
-                    viewPagerAdapter.updateFragment(new FolderFragment()));
+            initializeSong(SongLibrary.get().loadCurrentSong(this),false);
             return;
         }
-        String folderPath = model.getPath().substring(0, model.getPath().lastIndexOf("/"));
-        SongLibrary.get().setPlaying(model,this);
-        NotificationService.isPlaying = true;
-
-        executorService.execute(() -> {
-            SongLibrary.get().syncTempAndSelectedFolder(folderPath);
-            SongLibrary.get().getAllAudioFromDevice(this, folderPath, true);
-            ContextCompat.startForegroundService(
-                    this,
-                    new Intent(this, NotificationService.class)
-                            .setAction("LIST_PLAY")
-            );
-            runOnUiThread(() -> viewPagerAdapter.updateFragment(new SongsFragment()));
-        });
-
+        initializeSong(model,true);
     }
 
-    private void handleAudioFile(AudioModel audioUri) {
-        if(SongLibrary.get().currentSong == null){
-            NotificationService.isPlaying = false;
-            SongLibrary.get().setPlaying(audioUri,this);
-            if (audioUri != null) {
-                int folderSplit = audioUri.getPath().lastIndexOf("/");
-                executorService.execute(() -> {
-                    SongLibrary.get().syncTempAndSelectedFolder(audioUri.getPath().substring(0, folderSplit));
-                    SongLibrary.get().getAllAudioFromDevice(this, SongLibrary.get().selectedFolder, true);
-                });
-                ContextCompat.startForegroundService(this, new Intent(this, NotificationService.class).setAction("INIT"));
-            }
-            else{
-                executorService.execute(() -> {
-                    SongLibrary.get().getAllAudioFromDevice(this, null,false);
-                    runOnUiThread(()-> viewPagerAdapter.updateFragment(new FolderFragment()));
-                });
-            }
+    private void initializeSong(AudioModel model,boolean startPlaying) {
+        if (model == null) {
+            executorService.execute(() -> {
+                SongLibrary.get().getAllAudioFromDevice(
+                        this, null, false
+                );
+                runOnUiThread(() -> viewPagerAdapter.showFolder());
+            });
+            return;
         }
+
+        SongLibrary library = SongLibrary.get();
+        // Set the selected song before starting the service.
+        library.setPlaying(model, this);
+
+        String path = model.getPath();
+        int folderSplit = path.lastIndexOf("/");
+        if (folderSplit < 0) {
+            return;
+        }
+
+        String folderPath = path.substring(0, folderSplit);
+        executorService.execute(() -> {
+            library.syncTempAndSelectedFolder(folderPath);
+            library.getAllAudioFromDevice(
+                    this,
+                    folderPath,
+                    true
+            );
+            if(!startPlaying){
+                // Only initialize playback after the library is ready.
+                runOnUiThread(() -> {
+                    viewPagerAdapter.showSongs();
+                    ContextCompat.startForegroundService(
+                            this,
+                            new Intent(this, NotificationService.class)
+                                    .setAction("INIT")
+                    );
+                });
+            }
+            else {
+                runOnUiThread(() -> {
+                    viewPagerAdapter.showSongs();
+                    ContextCompat.startForegroundService(
+                            this,
+                            new Intent(this, NotificationService.class)
+                                    .setAction("INIT_PLAY")
+                    );
+                });
+            }
+
+        });
     }
 
     private AudioModel getAudioModelFromUri(Context context, Uri audioUri) {
@@ -218,11 +202,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(@NonNull Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        viewPager.setCurrentItem(0, false);
+
         if (intent.getData() != null) {
-            viewPagerAdapter.updateFolderFragment();
             handleAudioFile(intent.getData());
-            viewPagerAdapter.updatePlayingFragment();
-            viewPager.setCurrentItem(0, false);
         }
     }
 
@@ -230,42 +213,95 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.getItem(1) instanceof SongsFragment) {
-                    runOnUiThread(() -> viewPagerAdapter.updateFragment(new FolderFragment()));
+                if (viewPager.getCurrentItem() == 1 && viewPagerAdapter.containsItem(3L)) {
+                    runOnUiThread(() -> viewPagerAdapter.showFolder());
                     viewPager.setCurrentItem(1, true);
                 }
             }
         });
     }
 
-    // Add this method to MainActivity
+    private String[] getRequiredPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[]{
+                    Manifest.permission.READ_MEDIA_AUDIO,
+                    Manifest.permission.POST_NOTIFICATIONS
+            };
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.BLUETOOTH_CONNECT
+            };
+        } else {
+            return new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            };
+        }
+    }
+
+    private void checkAndRequestPermissions() {
+        String[] permissions = getRequiredPermissions();
+
+        boolean allGranted = true;
+
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                allGranted = false;
+                break;
+            }
+        }
+
+        if (allGranted) {
+            loadStartupSong();
+        } else {
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
+        }
+    }
+
+    private void loadStartupSong() {
+        Uri uri = getIntent().getData();
+        viewPager.setVisibility(View.VISIBLE);
+        if (uri != null) {
+            handleAudioFile(uri);
+        } else {
+            initializeSong(SongLibrary.get().loadCurrentSong(this),false);
+        }
+    }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE && ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED) {
-            handleAudioFile(SongLibrary.get().loadCurrentSong(this));
+
+        if (requestCode != REQUEST_CODE) return;
+
+        boolean granted = true;
+
+        for (String permission : getRequiredPermissions()) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                granted = false;
+                break;
+            }
+        }
+
+        if (granted) {
+            loadStartupSong();
+        } else {
+            viewPagerAdapter.showFolder();
         }
     }
 
     @Override
     protected void onDestroy() {
         unregisterReceiver(finishReceiver);
-        executorService.shutdown();
         super.onDestroy();
         viewPager = null;
-        viewPagerAdapter.clear();
         viewPagerAdapter = null;
     }
 
-    /*@Override
-    protected void onResume() {
-        super.onResume();
-        // Check if service is running and reinitialize if needed
-        if (SongLibrary.get().currentSong != null) {
-            Intent intent = new Intent(this, NotificationService.class);
-            intent.setAction("INIT");
-            ContextCompat.startForegroundService(this, intent);
-        }
-    }*/
 }

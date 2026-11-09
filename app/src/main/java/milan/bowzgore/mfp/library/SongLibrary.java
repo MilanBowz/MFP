@@ -7,22 +7,20 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import milan.bowzgore.mfp.model.AudioModel;
+import milan.bowzgore.mfp.service.PowerHandler;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
-
-import androidx.media3.common.MediaItem;
 
 public class SongLibrary {
 
@@ -40,6 +38,7 @@ public class SongLibrary {
     // Random playback fields
     public List<AudioModel> shuffledList = new ArrayList<>();
 
+
     private SongLibrary() {    }
 
     // Inner static class responsible for holding the Singleton instance
@@ -51,7 +50,7 @@ public class SongLibrary {
         return Holder.INSTANCE;
     }
 
-    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath) {
+    private void getAllAudioFromDevice(final Context context, final String folderPath) {
             Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
             String[] projection = {
                     MediaStore.Audio.Media._ID,
@@ -97,7 +96,7 @@ public class SongLibrary {
             Collections.sort(folders);
 
             Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
-            return songsList = audioModels;
+        songsList = audioModels;
     }
 
     public List<AudioModel> getTempAudioFromDevice(Context context) {
@@ -142,7 +141,7 @@ public class SongLibrary {
         return tempAudioModels;
     }
 
-    public List<AudioModel> getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
+    public void getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
         getAllAudioFromDevice(context, folderPath);
         if (song) {
             tempFolder = folderPath;
@@ -152,7 +151,8 @@ public class SongLibrary {
                     .orElse(null);
             songNumber = songsList.indexOf(currentSong);
         }
-        return songsList;
+        PowerHandler.setPlayMode();
+        return ;
     }
 
     public void setPlaying(AudioModel song,Context context) {
@@ -181,7 +181,7 @@ public class SongLibrary {
             editor.putString(KEY_CURRENT_SONG, songJson.toString());
             editor.apply();
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e("SongLibrary", Objects.requireNonNull(e.getMessage()));
         }
     }
 
@@ -199,7 +199,7 @@ public class SongLibrary {
                 long id = songJson.getLong("id");
                 return new AudioModel(id, path, title, duration);
             } catch (JSONException e) {
-                e.printStackTrace();
+                Log.e("SongLibrary", Objects.requireNonNull(e.getMessage()));
             }
         }
         return null;
@@ -215,19 +215,17 @@ public class SongLibrary {
         this.selectedFolder = folder;
     }
 
-    public boolean isSyncTempSelectedFolder(){
-        return tempFolder.equals(selectedFolder);
+    public boolean isSyncTempSelectedFolder() {
+        return tempFolder != null &&
+                tempFolder.equals(selectedFolder);
     }
-
     public void makeRandomList() {
         if (songsList == null || songsList.isEmpty()) {
             Log.w("Songlibrary", "makeRandomList() ignored: songsList is empty");
             return ;
         }
-
         shuffledList = new ArrayList<>(songsList);
         Collections.shuffle(shuffledList);
-
         // Start from current song if playing
         if (currentSong != null) {
             songNumber = shuffledList.indexOf(currentSong);
@@ -236,28 +234,8 @@ public class SongLibrary {
             songNumber = 0;
         }
     }
-    public void getSongRandomNumber(){
-        songNumber = shuffledList.indexOf(currentSong);
-    }
     public void returnToNormalList(){
         songNumber = songsList.indexOf(currentSong);
-    }
-    public List<MediaItem> createMediaItems(List<AudioModel> songs) {
-        List<MediaItem> mediaItems = new ArrayList<>();
-
-        if (songs == null) {
-            return mediaItems;
-        }
-
-        for (AudioModel song : songs) {
-            MediaItem item = MediaItem.fromUri(
-                    Uri.fromFile(new File(song.getPath()))
-            );
-
-            mediaItems.add(item);
-        }
-
-        return mediaItems;
     }
 
     public void setSongNumber(int index) {

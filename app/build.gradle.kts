@@ -1,5 +1,3 @@
-import com.android.utils.TraceUtils.simpleId
-
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -51,15 +49,11 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-    implementation(libs.legacy.support.v4)
     implementation(libs.recyclerview)
     implementation(libs.navigation.fragment)
     implementation(libs.jaudiotagger)
     implementation (libs.glide)
-
-    implementation(libs.media3.exoplayer)
-    implementation(libs.media3.ui)
-    implementation(libs.media3.session)
+    implementation(libs.legacy.support.v4)
 
     implementation(libs.kotlinx.coroutines.android)
 }

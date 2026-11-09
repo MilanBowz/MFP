@@ -2,6 +2,7 @@
 .gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
+.gradle_backup
 
 # Local configuration files (Android Studio specific)
 .idea/

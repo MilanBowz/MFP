@@ -24,12 +24,12 @@
         android:id="@+id/index_number"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="1/10"
-        android:textSize="30sp"
-        android:textColor="@color/color"
-        android:fontFamily="@font/jersey10_regular"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
+        android:fontFamily="@font/jersey10_regular"
+        android:text="0/?"
+        android:textColor="@color/color"
+        android:textSize="30sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

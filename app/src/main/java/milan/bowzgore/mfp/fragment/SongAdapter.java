@@ -66,18 +66,14 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         );
 
         if (SongLibrary.get().currentSong != null && Objects.equals(SongLibrary.get().currentSong.getTitle(), songData.getTitle())) {
-            if(PowerHandler.currentMode == 2){
-                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.green));
-            }
-            else {
-                holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
-            }
-            holder.songNumberTextView.setTextColor(ContextCompat.getColor(context, R.color.blue));
-            lastPlayedSongName = (String) holder.titleTextView.getText();
+            holder.itemView.setBackground(
+                    ContextCompat.getDrawable(context,PowerHandler.currentMode == 2
+                            ? R.drawable.dashed_border_selected2
+                            : R.drawable.dashed_border_selected)
+            );
+            lastPlayedSongName = songData.getTitle();
         } else {
-            holder.titleTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
-            holder.songNumberTextView.setTextColor(ContextCompat.getColor(context, R.color.color));
-
+            holder.itemView.setBackground(ContextCompat.getDrawable(context,R.drawable.dashed_border));
         }
         songData.setGlideImage(holder.iconImageView,96, 96, holder.iconImageView);
 
@@ -93,6 +89,7 @@ class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 // get currentsong by: holder.titleTextView
                 library.currentSong = songData;
                 library.songNumber = library.songsList.indexOf(library.currentSong);
+
                 startMusicService();
                 viewPagerAdapter.updatePlayingFragment();
                 viewPager.setCurrentItem(0,true);

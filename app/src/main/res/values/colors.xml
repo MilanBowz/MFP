@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#FFFFFF</color>
-    <color name="backgroundaccent">#EEEEEE</color>
+    <color name="background">#EEEEEE</color>
+    <color name="backgroundaccent">#E0E0E0</color>
     <color name="color">#000000</color>
     <color name="white">#FFFFFF</color>
-    <color name="green">#225400</color>
-    <color name="blue">#0020E4</color>
-    <color name="otherblue">#00E5FF</color>
     <color name="grey">#535353</color>
     <color name="invisible">#009A9A9A</color>
     <color name="red">#FF0000</color>
+
+    <!-- Default light accents -->
+    <color name="accent2">#2E7D32</color>
+    <color name="accent">#2979FF</color>
 </resources>

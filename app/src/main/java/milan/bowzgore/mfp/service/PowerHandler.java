@@ -15,9 +15,10 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
+
+import milan.bowzgore.mfp.library.SongLibrary;
+
 public class PowerHandler {
-    private static final String PREFS_NAME = "media_prefs";
-    private static final String KEY_PLAY_MODE = "play_mode";
     public static final int MODE_LOOP_ALL = 0;
     public static final int MODE_LOOP_OFF = 1;
     public static final int MODE_RANDOM = 2;
@@ -30,6 +31,8 @@ public class PowerHandler {
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
     BroadcastReceiver headsetReceiver;
+
+    private boolean hasAudioFocus = false;
 
     public PowerHandler(Context context) {
         this.context = context;
@@ -48,6 +51,7 @@ public class PowerHandler {
 
         if (audioManager != null && audioFocusRequest != null) {
             int result = audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            hasAudioFocus = false;
             Log.d(
                     "AUDIO_FOCUS",
                     "abandonAudioFocus result = " + result
@@ -57,12 +61,22 @@ public class PowerHandler {
 
     public boolean requestAudioFocus() {
         if (audioManager == null) return false;
+        if (hasAudioFocus) {
+            return true;
+        }
+
+        Log.d("AUDIO_FOCUS", "REQUESTING AUDIO FOCUS");
 
         int result = audioManager.requestAudioFocus(audioFocusRequest);
+
+        Log.d("AUDIO_FOCUS", "REQUEST RESULT: " + result);
+
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            hasAudioFocus = true;
             acquireWakeLock();
             return true;
         }
+
         return false;
     }
 
@@ -73,19 +87,19 @@ public class PowerHandler {
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build();
 
-
         AudioManager.OnAudioFocusChangeListener afChangeListener = focusChange -> {
             Log.d(
                     "AUDIO_FOCUS",
                     "Focus changed: " + focusChange
             );
             switch (focusChange) {
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS:
+                    hasAudioFocus = false;
                     startMusicService("PAUSE");
                     break;
-                case AudioManager.AUDIOFOCUS_LOSS:
-                    startMusicService("PAUSE");
-                    releaseWakeLockAndAudioFocus();
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    Log.d("AUDIO_FOCUS", "Audio focus regained");
+                    hasAudioFocus = true;
                     break;
             }
         };
@@ -165,5 +179,45 @@ public class PowerHandler {
             }
         }
         return false;
+    }
+    public static void setPlayMode() {
+        if (currentMode == MODE_RANDOM) {
+            SongLibrary.get().makeRandomList();
+        }
+    }
+    public static void setPlayMode(Context context, int mode) {
+        currentMode = mode;
+
+        context.getSharedPreferences("media_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putInt("play_mode", currentMode)
+                .apply();
+
+        if (currentMode == MODE_RANDOM) {
+            SongLibrary.get().makeRandomList();
+        } else {
+            SongLibrary.get().returnToNormalList();
+        }
+    }
+
+    public static void toggleShuffle(Context context) {
+        if (currentMode == MODE_RANDOM) {
+            setPlayMode(context, MODE_LOOP_ALL);
+        } else {
+            setPlayMode(context, MODE_RANDOM);
+        }
+    }
+    public static void toggleMode(Context context) {
+        switch (currentMode){
+            case MODE_LOOP_OFF -> {setPlayMode(context, MODE_LOOP_ALL);}
+            case MODE_LOOP_ALL -> {setPlayMode(context, MODE_RANDOM);}
+            case MODE_RANDOM -> {setPlayMode(context, MODE_LOOP_OFF);}
+        }
+    }
+    public static void loadPlayMode(Context context) {
+        currentMode = context.getSharedPreferences(
+                "media_prefs",
+                Context.MODE_PRIVATE
+        ).getInt("play_mode", MODE_LOOP_ALL);
     }
 }

@@ -7,7 +7,7 @@ android:viewportHeight="24">
 
     <!-- Triangle Play Button -->
     <path
-        android:fillColor="@color/blue"
+        android:fillColor="@color/accent"
         android:pathData="
             M8,3
             H11

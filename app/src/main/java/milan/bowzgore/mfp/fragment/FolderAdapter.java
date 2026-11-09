@@ -48,7 +48,7 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
 
         // Update text color based on selection
         if (Objects.equals(songLibrary.selectedFolder, folderName)) {
-            holder.textView.setTextColor(ContextCompat.getColor(context, R.color.blue));
+            holder.textView.setTextColor(ContextCompat.getColor(context, R.color.accent));
         }
         else {
             holder.textView.setTextColor(ContextCompat.getColor(context, R.color.color));
@@ -65,7 +65,7 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
 
     private void addSongsFragment(){
         if(viewPagerAdapter != null){
-            viewPagerAdapter.updateFragment(new SongsFragment());
+            viewPagerAdapter.showSongs();
             viewPager.setCurrentItem(1, true);
         }
     }

@@ -2,6 +2,7 @@ package milan.bowzgore.mfp.fragment;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MODE_PRIVATE;
+import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
@@ -39,8 +40,11 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import milan.bowzgore.mfp.R;
@@ -49,6 +53,7 @@ import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.model.AudioModel;
 import milan.bowzgore.mfp.model.Coverart;
 import milan.bowzgore.mfp.service.NotificationService;
+import milan.bowzgore.mfp.service.PowerHandler;
 
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
@@ -58,8 +63,37 @@ public class PlayingFragment extends Fragment {
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
     private BroadcastReceiver receiver;
-    private Handler handler ;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean userSeeking = false;
+    private boolean fragmentActive = false;
+    private int lastKnownDuration = -1;
     private final Coverart art = new Coverart();
+    private transient boolean isArtworkChecked = false;
+
+    private final Runnable progressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!fragmentActive || !isAdded() || getView() == null) {
+                return;
+            }
+            try {
+                if (SongLibrary.get().currentSong == null ||
+                        mediaPlayer == null ||
+                        !NotificationService.playerPrepared) {
+                    resetSeekBar();
+                } else {
+                    updateSeekBarProgress();
+                }
+
+            } catch (IllegalStateException e) {
+                Log.w("PlayingFragment", "Player temporarily unavailable", e);
+            }
+
+            if (fragmentActive) {
+                handler.postDelayed(this, 250);
+            }
+        }
+    };
 
     public PlayingFragment() {
     }
@@ -125,96 +159,152 @@ public class PlayingFragment extends Fragment {
         }
         setMusicResources();
 
-        if (mediaPlayer != null) {
-            currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-            seekBar.setMax(mediaPlayer.getDuration()); // Set SeekBar max to media duration
-            seekBar.setProgress(mediaPlayer.getCurrentPosition());
-            titleTv.setSelected(true);
-        }
+        titleTv.setSelected(true);
         setupSeekBarListener();
-        setupRunnable();
-
+        //setupRunnable();
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                setMusicResources();  // Update UI based on notification changes
-                // Restart the runnable if needed
-                if (handler == null) {
-                    setupRunnable();
+                String action = intent.getAction();
+
+                if(!Objects.equals(action, "TOGGLE_PLAY_MODE")){
+                    setMusicResources();
+                }
+                else {
+                    if (currentMode == 0) {
+                        togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
+                    } else if(currentMode == 1){
+                        togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
+                    }else {
+                        togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
+                        // Update shuffled index if in random mode
+                    }
+                    updateIndexNumber();
                 }
             }
         };
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PLAYER_READY"));
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("NEXT"));
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, new IntentFilter("PREV"));
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("UPDATE");
+        filter.addAction("TOGGLE_PLAY_MODE");
+        filter.addAction("PLAYER_READY");
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
 
         togglePlayMode.setOnClickListener(v -> {
             setPlayMode();
             if (currentMode == 0) {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_24);
-                SongLibrary.get().returnToNormalList();
             } else if(currentMode == 1){
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_24);
             }else {
                 togglePlayMode.setImageResource(R.drawable.ic_baseline_loop_off_random);
-                SongLibrary.get().makeRandomList();
                 // Update shuffled index if in random mode
             }
             updateIndexNumber();// Update index when mode changes
         });
         musicIcon.setOnLongClickListener(v -> {
-            showChangeCoverArtDialog();
+            showChangeCoverArtDialog(); // save or change coverart
             return true;
+        });
+        indexNumberTv.setOnLongClickListener(v -> {
+            SongLibrary library = SongLibrary.get();
+
+            // Only scroll directly when the displayed list matches
+            // the currently selected folder/list.
+            if (library.isSyncTempSelectedFolder() && library.currentSong != null && viewPagerAdapter != null) {
+                // Scroll after SongsFragment becomes visible.
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (!isAdded()) return;
+                    if(viewPagerAdapter.scrollToCurrentSong()){
+                        Toast.makeText(
+                                requireContext(),
+                                "Showing current song in the list",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                }, 250);
+            }
+            return false;
         });
     }
 
     private void setupSeekBarListener() {
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
-                if (fromUser) {
-                    currentTimeTv.setText(convertToMMSS(String.valueOf(progress)));
-                }
-            }
-            @Override
-            public void onStartTrackingTouch(SeekBar sb) {
-            }
-            @Override
-            public void onStopTrackingTouch(SeekBar sb) {
-                mediaPlayer.seekTo(sb.getProgress());
-            }
-        });
+        seekBar.setOnSeekBarChangeListener(
+                new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(
+                            SeekBar sb,
+                            int progress,
+                            boolean fromUser) {
+
+                        if (fromUser) {
+                            currentTimeTv.setText(
+                                    convertToMMSS(String.valueOf(progress))
+                            );
+                        }
+                    }
+                    @Override
+                    public void onStartTrackingTouch(SeekBar sb) {
+                        userSeeking = true;
+                    }
+                    @Override
+                    public void onStopTrackingTouch(SeekBar sb) {
+                        userSeeking = false;
+                        seekToPosition(sb.getProgress());
+                    }
+                });
     }
 
     private void setGeneralResources(){
         pausePlay.setOnClickListener(view -> pausePlay());
-        nextBtn.setOnClickListener(v-> startMusicService("NEXT"));
-        previousBtn.setOnClickListener(v-> startMusicService("PREV"));
+        nextBtn.setOnClickListener(v-> {
+            isArtworkChecked =false;
+            startMusicService("NEXT");
+        });
+        previousBtn.setOnClickListener(v-> {
+            isArtworkChecked =false;
+            startMusicService("PREV");
+        });
     }
 
     public void setMusicResources() {
-        if (!isAdded()) { return; }
+        if (!isAdded() || getView() == null) return;
         AudioModel song = SongLibrary.get().currentSong;
+
         if (song != null) {
+            if(!isArtworkChecked){
+                song.setGlideImage(this, musicIcon);
+            }
+            isArtworkChecked = true;
             titleTv.setText(song.getTitle());
             titleTv.setSelected(true);
-            updateIndexNumber();
-            if(mediaPlayer != null){
-                totalTimeTv.setText(convertToMMSS(song.getDuration()));
-                seekBar.setMax(mediaPlayer.getDuration());
-                currentTimeTv.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
-                seekBar.setProgress(mediaPlayer.getCurrentPosition());
+            if (mediaPlayer != null && NotificationService.playerPrepared) {
+                try {
+                    int duration = mediaPlayer.getDuration();
+                    int position = mediaPlayer.getCurrentPosition();
+                    if (duration > 0) {
+                        lastKnownDuration = duration;
+                        seekBar.setMax(duration);
+                        seekBar.setProgress(Math.max(0, Math.min(position, duration)));
+                        totalTimeTv.setText(convertToMMSS(String.valueOf(duration)));
+                        currentTimeTv.setText(convertToMMSS(String.valueOf(position)));
+                    } else {
+                        resetSeekBar();
+                    }
+
+                } catch (IllegalStateException e) {
+                    Log.w("PlayingFragment", "Player not ready yet", e);
+                    resetSeekBar();
+                }
+            } else {
+                resetSeekBar();
             }
-            song.setGlideImage(this, musicIcon);
-            startMusicService("UPDATE");
+            updateIndexNumber();
+
         } else {
-                titleTv.setText(R.string.no_music_loaded);
-                titleTv.setSelected(false);
-                seekBar.setMax(1);
-                totalTimeTv.setText("00:00");
-                currentTimeTv.setText("00:00");
-                seekBar.setProgress(0);
-                musicIcon.setImageResource(R.drawable.music_icon_small);
+            titleTv.setText(R.string.no_music_loaded);
+            titleTv.setSelected(false);
+            resetSeekBar();
+            musicIcon.setImageResource(R.drawable.music_icon_small);
         }
     }
 
@@ -223,8 +313,10 @@ public class PlayingFragment extends Fragment {
             startMusicService("PAUSE");
             pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         } else {
+            isPlaying = true;
             startMusicService("PLAY");
             pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+
         }
     }
 
@@ -241,68 +333,6 @@ public class PlayingFragment extends Fragment {
         }
     }
 
-    private void setupRunnable(){
-        if (handler == null) {
-            handler = new Handler(Looper.getMainLooper());
-        }
-        handler.removeCallbacksAndMessages(null);
-        Runnable runner = new Runnable() {
-            @Override
-            public void run() {
-                if (!isAdded()) {return;}
-                if (SongLibrary.get().currentSong == null || mediaPlayer == null) {
-                    titleTv.setText(R.string.no_music_loaded);
-                    titleTv.setSelected(false);
-                    musicIcon.setImageResource(R.drawable.music_icon_small);
-                    seekBar.setMax(0);
-                    seekBar.setProgress(0);
-                    totalTimeTv.setText("00:00");
-                    currentTimeTv.setText("00:00");
-                    pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                }
-                else {
-                    // Update regardless of playing state to show current position
-                    long duration = mediaPlayer.getDuration();
-                    long currentPosition = mediaPlayer.getCurrentPosition();
-
-                    if (duration > 0) {
-                        seekBar.setMax((int) duration);
-                        seekBar.setProgress((int) currentPosition);
-                        currentTimeTv.setText(
-                                convertToMMSS(
-                                        String.valueOf(currentPosition)
-                                )
-                        );
-                        totalTimeTv.setText(
-                                convertToMMSS(
-                                        String.valueOf(duration)
-                                )
-                        );
-                    }
-
-                    // Update play/pause button state
-                    if (isPlaying) {
-                        pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                    } else {
-                        pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                    }
-
-                    // Update title if changed
-                    AudioModel currentSong = SongLibrary.get().currentSong;
-                    if (currentSong != null && !currentSong.getTitle().equals(titleTv.getText().toString())) {
-                        titleTv.setText(currentSong.getTitle());
-                        titleTv.setSelected(true);
-                        currentSong.setGlideImage(PlayingFragment.this, musicIcon);
-                    }
-                }
-
-                // Post the same runnable again after 300ms to keep updating
-                handler.postDelayed(this, 300);
-            }
-        };
-        handler.post(runner);
-    }
-
     private void startMusicService(String action) {
         Intent intent = new Intent(getContext(), NotificationService.class);
         intent.setAction(action);
@@ -311,18 +341,25 @@ public class PlayingFragment extends Fragment {
 
 
     @Override
-    public void onDestroy() {
-        // Unregister the receiver to avoid memory leaks
-        try {
-            LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
-        } catch (IllegalArgumentException e) {
-            // Receiver was already unregistered
+    public void onDestroyView() {
+        fragmentActive = false;
+        // Stop all pending progress updates.
+        handler.removeCallbacks(progressRunnable);
+        // Prevent callbacks from updating destroyed views.
+        if (seekBar != null) {
+            seekBar.setOnSeekBarChangeListener(null);
         }
-        if (handler != null) {
-            handler.removeCallbacks(null);
-            handler = null;
+        if (receiver != null) {
+            try {
+                LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(receiver);
+            } catch (IllegalArgumentException e) {
+                Log.w("PlayingFragment", "Receiver already unregistered");
+            }
+            receiver = null;
         }
-        super.onDestroy();
+        userSeeking = false;
+        lastKnownDuration = -1;
+        super.onDestroyView();
     }
 
     private void showChangeCoverArtDialog() {
@@ -343,19 +380,8 @@ public class PlayingFragment extends Fragment {
     }
 
     public void setPlayMode() {
-        if(currentMode <2 ){
-            currentMode +=1;
-        }
-        else {
-            currentMode = 0;
-        }
-        // Save to preferences
-        SharedPreferences prefs = requireContext().getSharedPreferences("media_prefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("play_mode", currentMode);
-        editor.apply();
+        PowerHandler.toggleMode(requireContext());
 
-        // Update UI if needed
         if (viewPagerAdapter != null) {
             viewPagerAdapter.updatePlayingFragment();
         }
@@ -377,11 +403,18 @@ public class PlayingFragment extends Fragment {
             // Check if we're in random mode
             if (currentMode == 2) {
                 // For random mode, show current position in shuffled list
-                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.green));
+                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent2));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    seekBar.setOutlineAmbientShadowColor(ContextCompat.getColor(requireContext(), R.color.accent2));
+                }
+
             } else {
                 // Normal or loop mode
-                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.blue));
-            }
+                indexNumberTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    seekBar.setOutlineSpotShadowColor(ContextCompat.getColor(requireContext(), R.color.accent));
+                }            }
+            viewPagerAdapter.updateSongsFragment();
             String indexText = (currentIndex >= 0 && currentIndex < totalSongs)
                     ? (currentIndex + 1) + "/" + totalSongs
                     : "1/" + totalSongs;
@@ -401,4 +434,113 @@ public class PlayingFragment extends Fragment {
             indexNumberTv.setText("0/0");
         }
     }
+
+    private void resetSeekBar() {
+        if (userSeeking || seekBar == null) return;
+
+        lastKnownDuration = -1;
+        seekBar.setMax(1);
+        seekBar.setProgress(0);
+
+        currentTimeTv.setText("00:00");
+        totalTimeTv.setText("00:00");
+    }
+
+    private void updateSeekBarProgress() {
+        if (mediaPlayer == null || !NotificationService.playerPrepared) {
+            return;
+        }
+
+        try {
+            int duration = mediaPlayer.getDuration();
+            int position = mediaPlayer.getCurrentPosition();
+
+            if (duration <= 0) return;
+
+            // Restore the SeekBar maximum if it was reset.
+            if (lastKnownDuration != duration || seekBar.getMax() != duration) {
+                lastKnownDuration = duration;
+                seekBar.setMax(duration);
+                totalTimeTv.setText(
+                        convertToMMSS(String.valueOf(duration))
+                );
+            }
+
+            if (!userSeeking) {
+                position = Math.max(0, Math.min(position, duration));
+                seekBar.setProgress(position);
+                currentTimeTv.setText(
+                        convertToMMSS(String.valueOf(position))
+                );
+            }
+            pausePlay.setImageResource(
+                    isPlaying
+                            ? R.drawable.ic_baseline_pause_circle_outline_24
+                            : R.drawable.ic_baseline_play_circle_outline_24
+            );
+
+        } catch (IllegalStateException e) {
+            Log.w("PlayingFragment", "Could not update playback progress", e);
+        }
+    }
+    private void seekToPosition(int requestedPosition) {
+
+        if (mediaPlayer == null ||
+                !NotificationService.playerPrepared) {
+            return;
+        }
+
+        try {
+            int duration = mediaPlayer.getDuration();
+
+            if (duration <= 0) return;
+
+            int position = Math.max(
+                    0,
+                    Math.min(requestedPosition, duration)
+            );
+
+            mediaPlayer.seekTo(position);
+
+            // Immediately synchronize the displayed position.
+            seekBar.setProgress(position);
+
+            currentTimeTv.setText(
+                    convertToMMSS(String.valueOf(position))
+            );
+
+        } catch (IllegalStateException e) {
+            Log.e("PlayingFragment", "Seeking failed", e);
+        }
+    }
+    private void setupRunnable() {
+        fragmentActive = true;
+
+        handler.removeCallbacks(progressRunnable);
+        handler.post(progressRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Stop UI progress updates while the fragment is paused.
+        fragmentActive = false;
+        handler.removeCallbacks(progressRunnable);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!isAdded() || getView() == null) return;
+        setMusicResources();
+        // Restart progress updates.
+        setupRunnable();
+        if (pausePlay == null) return;
+        pausePlay.setImageResource(
+                isPlaying
+                        ? R.drawable.ic_baseline_pause_circle_outline_24
+                        : R.drawable.ic_baseline_play_circle_outline_24
+        );
+    }
+
 }

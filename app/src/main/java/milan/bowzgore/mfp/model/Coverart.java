@@ -1,5 +1,7 @@
 package milan.bowzgore.mfp.model;
 
+import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
+
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
@@ -18,6 +20,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
@@ -36,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import milan.bowzgore.mfp.library.SongLibrary;
 import milan.bowzgore.mfp.service.NotificationService;
 
 
@@ -57,7 +62,7 @@ public class Coverart {
             return;
         }
         if (musicFile == null) {
-            Log.e("CoverArtUpdate", "Music file is null, cannot update artwork.");
+            Log.e("Coverart", "Music file is null, cannot update artwork.");
             return;
         }
 
@@ -68,7 +73,7 @@ public class Coverart {
             byte[] imageData = compressBitmap(bitmap);
             Uri audioUri = musicFile.getContentUri();
             if (audioUri == null) {
-                Log.e("CoverArtUpdate", "Audio Uri is null");
+                Log.e("Coverart", "Audio Uri is null");
                 return;
             }
 
@@ -89,11 +94,10 @@ public class Coverart {
 
             try (OutputStream out = activity.getContentResolver().openOutputStream(audioUri, "rwt");InputStream in = new FileInputStream(tempFile);) {
                 if(out != null){
+                    musicFile.clearArtworkCache();
                     Intent intent = new Intent(activity, NotificationService.class);
-                    intent.setAction("IM_SAVE");
-                    ContextCompat.startForegroundService(activity, intent);
                     copyStream(in, out);
-                    Log.i("CoverArtUpdate", "Coverart updated successful.");
+                    Log.i("Coverart", "Coverart updated successful.");
                     intent.setAction("IM_UPDATE");
                     ContextCompat.startForegroundService(activity, intent);
                 }
@@ -104,10 +108,10 @@ public class Coverart {
                         rse.getUserAction().getActionIntent().getIntentSender()).build();
                 writePermissionLauncher.launch(request); // permission required
             } catch (IOException e) {
-                Log.e("CoverArtUpdate", "Failed to write artwork to music file", e);
+                Log.e("Coverart", "Failed to write artwork to music file", e);
             }
         } catch (Exception e) {
-            Log.e("CoverArtUpdate", "Failed to update artwork", e);
+            Log.e("Coverart", "Failed to update artwork", e);
         }
     }
 
@@ -189,7 +193,7 @@ public class Coverart {
             out.write(intToBytes(imageData.length));
             out.write(imageData);
         } catch (IOException e) {
-            Log.e("FlacPictureBlock", "Error creating picture block", e);
+            Log.e("Coverart", "Error creating picture block", e);
         }
         return out.toByteArray();
     }
@@ -229,7 +233,7 @@ public class Coverart {
                     }
                 }
             } catch (IOException e) {
-                Log.e("CoverArtSaver", "Error saving cover art", e);
+                Log.e("Coverart", "Error saving cover art", e);
             }
         });
     }
@@ -265,4 +269,5 @@ public class Coverart {
             executorService.shutdown();
         }
     }
+
 }
