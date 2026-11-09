@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setVisibility(View.GONE);
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        PowerHandler.loadPlayMode(this);
         viewPagerAdapter = new ViewPagerAdapter(this);
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setCurrentItem(0, false);

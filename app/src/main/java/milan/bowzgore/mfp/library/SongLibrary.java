@@ -149,7 +149,6 @@ public class SongLibrary {
                     .filter(audio -> audio.getPath().equals(currentSong.getPath()))
                     .findFirst()
                     .orElse(null);
-            songNumber = songsList.indexOf(currentSong);
         }
         PowerHandler.setPlayMode();
         return ;

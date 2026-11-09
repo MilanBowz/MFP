@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
@@ -13,6 +14,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
@@ -98,6 +100,13 @@ public class AudioModel implements Serializable,Comparable<AudioModel> {
             if (artData != null) {
                 cachedArtwork = BitmapFactory.decodeByteArray(artData, 0, artData.length);
                 return cachedArtwork;
+            }
+            else {
+                Bitmap bitmap = Bitmap.createBitmap(
+                        512, 512, Bitmap.Config.ARGB_8888
+                );
+                bitmap.eraseColor(Color.argb(255, 53, 53, 53));//535353
+                return bitmap;
             }
         } catch (Exception e) {
             Log.w("AudioModel", "Failed to extract embedded art: " + e.getMessage());

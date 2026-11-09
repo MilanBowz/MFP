@@ -184,6 +184,9 @@ public class PowerHandler {
         if (currentMode == MODE_RANDOM) {
             SongLibrary.get().makeRandomList();
         }
+        else {
+            SongLibrary.get().returnToNormalList();
+        }
     }
     public static void setPlayMode(Context context, int mode) {
         currentMode = mode;

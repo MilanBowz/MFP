@@ -103,9 +103,6 @@ public class PlayingFragment extends Fragment {
                              Bundle savedInstanceState) {
         FragmentPlayingBinding binding = FragmentPlayingBinding.inflate(inflater, container, false);
 
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("media_prefs", MODE_PRIVATE);
-        currentMode = sharedPreferences.getInt("play_mode", 0); // Default is false
-
         titleTv = binding.songTitle;
         currentTimeTv = binding.currentTime;
         totalTimeTv = binding.totalTime;
@@ -280,6 +277,8 @@ public class PlayingFragment extends Fragment {
             isArtworkChecked = true;
             titleTv.setText(song.getTitle());
             titleTv.setSelected(true);
+            updateIndexNumber();
+
             if (mediaPlayer != null && NotificationService.playerPrepared) {
                 try {
                     int duration = mediaPlayer.getDuration();
@@ -301,7 +300,6 @@ public class PlayingFragment extends Fragment {
             } else {
                 resetSeekBar();
             }
-            updateIndexNumber();
 
         } else {
             titleTv.setText(R.string.no_music_loaded);
@@ -417,7 +415,7 @@ public class PlayingFragment extends Fragment {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     seekBar.setOutlineSpotShadowColor(ContextCompat.getColor(requireContext(), R.color.accent));
                 }            }
-            viewPagerAdapter.updateSongsFragment();
+            //viewPagerAdapter.updateSongsFragment();
             String indexText = (currentIndex >= 0 && currentIndex < totalSongs)
                     ? (currentIndex + 1) + "/" + totalSongs
                     : "1/" + totalSongs;
