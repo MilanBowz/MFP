@@ -257,17 +257,20 @@ public class PlayingFragment extends Fragment {
     private void setGeneralResources(){
         pausePlay.setOnClickListener(view -> pausePlay());
         nextBtn.setOnClickListener(v-> {
-            isArtworkChecked =false;
+            isArtworkChecked = false;
             startMusicService("NEXT");
         });
         previousBtn.setOnClickListener(v-> {
-            isArtworkChecked =false;
+            isArtworkChecked = false;
             startMusicService("PREV");
         });
     }
-
-    public void setMusicResources() {
+    public void updatePlayingFrament() {
         if (!isAdded() || getView() == null) return;
+        isArtworkChecked = false;
+        setMusicResources();
+    }
+    private void setMusicResources() {
         AudioModel song = SongLibrary.get().currentSong;
 
         if (song != null) {

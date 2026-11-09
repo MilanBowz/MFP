@@ -99,7 +99,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         Fragment fragment = getActiveFragment(PLAYING_ID);
         if (fragment instanceof PlayingFragment
                 && fragment.isAdded()) {
-            ((PlayingFragment) fragment).setMusicResources();
+            ((PlayingFragment) fragment).updatePlayingFrament();
         }
     }
 
