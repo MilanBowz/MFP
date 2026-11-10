@@ -119,14 +119,7 @@ public class NotificationService extends Service {
                     playPreviousSong();
                     break;
                 case "LIST_PLAY":
-                    if(PowerHandler.currentMode == 2){
-                        if(SongLibrary.get().shuffledList.isEmpty()){
-                            SongLibrary.get().makeRandomList();
-                        }
-                        else {
-                            SongLibrary.get().songNumber = SongLibrary.get().shuffledList.indexOf(SongLibrary.get().currentSong);
-                        }
-                    }
+                    if(PowerHandler.currentMode == 2){SongLibrary.get().makeRandomList();}
                     loadSong(true, 0);
                     break;
                 case "LOAD":
@@ -135,7 +128,7 @@ public class NotificationService extends Service {
                     //showNotification();
                     break;
                 case "INIT":
-                    if(!isPlaying){
+                    if(!playerPrepared){
                         if(PowerHandler.currentMode == 2){
                             if(SongLibrary.get().shuffledList.isEmpty()){
                                 SongLibrary.get().makeRandomList();
@@ -144,12 +137,22 @@ public class NotificationService extends Service {
                         showNotification();
                         loadSong(false,0);
                     }
+                    else {
+                        if (mediaPlayer != null) {
+                            isPlaying =  mediaPlayer.isPlaying();
+                            if(!isPlaying){
+                                loadSong(isPlaying,mediaPlayer.getCurrentPosition());
+                            }
+                            break;
+                        }
+                        loadSong(false,-1);
+                    }
                     break;
                 case "INIT_PLAY":
-                    if(PowerHandler.currentMode == 2){
-                        if(SongLibrary.get().shuffledList.isEmpty()){
+                    if(PowerHandler.currentMode == 2 &&
+                            (SongLibrary.get().shuffledList.isEmpty() ||
+                                    !SongLibrary.get().isSyncTempSelectedFolder())){
                             SongLibrary.get().makeRandomList();
-                        }
                     }
                     showNotification();
                     loadSong(true,0);

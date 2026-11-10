@@ -309,14 +309,12 @@ public class PlayingFragment extends Fragment {
     }
 
     private void pausePlay(){
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && isPlaying) {
             startMusicService("PAUSE");
             pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         } else {
-            isPlaying = true;
             startMusicService("PLAY");
             pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-
         }
     }
 

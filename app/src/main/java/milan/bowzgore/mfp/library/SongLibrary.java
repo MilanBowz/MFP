@@ -235,6 +235,7 @@ public class SongLibrary {
     }
     public void returnToNormalList(){
         songNumber = songsList.indexOf(currentSong);
+        shuffledList.clear();
     }
 
     public void setSongNumber(int index) {

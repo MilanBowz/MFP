@@ -40,7 +40,6 @@ class MediaSessionHandler {
         if (!NotificationService.playerPrepared || mediaPlayer == null || mediaSession == null) {
             return;
         }
-
         PlaybackStateCompat.CustomAction modeAction =
                 switch (PowerHandler.currentMode) {
                     case PowerHandler.MODE_LOOP_ALL ->
@@ -64,7 +63,6 @@ class MediaSessionHandler {
                                     R.drawable.ic_baseline_loop_off_random
                             ).build();
                 };
-
         PlaybackStateCompat playbackState =
                 new PlaybackStateCompat.Builder()
                         .setActions(
@@ -83,7 +81,6 @@ class MediaSessionHandler {
                                 state == PlaybackStateCompat.STATE_PLAYING ? 1.0f : 0.0f
                         )
                         .build();
-
         mediaSession.setActive(true);
         mediaSession.setPlaybackState(playbackState);
     }
@@ -202,11 +199,9 @@ class MediaSessionHandler {
                         case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
                             startMusicService("PLAYPAUSE");
                             return true;
-
                         case KeyEvent.KEYCODE_MEDIA_NEXT:
                             startMusicService("NEXT");
                             return true;
-
                         case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
                             startMusicService("PREV");
                             return true;
@@ -223,7 +218,6 @@ class MediaSessionHandler {
                 }
             }
         });
-
         mediaSession.setActive(true);
     }
 

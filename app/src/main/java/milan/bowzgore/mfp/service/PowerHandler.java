@@ -207,6 +207,7 @@ public class PowerHandler {
         if (currentMode == MODE_RANDOM) {
             setPlayMode(context, MODE_LOOP_ALL);
         } else {
+
             setPlayMode(context, MODE_RANDOM);
         }
     }
