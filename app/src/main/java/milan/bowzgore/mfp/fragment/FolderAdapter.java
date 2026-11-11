@@ -19,6 +19,8 @@ import java.util.Objects;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.ViewPagerAdapter;
+import milan.bowzgore.mfp.service.PowerHandler;
+import java.io.File;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link String}.
@@ -44,22 +46,29 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
     public void onBindViewHolder(@NonNull FolderViewHolder holder, int position) {
         SongLibrary songLibrary = SongLibrary.get();
         String folderName = songLibrary.folders.get(position);
-        holder.textView.setText(folderName);
+
+        holder.pathView.setText(folderName);
+        holder.textView.setText(SongLibrary.get().getFolderDisplay(folderName));
 
         // Update text color based on selection
         if (Objects.equals(songLibrary.selectedFolder, folderName)) {
-            holder.textView.setTextColor(ContextCompat.getColor(context, R.color.accent));
+            holder.itemView.setBackground(
+                    ContextCompat.getDrawable(context, PowerHandler.currentMode == 2
+                            ? R.drawable.dashed_border_selected2
+                            : R.drawable.dashed_border_selected)
+            );
         }
         else {
-            holder.textView.setTextColor(ContextCompat.getColor(context, R.color.color));
+            holder.itemView.setBackground(ContextCompat.getDrawable(context,R.drawable.dashed_border));
         }
-        
+
         holder.itemView.setOnClickListener(v -> {
-            ViewPagerAdapter adapter = (ViewPagerAdapter) viewPager.getAdapter();
-            if (adapter != null && position != RecyclerView.NO_POSITION) {
-                SongLibrary.get().tempFolder = folderName;
-                addSongsFragment();
-            }
+            int currentPosition = holder.getBindingAdapterPosition();
+            if (currentPosition == RecyclerView.NO_POSITION) return;
+            String selectedFolder =
+                    SongLibrary.get().folders.get(currentPosition);
+            SongLibrary.get().tempFolder = selectedFolder;
+            addSongsFragment();
         });
     }
 
@@ -76,11 +85,15 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
     }
 
     protected static final class FolderViewHolder extends RecyclerView.ViewHolder {
+
         private final TextView textView;
+        private final TextView pathView;
 
         public FolderViewHolder(@NonNull View itemView) {
             super(itemView);
+
             textView = itemView.findViewById(R.id.folder_title);
+            pathView = itemView.findViewById(R.id.folder_path);
         }
     }
 }

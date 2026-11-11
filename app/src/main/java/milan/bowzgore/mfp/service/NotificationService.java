@@ -37,8 +37,6 @@ public class NotificationService extends Service {
     public static volatile boolean playerPrepared = false;
     private final android.os.Handler progressHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
-
-    private boolean playWhenPrepared = false;
     private int loadGeneration = 0;
 
     private final Runnable progressUpdater = new Runnable() {
@@ -278,7 +276,6 @@ public class NotificationService extends Service {
 
         playerPrepared = false;
         isPlaying = false;
-        playWhenPrepared = autoplay;
 
         stopProgressUpdates();
 
@@ -317,8 +314,7 @@ public class NotificationService extends Service {
 
             library.saveCurrentSong(getApplicationContext());
 
-            if (playWhenPrepared) {
-                playWhenPrepared = false;
+            if (autoplay) {
                 playMusic();
             } else {
                 mediaSession.updateMediaSessionPlaybackState(

@@ -38,4 +38,17 @@
         tools:listitem="@layout/fragment_folder"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+    <TextView
+        android:id="@+id/empty_folders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/nav_list"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="24dp"
+        android:fontFamily="@font/eightbitoperator_jve"
+        android:text="No music folders found\n\nPress SCAN FOLDERS to find music"
+        android:textSize="25sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="gone" />
 </RelativeLayout>

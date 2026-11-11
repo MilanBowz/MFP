@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
@@ -22,6 +23,7 @@ public class FolderFragment extends Fragment {
     private RecyclerView recyclerView;
     private FolderAdapter folderAdapter;
     private Button scanBtn;
+    private TextView emptyFolders;
 
     @Nullable
     @Override
@@ -37,16 +39,15 @@ public class FolderFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         recyclerView = view.findViewById(R.id.folder_recyclerview); // Ensure this ID matches the XML
-        if (recyclerView == null) {
-            throw new NullPointerException("RecyclerView is null. Check your layout file for correct ID.");
-        }
+        emptyFolders = view.findViewById(R.id.empty_folders);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         folderAdapter = new FolderAdapter(getContext());
         recyclerView.setAdapter(folderAdapter);
+
+        updateEmptyState();
     }
 
     @Override
@@ -73,4 +74,11 @@ public class FolderFragment extends Fragment {
             }
         });
     }
+    private void updateEmptyState() {
+        boolean empty = SongLibrary.get().folders.isEmpty();
+
+        emptyFolders.setVisibility(empty ? View.VISIBLE : View.GONE);
+        recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
 }

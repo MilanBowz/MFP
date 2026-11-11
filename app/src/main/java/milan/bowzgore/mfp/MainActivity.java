@@ -49,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final int REQUEST_CODE = 123;
-
     private final BroadcastReceiver finishReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -147,26 +146,26 @@ public class MainActivity extends AppCompatActivity {
             );
             if(!startPlaying){
                 // Only initialize playback after the library is ready.
+                ContextCompat.startForegroundService(
+                        this,
+                        new Intent(this, NotificationService.class)
+                                .setAction("INIT")
+                );
                 runOnUiThread(() -> {
                     viewPagerAdapter.showSongs();
-                    ContextCompat.startForegroundService(
-                            this,
-                            new Intent(this, NotificationService.class)
-                                    .setAction("INIT")
-                    );
                 });
             }
             else {
+                ContextCompat.startForegroundService(
+                        this,
+                        new Intent(this, NotificationService.class)
+                                .setAction("INIT_PLAY")
+                );
                 runOnUiThread(() -> {
                     viewPagerAdapter.showSongs();
-                    ContextCompat.startForegroundService(
-                            this,
-                            new Intent(this, NotificationService.class)
-                                    .setAction("INIT_PLAY")
-                    );
+
                 });
             }
-
         });
     }
 

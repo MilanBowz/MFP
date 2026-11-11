@@ -163,7 +163,6 @@ public class PlayingFragment extends Fragment {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
-
                 if(!Objects.equals(action, "TOGGLE_PLAY_MODE")){
                     setMusicResources();
                 }
@@ -311,10 +310,10 @@ public class PlayingFragment extends Fragment {
     private void pausePlay(){
         if (mediaPlayer != null && isPlaying) {
             startMusicService("PAUSE");
-            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
         } else {
             startMusicService("PLAY");
-            pausePlay.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+            pausePlay.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
         }
     }
 

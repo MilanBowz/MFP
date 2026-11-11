@@ -111,12 +111,10 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
             ((FolderFragment) fragment).updateFolderfragment();
         }
     }
-
     public void updateSongsFragment() {
         if (secondPage != SecondPage.SONGS) return;
 
         Fragment fragment = getActiveFragment(SONGS_ID);
-
         if (fragment instanceof SongsFragment
                 && fragment.isAdded()) {
             ((SongsFragment) fragment).updateCurrentSong();
@@ -124,10 +122,8 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     }
 
     public boolean scrollToCurrentSong() {
-
         if (secondPage == SecondPage.FOLDER) {
             showSongs();
-
             viewPager.post(() -> {
                 Fragment fragment = getActiveFragment(SONGS_ID);
                 if (fragment instanceof SongsFragment
@@ -135,13 +131,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
                     ((SongsFragment) fragment).scrollToCurrentSong();
                 }
             });
-
             return true;
         }
 
         if (secondPage == SecondPage.SONGS) {
             Fragment fragment = getActiveFragment(SONGS_ID);
-
             if (fragment instanceof SongsFragment
                     && fragment.isAdded()) {
                 ((SongsFragment) fragment).scrollToCurrentSong();

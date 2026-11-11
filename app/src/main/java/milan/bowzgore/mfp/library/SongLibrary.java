@@ -208,6 +208,10 @@ public class SongLibrary {
         int lastSlashIndex = (tempFolder != null) ? tempFolder.lastIndexOf("/") : -1;
         return (lastSlashIndex != -1) ? tempFolder.substring(lastSlashIndex) : "SONGS";
     }
+    public String getFolderDisplay(String folder) {
+        int lastSlashIndex = (folder != null) ? folder.lastIndexOf("/") : -1;
+        return (lastSlashIndex != -1) ? folder.substring(lastSlashIndex) : "SONGS";
+    }
 
     public void syncTempAndSelectedFolder(String folder){
         this.tempFolder = folder;
