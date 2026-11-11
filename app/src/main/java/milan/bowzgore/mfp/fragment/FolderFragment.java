@@ -67,7 +67,7 @@ public class FolderFragment extends Fragment {
         }
     }
     public void updateFolderfragment(){
-        SongLibrary.get().getAllAudioFromDevice(getContext(), null,false);
+        SongLibrary.get().getAllAudioFromDevice(getContext(), "",false);
         requireActivity().runOnUiThread(() -> {
             if (folderAdapter != null) {
                 folderAdapter.notifyDataSetChanged();

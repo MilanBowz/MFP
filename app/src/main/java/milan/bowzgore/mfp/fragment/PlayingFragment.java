@@ -205,18 +205,15 @@ public class PlayingFragment extends Fragment {
 
             // Only scroll directly when the displayed list matches
             // the currently selected folder/list.
-            if (library.isSyncTempSelectedFolder() && library.currentSong != null && viewPagerAdapter != null) {
+            if (library.currentSong != null && viewPagerAdapter != null) {
                 // Scroll after SongsFragment becomes visible.
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    if (!isAdded()) return;
-                    if(viewPagerAdapter.scrollToCurrentSong()){
-                        Toast.makeText(
-                                requireContext(),
-                                "Showing current song in the list",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
-                }, 250);
+                if(viewPagerAdapter.scrollToCurrentSong()){
+                    Toast.makeText(
+                            requireContext(),
+                            "Showing current song in the list",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
             return false;
         });

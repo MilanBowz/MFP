@@ -98,6 +98,43 @@ public class SongLibrary {
             Log.d("SongLibrary", "Number of songs fetched: " + audioModels.size());
         songsList = audioModels;
     }
+    private void getAllFolders(Context context) {
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        String[] projection = {
+                MediaStore.Audio.AudioColumns.DATA
+        };
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+        Set<String> musicFolders = new HashSet<>();
+
+        try (Cursor cursor = context.getContentResolver().query(
+                uri, projection, selection, null, null)) {
+            if (cursor != null) {
+                int dataIndex = cursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.AudioColumns.DATA
+                );
+                while (cursor.moveToNext()) {
+                    String filePath = cursor.getString(dataIndex);
+
+                    if (filePath == null) continue;
+
+                    int lastSlash = filePath.lastIndexOf("/");
+
+                    if (lastSlash > 0) {
+                        musicFolders.add(filePath.substring(0, lastSlash));
+                    }
+                }
+                folders.clear();
+                folders.addAll(musicFolders);
+                Collections.sort(folders);
+            } else {
+                Log.w("SongLibrary", "MediaStore returned a null cursor");
+            }
+        } catch (Exception e) {
+            Log.e("SongLibrary", "Error fetching folders", e);
+        }
+        Log.d("SongLibrary", "Folders found: " + folders.size());
+        return ;
+    }
 
     public List<AudioModel> getTempAudioFromDevice(Context context) {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -142,15 +179,18 @@ public class SongLibrary {
     }
 
     public void getAllAudioFromDevice(final Context context, final String folderPath,final boolean song) {
-        getAllAudioFromDevice(context, folderPath);
         if (song) {
+            getAllAudioFromDevice(context, folderPath);
             tempFolder = folderPath;
             currentSong = songsList.stream()
                     .filter(audio -> audio.getPath().equals(currentSong.getPath()))
                     .findFirst()
                     .orElse(null);
+            PowerHandler.setPlayMode();
         }
-        PowerHandler.setPlayMode();
+        else {
+            getAllFolders(context);
+        }
         return ;
     }
 

@@ -127,12 +127,6 @@ public class NotificationService extends Service {
                     break;
                 case "INIT":
                     if(!playerPrepared){
-                        if(PowerHandler.currentMode == 2){
-                            if(SongLibrary.get().shuffledList.isEmpty()){
-                                SongLibrary.get().makeRandomList();
-                            }
-                        }
-                        showNotification();
                         loadSong(false,0);
                     }
                     else {
@@ -147,12 +141,6 @@ public class NotificationService extends Service {
                     }
                     break;
                 case "INIT_PLAY":
-                    if(PowerHandler.currentMode == 2 &&
-                            (SongLibrary.get().shuffledList.isEmpty() ||
-                                    !SongLibrary.get().isSyncTempSelectedFolder())){
-                            SongLibrary.get().makeRandomList();
-                    }
-                    showNotification();
                     loadSong(true,0);
                     break;
                 case "STOP":

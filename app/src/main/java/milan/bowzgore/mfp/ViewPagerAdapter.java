@@ -135,6 +135,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         }
 
         if (secondPage == SecondPage.SONGS) {
+            showSongs();
             Fragment fragment = getActiveFragment(SONGS_ID);
             if (fragment instanceof SongsFragment
                     && fragment.isAdded()) {

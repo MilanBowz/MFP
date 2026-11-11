@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
         if (model == null) {
             executorService.execute(() -> {
                 SongLibrary.get().getAllAudioFromDevice(
-                        this, null, false
+                        this, "", false
                 );
                 runOnUiThread(() -> viewPagerAdapter.showFolder());
             });
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setAction("INIT")
                 );
                 runOnUiThread(() -> {
-                    viewPagerAdapter.showSongs();
+                    viewPagerAdapter.scrollToCurrentSong();
                 });
             }
             else {
@@ -162,8 +162,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setAction("INIT_PLAY")
                 );
                 runOnUiThread(() -> {
-                    viewPagerAdapter.showSongs();
-
+                    viewPagerAdapter.scrollToCurrentSong();
                 });
             }
         });

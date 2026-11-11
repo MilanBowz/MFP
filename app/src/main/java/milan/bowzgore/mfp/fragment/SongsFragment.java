@@ -181,9 +181,14 @@ public class SongsFragment extends Fragment {
     }
 
     public void scrollToCurrentSong() {
-        if (adapter == null || recyclerView == null) return;
+        SongLibrary library = SongLibrary.get();
+        if (recyclerView == null || adapter == null | !isAdded()) return;
 
-        AudioModel current = SongLibrary.get().currentSong;
+        if(!library.isSyncTempSelectedFolder()){
+            reloadFolder();
+        }
+
+        AudioModel current = library.currentSong;
         if (current == null) return;
 
         List<AudioModel> displayedSongs = adapter.items;
@@ -210,12 +215,20 @@ public class SongsFragment extends Fragment {
         }
     }
 
+
     public void reloadFolder() {
         if (recyclerView == null || !isAdded()) return;
 
+        SongLibrary.get().syncTempAndSelectedFolder(SongLibrary.get().selectedFolder);
         textFolder.setText(SongLibrary.get().getFolderDisplay());
+
+        if (searchSong != null) {
+            searchSong.setQuery("", false);
+            searchSong.clearFocus();
+        }
+
         adapter = new SongAdapter(requireContext());
         recyclerView.setAdapter(adapter);
-
     }
+
 }
