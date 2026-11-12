@@ -42,11 +42,14 @@ public class NotificationService extends Service {
     private final Runnable progressUpdater = new Runnable() {
         @Override
         public void run() {
-            if (!isPlaying || !playerPrepared || mediaPlayer == null || mediaSession == null) {
+            if (!isPlaying || !playerPrepared ) {
                 return;
             }
 
-            if (mediaPlayer.isPlaying()) {
+            if (playerPrepared &&
+                    mediaPlayer != null &&
+                    mediaSession != null &&
+                    mediaPlayer.isPlaying()) {
                 mediaSession.updateMediaSessionPlaybackState(
                         PlaybackStateCompat.STATE_PLAYING
                 );
@@ -266,7 +269,6 @@ public class NotificationService extends Service {
         isPlaying = false;
 
         stopProgressUpdates();
-
         mediaPlayer.setOnPreparedListener(null);
         mediaPlayer.setOnCompletionListener(null);
         mediaPlayer.reset();
@@ -317,11 +319,9 @@ public class NotificationService extends Service {
                 playerPrepared = false;
                 isPlaying = false;
                 stopProgressUpdates();
-
                 Log.e("NotificationService",
                         "MediaPlayer error: " + what + ", " + extra);
             }
-
             return true;
         });
 
@@ -346,10 +346,9 @@ public class NotificationService extends Service {
             mediaPlayer.start();
         }
         isPlaying = true;
-        mediaSession.updateMediaSessionPlaybackState(
-                PlaybackStateCompat.STATE_PLAYING
-        );
+
         mediaSession.updateMetadata();
+
         showNotification();
         startProgressUpdates();
     }
@@ -363,11 +362,9 @@ public class NotificationService extends Service {
         lastPosition = mediaPlayer.getCurrentPosition();
         isPlaying = false;
         stopProgressUpdates();
-        mediaSession.updateMediaSessionPlaybackState(
-                PlaybackStateCompat.STATE_PAUSED
-        );
 
         mediaSession.updateMetadata();
+        updateNotificationProgress();
         showNotification();
     }
 

@@ -87,11 +87,12 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         if (secondPage != SecondPage.SONGS) {
             secondPage = SecondPage.SONGS;
             notifyItemChanged(1);
-        }
-        else{
-            // its prob another folder reinit or change values similar to init
+        } else {
             Fragment fragment = getActiveFragment(SONGS_ID);
-            ((SongsFragment) fragment).reloadFolder();
+            if (fragment instanceof SongsFragment songsFragment
+                    && songsFragment.isAdded()) {
+                songsFragment.reloadFolder();
+            }
         }
     }
 
@@ -106,11 +107,12 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     public void updateFolderFragment() {
         if (secondPage != SecondPage.FOLDER) return;
         Fragment fragment = getActiveFragment(FOLDER_ID);
-        if (fragment instanceof FolderFragment
-                && fragment.isAdded()) {
-            ((FolderFragment) fragment).updateFolderfragment();
+        if (fragment instanceof FolderFragment folderFragment
+                && folderFragment.isAdded()) {
+            folderFragment.refreshFolders();
         }
     }
+
     public void updateSongsFragment() {
         if (secondPage != SecondPage.SONGS) return;
 

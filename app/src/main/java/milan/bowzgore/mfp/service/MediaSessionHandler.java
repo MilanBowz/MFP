@@ -11,13 +11,14 @@ import android.os.Bundle;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 import android.view.KeyEvent;
 
 import androidx.core.content.ContextCompat;
 
 import milan.bowzgore.mfp.R;
 import milan.bowzgore.mfp.library.SongLibrary;
-
+import android.os.SystemClock;
 class MediaSessionHandler {
 
     private final Context context;
@@ -40,6 +41,7 @@ class MediaSessionHandler {
         if (!NotificationService.playerPrepared || mediaPlayer == null || mediaSession == null) {
             return;
         }
+        int position = mediaPlayer.getCurrentPosition();
         PlaybackStateCompat.CustomAction modeAction =
                 switch (PowerHandler.currentMode) {
                     case PowerHandler.MODE_LOOP_ALL ->
@@ -77,12 +79,17 @@ class MediaSessionHandler {
                         .addCustomAction(modeAction)
                         .setState(
                                 state,
-                                mediaPlayer.getCurrentPosition(),
-                                state == PlaybackStateCompat.STATE_PLAYING ? 1.0f : 0.0f
+                                position,
+                                state == PlaybackStateCompat.STATE_PLAYING ? 1.0f : 0.0f,
+                                SystemClock.elapsedRealtime()
                         )
                         .build();
         mediaSession.setActive(true);
         mediaSession.setPlaybackState(playbackState);
+        Log.d("MEDIA_SESSION",
+                "Metadata published: " +
+                        "title=" + SongLibrary.get().currentSong.getTitle() +
+                        ", position=" + position);
     }
 
     void updateMetadata() {
@@ -92,6 +99,9 @@ class MediaSessionHandler {
                 mediaSession == null) {
             return;
         }
+
+        long duration = mediaPlayer.getDuration();
+        if (duration <= 0) return;
 
         MediaMetadataCompat metadata =
                 new MediaMetadataCompat.Builder()
@@ -105,11 +115,16 @@ class MediaSessionHandler {
                         )
                         .putLong(
                                 MediaMetadataCompat.METADATA_KEY_DURATION,
-                                mediaPlayer.getDuration()
+                                duration
                         )
                         .build();
 
         mediaSession.setMetadata(metadata);
+        // Refresh playback position after publishing the duration
+        updateMediaSessionPlaybackState(
+                NotificationService.isPlaying
+                        ? PlaybackStateCompat.STATE_PLAYING
+                        : PlaybackStateCompat.STATE_PAUSED);
     }
 
     MediaSessionCompat.Token getSessionToken() {

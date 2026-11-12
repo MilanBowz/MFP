@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setVisibility(View.GONE);
         viewPager.setOffscreenPageLimit(1);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        bottomNavigationView.setVisibility(View.INVISIBLE);
         PowerHandler.loadPlayMode(this);
         viewPagerAdapter = new ViewPagerAdapter(this);
         viewPager.setAdapter(viewPagerAdapter);
@@ -121,7 +122,10 @@ public class MainActivity extends AppCompatActivity {
                 SongLibrary.get().getAllAudioFromDevice(
                         this, "", false
                 );
-                runOnUiThread(() -> viewPagerAdapter.showFolder());
+                runOnUiThread(() -> {
+                    viewPagerAdapter.showFolder();
+                    viewPagerAdapter.updateFolderFragment();
+                });
             });
             return;
         }
@@ -259,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
     private void loadStartupSong() {
         Uri uri = getIntent().getData();
         viewPager.setVisibility(View.VISIBLE);
+        bottomNavigationView.setVisibility(View.VISIBLE);
         if (uri != null) {
             handleAudioFile(uri);
         } else {
@@ -300,5 +305,16 @@ public class MainActivity extends AppCompatActivity {
         viewPager = null;
         viewPagerAdapter = null;
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ContextCompat.startForegroundService(
+                this,
+                new Intent(this, NotificationService.class)
+                        .setAction("INIT")
+        );
+    }
+
 
 }

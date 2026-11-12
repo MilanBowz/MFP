@@ -68,17 +68,20 @@ public class FolderFragment extends Fragment {
     }
     public void updateFolderfragment(){
         SongLibrary.get().getAllAudioFromDevice(getContext(), "",false);
-        requireActivity().runOnUiThread(() -> {
-            if (folderAdapter != null) {
-                folderAdapter.notifyDataSetChanged();
-            }
-        });
+        refreshFolders();
     }
     private void updateEmptyState() {
         boolean empty = SongLibrary.get().folders.isEmpty();
 
         emptyFolders.setVisibility(empty ? View.VISIBLE : View.GONE);
         recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
+    public void refreshFolders() {
+        if (folderAdapter == null || recyclerView == null) return;
+
+        folderAdapter.notifyDataSetChanged();
+        updateEmptyState();
     }
 
 }

@@ -218,7 +218,6 @@ public class SongsFragment extends Fragment {
 
     public void reloadFolder() {
         if (recyclerView == null || !isAdded()) return;
-
         SongLibrary.get().syncTempAndSelectedFolder(SongLibrary.get().selectedFolder);
         textFolder.setText(SongLibrary.get().getFolderDisplay());
 

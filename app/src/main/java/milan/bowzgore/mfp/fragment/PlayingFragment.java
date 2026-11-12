@@ -382,11 +382,6 @@ public class PlayingFragment extends Fragment {
         LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(new Intent("TOGGLE_PLAY_MODE"));
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-    }
-
     private void updateIndexNumber() {
         if (!isAdded()) return;
 
@@ -516,8 +511,8 @@ public class PlayingFragment extends Fragment {
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
+    public void onDestroy() {
+        super.onDestroy();
         // Stop UI progress updates while the fragment is paused.
         fragmentActive = false;
         handler.removeCallbacks(progressRunnable);
