@@ -1,8 +1,6 @@
 package milan.bowzgore.mfp.fragment;
 
 import static android.app.Activity.RESULT_OK;
-import static android.content.Context.MODE_PRIVATE;
-import static milan.bowzgore.mfp.MainActivity.viewPager;
 import static milan.bowzgore.mfp.MainActivity.viewPagerAdapter;
 import static milan.bowzgore.mfp.service.NotificationService.isPlaying;
 import static milan.bowzgore.mfp.service.NotificationService.mediaPlayer;
@@ -20,10 +18,6 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -31,7 +25,6 @@ import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -58,7 +51,6 @@ import milan.bowzgore.mfp.service.PowerHandler;
 import static milan.bowzgore.mfp.service.PowerHandler.currentMode;
 
 public class PlayingFragment extends Fragment {
-
     private TextView titleTv, currentTimeTv, totalTimeTv,indexNumberTv ;
     private ImageView pausePlay,nextBtn,previousBtn,musicIcon,togglePlayMode;
     private SeekBar seekBar;
@@ -181,6 +173,7 @@ public class PlayingFragment extends Fragment {
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction("UPDATE");
+        filter.addAction("TOGGLE_PLAY_MODE");
         filter.addAction("PLAYER_READY");
         LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, filter);
 
