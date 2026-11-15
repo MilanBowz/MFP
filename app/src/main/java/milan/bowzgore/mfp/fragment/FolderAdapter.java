@@ -53,9 +53,7 @@ class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderViewHolder>
         // Update text color based on selection
         if (Objects.equals(songLibrary.selectedFolder, folderName)) {
             holder.itemView.setBackground(
-                    ContextCompat.getDrawable(context, PowerHandler.currentMode == 2
-                            ? R.drawable.dashed_border_selected2
-                            : R.drawable.dashed_border_selected)
+                    ContextCompat.getDrawable(context, R.drawable.dashed_border_selected)
             );
         }
         else {
