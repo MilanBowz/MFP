@@ -18,9 +18,6 @@ import android.widget.TextView;
 import java.util.Objects;
 
 import milan.bowzgore.mfp.R;
-import milan.bowzgore.mfp.ViewPagerAdapter;
-import milan.bowzgore.mfp.service.PowerHandler;
-import java.io.File;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link String}.

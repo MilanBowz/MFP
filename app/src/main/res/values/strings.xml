@@ -13,4 +13,6 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="Download">Download</string>
     <string name="music_cover">music cover</string>
+    <string name="select_new_cover_art">Select New Cover Art</string>
+    <string name="save_coverart">Save Coverart</string>
 </resources>
