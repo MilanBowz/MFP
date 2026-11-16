@@ -15,6 +15,7 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import milan.bowzgore.mfp.library.SongLibrary;
 
@@ -131,55 +132,37 @@ public class PowerHandler {
             wakeLock.acquire(360*60*1000L /* 300 minutes / 5 hours */);
         }
     }
+
     private void setupBroadcast() {
-            headsetReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    String action = intent.getAction();
-                    // Handle wired headset
-                    if (Intent.ACTION_HEADSET_PLUG.equals(action) && isInitialized) {
-                        //pauseMusic(); // Headset is unplugged, pause music
+        headsetReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)) {
+                    Log.d("HEADSET", "Audio becoming noisy - pausing music");
+                    startMusicService("PAUSE");
+                }
+                // Wired headphones disconnected
+                else if (Intent.ACTION_HEADSET_PLUG.equals(action)) {
+                    int state = intent.getIntExtra("state", -1);
+                    if (state == 0) {
+                        Log.d("HEADSET", "Wired headphones disconnected");
                         startMusicService("PAUSE");
                     }
-                    // Handle Bluetooth device connection
-                    if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        if (device != null && isSpeaker(device)) {
-                            startMusicService("PAUSE"); // Pause music when Bluetooth audio speaker connects
-                        }
-                    }
-                    // Handle Bluetooth device disconnection
-                    if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        if (device != null) {
-                            startMusicService("PAUSE");
-                        }
-                    }
-                    isInitialized = true;
                 }
-            };
-        try {
-            IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
-            filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED); // Add Bluetooth connection events
-            filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-            context.registerReceiver(headsetReceiver, filter);
-        } catch (IllegalArgumentException e) {
-            Log.println(Log.ERROR, "PowerHandler", "PowerHandler register error"); // Handle case where receiver is not registered
-        }
-
-    }
-
-    private boolean isSpeaker(BluetoothDevice device) {
-        // Check if the device is a speaker
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-            if (device.getBluetoothClass() != null) {
-                int deviceClass = device.getBluetoothClass().getDeviceClass();
-                return deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
-                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER;
             }
-        }
-        return false;
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
+        ContextCompat.registerReceiver(
+                context,
+                headsetReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+        );
     }
+    
     public static void setPlayMode() {
         if (currentMode == MODE_RANDOM) {
             SongLibrary.get().makeRandomList();
